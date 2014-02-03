@@ -1,5 +1,5 @@
 ''' 
-Copyright (C) 2011-2012 German Aerospace Center DLR
+Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
 Institute of System Dynamics and Control
 All rights reserved.
@@ -77,6 +77,7 @@ class IntegrationSettings():
         self.resultFileIncludeDerivatives = True
         self.resultFileIncludeParameters = True
         self.resultFileIncludeAuxiliaries = True
+        self.resultFileIncludeEvents = True
 
 
 class IntegrationStatistics():
@@ -107,13 +108,15 @@ class VariableTree():
 class TreeVariable():
     ''' Holds information (necessary to build a variable tree) for a single variable    
     '''
-    def __init__(self, value, valueEdit, unit, variability, attribute):
+    def __init__(self, browserName, value, valueEdit, unit, variability, attribute):
         #                                Types:
+        self.browserName = browserName   # String
         self.value = value               # Different types, e.g. Real, Integer, Boolean, String
         self.valueEdit = valueEdit       # Boolean
         self.unit = unit                 # String
         self.variability = variability   # String
         self.attribute = attribute       # String
+
 
 
 class Model():
@@ -124,7 +127,11 @@ class Model():
         ''' Function is called when closing the model.
             Resources used by the model instance should be released.        
         '''
-        pass
+        # Close the result file (if any)
+        try:
+            self.integrationResults.close()
+        except:
+            pass
 
     def duplicate(self):
         '''  Function is called when duplicating a model in the Variables Browser        
@@ -139,9 +146,9 @@ class Model():
         theCopy.pluginData = dict() # new instance of pluginData dictionary
         return theCopy
 
-    def __init__(self, modelName, modelFileName, modelType):
+    def __init__(self, modelName, modelFileName, modelType, config):
         ''' Constructor initializes some class variables.
-            Type of modelName, modelFileName, modelType:  String
+            Type of modelName, modelType:  String;     modelFileName: List of Strings 
         '''
         self.fileName = modelFileName
         self.name = modelName
@@ -152,6 +159,7 @@ class Model():
         self.variableTree = VariableTree()
         self.changedStartValue = dict()
         self.pluginData = dict()
+        self.config = config 
     
 
     def loadResultFile(self, fileName):
@@ -161,12 +169,10 @@ class Model():
         if os.path.exists(fileName):
             sp = string.rsplit(fileName, '.', 1)
             suffix = sp[1]
-            if suffix == 'mat':
-                import Plugins.SimulationResult.DymolaMat.DymolaMat as DymolaMat
-                self.integrationResults = DymolaMat.loadDymolaResult(fileName)
-            elif suffix == 'mtsf':
-                import Plugins.SimulationResult.Mtsf.Mtsf as Mtsf
-                self.integrationResults = Mtsf.MTSF(fileName)
+            import Plugins.SimulationResult as SimulationResult         
+            if suffix in SimulationResult.fileExtension:
+                i = SimulationResult.fileExtension.index(suffix)                
+                self.integrationResults = SimulationResult.plugin[i].Results(fileName)                
             else:
                 # Dummy object
                 self.integrationResults = IntegrationResults.Results()
@@ -208,33 +214,113 @@ class Model():
             Normally, Simulator plugins overload this function and provide their own functions for variable trees of MODELS.
             
             The function generates an instance of the class VariableTree and stores it in self.variableTree.
-            It transform ResultVariables to TreeVariables. 
+            It transforms ResultVariables to TreeVariables. 
         '''
         # Generate variable tree from result file information
         variables = self.integrationResults.getVariables()
         fileInfos = self.integrationResults.getFileInfos()
+        fileInfosList = [(x,y) for x,y in fileInfos.iteritems()]
+        fileInfosList.sort()
         lenList = [len(x) for x in fileInfos.keys()]
         if len(lenList) > 0:
             maxLength = max(lenList)
         else:
             maxLength = 0
         tipText = ''
-        for group, info in fileInfos.items():
+        for x in fileInfosList:
+            group = x[0]
+            info = x[1]
             tipText = tipText + group + ":" + ' ' * (maxLength - len(group)) + chr(9) + info + '\n'
         if len(tipText) > 0:
             tipText = tipText[:-1]  # Delete last \n
         self.variableTree.rootAttribute = tipText
         valueEdit = False  # No editing for result files
-        for vName, v in variables.items():
+        for vName, v in variables.iteritems():
             vinfos = ''
-            for group, info in v.infos.items():
+            for group, info in v.infos.iteritems():
                 vinfos = vinfos + group + ":" + chr(9) + info + '\n'
             if len(vinfos) > 0:
                 vinfos = vinfos[:-1]  # Delete last \n
             if len(vinfos) == 0:
                 vinfos = None
-            self.variableTree.variable[vName] = TreeVariable(v.value, valueEdit, v.unit, v.variability, vinfos)
+            self.variableTree.variable[vName] = TreeVariable(self.structureVariableName(vName), v.value, valueEdit, v.unit, v.variability, vinfos)
    
+    
+    def structureVariableName(self, name):
+        name2 = name
+       
+        ''' der '''
+        nDer = name2.count('der(')        
+        if nDer > 0:
+            a = []                     
+                         
+            c = name2.rsplit(',', 1) # Check for der(a.b.c.d, 3) or a.b.c.der(d, 3)     
+            if len(c) > 1:
+                d = c[1].replace(' ', '')
+                if len(d) > 1:
+                    if d[-1] == ')' and d[:-1].isdigit():
+                        p1 = 'der('
+                        p2 = ',' + c[1]
+                        i = name2.find('der(')
+                        if i > -1:
+                            if i == 0:  # der(a.b.c.d, 3)
+                                a = c[0][4:].rsplit('.', 1)                                                                       
+                            else:  # a.b.c.der(d, 3)
+                                a = c[0].split('der(')
+                                if a[0][-1] == '.':
+                                    a[0] = a[0][:-1]
+                                else:
+                                    a = []   
+                                        
+            if len(a) == 0 and name2[-nDer:] == ')'*nDer:  # Plausibility check for der(der(der(Variablename))) or a.b.c.der(der(der(d)))                       
+                i = name2.find('der('*nDer)                
+                if i > -1:
+                    p1 = 'der('*nDer
+                    p2 = ')'*nDer
+                    if i == 0: # der(der(der(...)))
+                        a = name2[4*nDer:-nDer].rsplit('.', 1)                       
+                    else: # a.b.c.der(der(der(...)))
+                        a = name2[:-nDer].split('der('*nDer)
+                        if a[0][-1] == '.':
+                            a[0] = a[0][:-1]
+                        else:
+                            a = []                                     
+                                
+            if len(a) > 0:
+                if len(a) == 1:
+                    p0 = ''
+                    p12 = a[0]
+                else:
+                    p0 = a[0] + '.'
+                    p12 = a[1]                
+                if '[' in p12: # p12 = d[4,6,8,9]
+                    b = p12.split('[', 1)
+                    name2 = p0 + p1 + b[0] + p2 + '[' + b[1]
+                else: # p12 = d
+                    name2 = p0 + p1 + p12 + p2                        
+                  
+                        
+        '''  Arrays '''
+        a = name2.split('.')
+        name2 = ''        
+        for k, b in enumerate(a):
+            part = b
+            i1 = b.find('[')
+            if i1 > -1:
+                i2 = b.rfind(']')
+                if i2 > i1:
+                    c = b[i1:i2+1]
+                    c = c.replace(' ', '')
+                    c = c.replace(',', '][')
+                    part = b[:i1] + c + b[i2+1:]
+            if k > 0:
+                name2 = name2 + '.'
+            name2 = name2 + part                
+        name2 = name2.replace('[', '.[')
+        
+        return name2
+
+
     
     def getReachedSimulationTime(self):
         ''' Results are avialable up to the returned time        
@@ -299,4 +385,10 @@ class Model():
         raise NameError('Not implemented.')
         #return status, nextTimeEvent
 
+    
+def prepareSimulationList(fileName, name, config):
+    pass
+    
+    
+    
     

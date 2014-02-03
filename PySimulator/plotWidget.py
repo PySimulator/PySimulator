@@ -1,6 +1,6 @@
-''' 
-Copyright (C) 2011-2012 German Aerospace Center DLR
-(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
+'''
+Copyright (C) 2011-2014 German Aerospace Center DLR
+(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
 
@@ -76,6 +76,7 @@ class plotContainer(QtGui.QWidget):
     activeWidget = None
     columns = 0
     rows = 0
+    firstWidget = 0
 
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
@@ -103,6 +104,7 @@ class plotContainer(QtGui.QWidget):
         self.activeWidget = widget
         widget.setActive()
         self.activeWidgetChanged.emit(widget)
+        self.firstWidget = widget
 
     def addRight(self, parent, context):
         ''' Adds a new column of plots to the right
@@ -131,6 +133,43 @@ class plotContainer(QtGui.QWidget):
             self.activeWidget = widget
             widget.setActive()
             self.activeWidgetChanged.emit(widget)
+
+    def removeActive(self):
+        if self.activeWidget == self.firstWidget:
+            print("First widget of plot view can't be deleted")
+            return
+        self.layout().removeWidget(self.activeWidget)
+        self.activeWidget.deleteLater()
+        self.activeWidget = self.firstWidget
+        if (self.activeWidget):
+                self.activeWidget.setDeactive()
+        self.firstWidget.setActive()
+        self.activeWidgetChanged.emit(self.activeWidget)
+
+    def removeRight(self):
+        if self.columns == 0:
+            return
+        for row in range(0, self.rows + 1):
+            self.layout().itemAtPosition(row, self.columns).widget().deleteLater()
+        self.columns -= 1
+        self.activeWidget = self.firstWidget
+        if (self.activeWidget):
+                self.activeWidget.setDeactive()
+        self.firstWidget.setActive()
+        self.activeWidgetChanged.emit(self.activeWidget)
+
+    def removeBottom(self):
+        if self.rows == 0:
+            return
+        for col in range(0, self.columns + 1):
+            self.layout().itemAtPosition(self.rows, col).widget().deleteLater()
+        self.rows -= 1
+        self.activeWidget = self.firstWidget
+        if (self.activeWidget):
+                self.activeWidget.setDeactive()
+        self.firstWidget.setActive()
+        self.activeWidgetChanged.emit(self.activeWidget)
+
 
     @QtCore.Slot()
     def _changeActive(self):
@@ -166,22 +205,22 @@ class activationHandler(AbstractController):
 def getColor(plots):
     ''' Returns a color and linestyle from a list of colors and linestyles
         Used for plot lines
-    '''        
-    if len(plots) > 0:    
+    '''
+    if len(plots) > 0:
         c = dict()
         for style in getColor.styles:
-            for color in getColor.colors:            
-                c[color+style] = 0
+            for color in getColor.colors:
+                c[color + style] = 0
         for plot in plots.values():
-            c[plot[0].color+plot[0].linestyle] += 1
+            c[plot[0].color + plot[0].linestyle] += 1
         cMin = min(c.values())
-        for style in getColor.styles:       
-            for color in getColor.colors:            
-                if c[color+style] == cMin:                    
+        for style in getColor.styles:
+            for color in getColor.colors:
+                if c[color + style] == cMin:
                     return color, style
     else:
         return getColor.colors[0], getColor.styles[0]
-                     
+
 getColor.colors = ['blue', 'red', 'green', 'magenta', 'cyan', 'gold', 'black', 'brown']
 getColor.styles = ['solid', 'long dash']
 
@@ -598,18 +637,18 @@ class tickGenerator(AbstractTickGenerator):
         step = ticks.tick_intervals(data_low, data_high, steps)
         retData = []
         retLabels = []
-        if  exp > 3 or exp < -2:
+        if exp > 3 or exp < -2:
             retData.append(data_high)
             tmp = "[10^" + str(int(exp)) + "]"
             if self.orientation == "h":
                 tmp += "       "
             retLabels.append(tmp)
         pos0 = ticks.calc_bound(data_high, step, True)
-        pos= pos0
+        pos = pos0
         i = 0
         while (pos - step > data_low):
             i += 1
-            pos = pos0 - i*step
+            pos = pos0 - i * step
             retData.append(pos)
             if exp > 3 or exp < -2:
                 retLabels.append('{:g}'.format(pos / math.pow(10, exp)))
@@ -647,7 +686,7 @@ class DefaultPlotWidget(PlotWidget):
     def activatePlot(self):
         # some parts cause problems on initialization
         self.plot.legend.visible = True
-        self.plot.overlays.append(TimeMarker(self.plot))
+        #self.plot.overlays.append(TimeMarker(self.plot))
         self.plot.overlays.append(axisZoom(self.plot))
         self.plot.tools.append(NonAxisPan(self.plot))
         self.plot.overlays.append(Selector(self.plot, self))
@@ -686,7 +725,7 @@ class DefaultPlotWidget(PlotWidget):
             self.plot.data.set_data(model.numberedModelName + ":" + variable + ".values", x)
             self.plot.data.set_data(model.numberedModelName + ":" + variable + ".time", y)
             lPlots = self.plot.legend.plots
-            name = self._idVariableUnit(model, variable)           
+            name = self._idVariableUnit(model, variable)
             color, style = getColor(self.plot.plots)
             p = self.plot.plot((model.numberedModelName + ":" + variable + ".time", model.numberedModelName + ":" + variable + ".values"), name=name, color=color, linestyle=style, line_width=1.5, render_style=("connectedhold" if interpolationMethod == "constant" else "connectedpoints"))
             legendLabel = self._idVariableUnit(model, variable, dPoints)
@@ -713,31 +752,31 @@ class DefaultPlotWidget(PlotWidget):
         self.plot.request_redraw()
 
     def removeVariable(self, model, variable):
-        PlotWidget.removeVariable(self, model, variable)      
+        PlotWidget.removeVariable(self, model, variable)
         name = self._idVariableUnit(model, variable)
         if name in self.plot.plots:
             lPlots = self.plot.legend.plots
             self.plot.delplot(name)
             legendLabel = self.plot.legendLabel[name]
             del(self.plot.legendLabel[name])
-            del(lPlots[legendLabel])            
-            del(self.plot.legend.labels[self.plot.legend.labels.index(legendLabel)])                        
+            del(lPlots[legendLabel])
+            del(self.plot.legend.labels[self.plot.legend.labels.index(legendLabel)])
             self.plot.legend.plots = lPlots
             self.plot.data.del_data(model.numberedModelName + ":" + variable + ".values")
             self.plot.data.del_data(model.numberedModelName + ":" + variable + ".time")
         self.plot.request_redraw()
 
     def updateVariable(self, model, variable):
-        name = self._idVariableUnit(model, variable)        
+        name = self._idVariableUnit(model, variable)
         if not name in self.plot.plots:
             self.addVariable(model, variable)
         else:
             dPoints = 1
             y, x, interpolationMethod = model.integrationResults.readData(variable)
             if x is None:
-            	return
+                return
             if len(x) > self.maxDisplayPoints:
-                dPoints = max(1,math.ceil(float(len(x)) / self.maxDisplayPoints))
+                dPoints = max(1, math.ceil(float(len(x)) / self.maxDisplayPoints))
                 x = x[::dPoints]
                 y = y[::dPoints]
             self.plot.data.set_data(model.numberedModelName + ":" + variable + ".values", x)
@@ -748,9 +787,9 @@ class DefaultPlotWidget(PlotWidget):
                 legendLabelOld = self.plot.legendLabel[name]
                 self.plot.legendLabel[name] = legendLabel
                 index = self.plot.legend.labels.index(legendLabelOld)
-                self.plot.legend.labels[index] = legendLabel             
+                self.plot.legend.labels[index] = legendLabel
                 self.plot.legend.plots[legendLabel] = self.plot.legend.plots[legendLabelOld]
-                del(self.plot.legend.plots[legendLabelOld])              
+                del(self.plot.legend.plots[legendLabelOld])
             self.plot.request_redraw()
 
 

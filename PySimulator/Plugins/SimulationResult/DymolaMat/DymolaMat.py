@@ -1,5 +1,5 @@
 ''' 
-Copyright (C) 2011-2012 German Aerospace Center DLR
+Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
 Institute of System Dynamics and Control
 All rights reserved.
@@ -29,52 +29,109 @@ class UnknownIndex         (Exception): pass
 class UnknownArgument      (Exception): pass
 class WrongDymolaResultFile(Exception): pass
 
+fileExtension = 'mat'
+description = 'Dymola Simulation Result File'
+
 
 def charArrayToStrList(charArray):
     """Transform a numpy character array to a list of strings
     """
     strList = []
-    for item in charArray:
-        strList.append(str(string.rstrip(string.join(item,""))))
+    for item in charArray:        
+        strList.append(str(string.rstrip(string.join([x for x in item if len(x)>0 and ord(x) < 128],""))))
     return strList
 
-
-def convertDer(variableName):
-    ''' Converts a variable name  a.b.c.d_(der)  to  a.b.c.der(d)
-        If no "_(der)" is contained in variableName, the name
-        is returned unchanged.
-    '''    
-    x = variableName
-    x = x.replace('.[', '[')
-    if len(x) > 6:
-        if x[-6:] == '_(der)':
-            x= x[:-6]
-            k = x.rfind('.')
-            if k > -1:
-                x = x[:k] + '.der(' + x[k+1:] + ')'
-            else:
-                x = 'der(' + x + ')'
-    return x    
         
-class DymolaResult(IntegrationResults.Results):
+class Results(IntegrationResults.Results):
     """ Result Object to hold a Dymola result file, see also
         class IntegrationResults.Results
     """
-    def __init__(self, fileName, name, description, unit, dataInfo, data):
-        IntegrationResults.Results.__init__(self)
-        if fileName is not None:
-            if fileName is not '':
-                self.isAvailable = True
+    def __init__(self, fileName):
+        IntegrationResults.Results.__init__(self)        
                 
         # Not possible to load data from a partially written mat-file
         self.canLoadPartialData = False
         
         self.fileName     = fileName
+        
+        if fileName is None:
+            return
+        if fileName is '':
+            return
+              
+        # Check if fileName exists
+        if not os.path.isfile(fileName):
+            raise FileDoesNotExist("File '" + fileName + "' does not exist")
+        
+        # Determine complete file name
+        fullFileName = os.path.abspath(fileName)
+    
+        # Read data from file
+        fileData = scipy.io.loadmat(fullFileName, matlab_compatible=True)
+        
+        # Check Aclass array
+        if not("Aclass" in fileData):
+            raise WrongDymolaResultFile("Matrix 'Aclass' is missing in result file " + fullFileName)
+        Aclass  = charArrayToStrList( fileData["Aclass"] ) 
+        if len(Aclass) < 3:
+            raise WrongDymolaResultFile("Matrix 'Aclass' has not 3 or more rows in result file " + fullFileName)
+        if Aclass[1] != "1.1":
+            raise WrongDymolaResultFile("Amatrix[1] is not '1.1' in result file " + fullFileName)
+       
+        # Check whether other matrices are on the result file
+        if not("name" in fileData):
+            raise WrongDymolaResultFile("Matrix 'name' is not in result file " + fullFileName)
+        if not("description" in fileData):
+            raise WrongDymolaResultFile("Matrix 'description' is not in result file " + fullFileName)
+        if not("dataInfo" in fileData):
+            raise WrongDymolaResultFile("Matrix 'dataInfo' is not in result file " + fullFileName)
+        if not("data_1" in fileData):
+            raise WrongDymolaResultFile("Matrix 'data_1' is not in result file " + fullFileName)
+        if not("data_2" in fileData):
+            raise WrongDymolaResultFile("Matrix 'data_2' is not in result file " + fullFileName)
+        
+        # Get the raw matrices
+        name        = fileData["name"]
+        description = fileData["description"]
+        dataInfo    = fileData["dataInfo"]
+        data        = [ fileData["data_1"], fileData["data_2"][:,:-1] ]
+            
+        # Transpose the data, if necessary
+        if len(Aclass) > 3 and Aclass[3] == "binTrans":
+            name        = name.T
+            description = description.T
+            dataInfo    = dataInfo.T
+            data[0]     = data[0].T
+            data[1]     = data[1].T
+            
+       
+        # Transform the charArrays in string lists
+        name = charArrayToStrList(name)
+        # Hack for OpenModelica: Rename variable 'time' to 'Time'
+        if name.count('time') > 0:
+            name[name.index('time')] = 'Time'
+            
+        description = charArrayToStrList(description)
+        
+        # Extract units and update description
+        unit, description = extractUnits(description)                
+            
+        # Collect data  
         self._name        = name
         self._description = description
         self._unit        = unit
         self._dataInfo    = dataInfo
         self._data        = data
+              
+          
+        t = self.data("Time")  
+        data0 = data[0][0,:]
+        data0 = numpy.reshape(data0, (1,len(data0)))
+        self.timeSeries.append(IntegrationResults.TimeSeries(None, data0, "constant"))
+        self.timeSeries.append(IntegrationResults.TimeSeries(t, data[1], "linear"))
+        self.nTimeSeries = len(self.timeSeries)
+        
+        self.isAvailable = True       
         
     def index(self, name):
         """ Return the index of variable 'name' (= full Modelica name)
@@ -91,10 +148,15 @@ class DymolaResult(IntegrationResults.Results):
         return nameIndex
         
     def readData(self, variableName):
-        name = convertDer(variableName)
-        y = self.data(name)
-        t = self.data("Time")
-        method = 'linear'
+        nameIndex = self.index(variableName)
+        if nameIndex < 0:
+            return None, None, None
+        
+        seriesIndex = self._dataInfo[nameIndex,0]-1
+                                      
+        y = self.data(variableName)
+        t = self.timeSeries[seriesIndex].independentVariable
+        method = self.timeSeries[seriesIndex].interpolationMethod
         return t, y, method
     
     
@@ -117,6 +179,7 @@ class DymolaResult(IntegrationResults.Results):
                 raise UnknownIndex("Index = " + str(name) + " is not correct")
             nameIndex = name
         else:
+            print name
             raise UnknownArgument("Argument name must be a string or an int")
         if nameIndex < 0:
             return None
@@ -132,8 +195,8 @@ class DymolaResult(IntegrationResults.Results):
         signalSign   = +1 if signalInfo[1] >= 0 else -1
         if signalMatrix == 1:
             # Data consists of constant data, expand data to match abscissa vector
-            n = self._data[1].shape[0]
-            signalData = signalSign*self._data[0][0,signalColumn]*numpy.ones(n)
+            #n = self._data[1].shape[0]
+            signalData = numpy.array([signalSign*self._data[0][0,signalColumn]])  #*numpy.ones(n)
         else: # signalMatrix = 2
             signalData = signalSign*self._data[1][:,signalColumn]
         return signalData
@@ -149,15 +212,19 @@ class DymolaResult(IntegrationResults.Results):
         
         # Fill the values of the dict        
         for i in xrange(len(self._name)):
-            name = self._name[i].replace('[', '.[')
+            name = self._name[i]
             if self._dataInfo[i,0] == 1:
                 variability = 'fixed'
+                seriesIndex = 0                
             else:
                 variability = 'continuous'
+                seriesIndex = 1
+            column = abs(self._dataInfo[i,1])-1
+            sign = 1 if self._dataInfo[i,1] > 0 else -1
             
             value = None
-            if variability == 'fixed':                    
-                y = self.data(name)                                           
+            if variability == 'fixed':                                
+                y = self.data(self._name[i])                                                         
                 value = y[0]
                         
             infos = collections.OrderedDict()
@@ -168,83 +235,13 @@ class DymolaResult(IntegrationResults.Results):
             if len(self._unit[i]):
                 unit = self._unit[i]
             else:
-                unit = None
-                
-            variables[name] = IntegrationResults.ResultVariable(value, unit, variability, infos)          
+                unit = None               
+            
+            variables[name] = IntegrationResults.ResultVariable(value, unit, variability, infos, seriesIndex, column, sign)          
         
         return variables
 
-def loadDymolaResult(fileName):
-    """ Load Dymola simulation result data in a DymolaResult object.
-    
-        Example:
-           result = loadDymolaResult("controller.mat")          
-           result.name  # Variable names of the result
-    """   
-    # If no fileName given, return
-    if fileName == None:
-        return        
-    
-    # Check if fileName exists
-    if not os.path.isfile(fileName):
-        raise FileDoesNotExist("File '" + fileName + "' does not exist")
-    
-    # Determine complete file name
-    fullFileName = os.path.abspath(fileName)
 
-    # Read data from file
-    fileData = scipy.io.loadmat(fullFileName, matlab_compatible=True)
-    
-    # Check Aclass array
-    if not("Aclass" in fileData):
-        raise WrongDymolaResultFile("Matrix 'Aclass' is missing in result file " + fullFileName)
-    Aclass  = charArrayToStrList( fileData["Aclass"] ) 
-    if len(Aclass) < 3:
-        raise WrongDymolaResultFile("Matrix 'Aclass' has not 3 or more rows in result file " + fullFileName)
-    if Aclass[1] != "1.1":
-        raise WrongDymolaResultFile("Amatrix[1] is not '1.1' in result file " + fullFileName)
-   
-    # Check whether other matrices are on the result file
-    if not("name" in fileData):
-        raise WrongDymolaResultFile("Matrix 'name' is not in result file " + fullFileName)
-    if not("description" in fileData):
-        raise WrongDymolaResultFile("Matrix 'description' is not in result file " + fullFileName)
-    if not("dataInfo" in fileData):
-        raise WrongDymolaResultFile("Matrix 'dataInfo' is not in result file " + fullFileName)
-    if not("data_1" in fileData):
-        raise WrongDymolaResultFile("Matrix 'data_1' is not in result file " + fullFileName)
-    if not("data_2" in fileData):
-        raise WrongDymolaResultFile("Matrix 'data_2' is not in result file " + fullFileName)
-    
-    # Get the raw matrices
-    name        = fileData["name"]
-    description = fileData["description"]
-    dataInfo    = fileData["dataInfo"]
-    data        = [ fileData["data_1"], fileData["data_2"] ]
-        
-    # Transpose the data, if necessary
-    if len(Aclass) > 3 and Aclass[3] == "binTrans":
-        name        = name.T
-        description = description.T
-        dataInfo    = dataInfo.T
-        data[0]     = data[0].T
-        data[1]     = data[1].T
-        
-   
-    # Transform the charArrays in string lists
-    name        = charArrayToStrList(name)
-    # Hack for OpenModelica: Rename variable 'time' to 'Time'
-    if name.count('time') > 0:
-        name[name.index('time')] = 'Time'
-        
-    description = charArrayToStrList(description)
-    
-    # Extract units and update description
-    unit, description = extractUnits(description)                
-        
-    # Generate a DymolaResult object and return it
-    result = DymolaResult(fullFileName, name, description, unit, dataInfo, data)
-    return result
 
 def extractUnits(description):
     ''' Extract units from description and update description

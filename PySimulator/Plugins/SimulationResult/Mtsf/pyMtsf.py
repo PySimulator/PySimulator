@@ -1,5 +1,5 @@
 ''' 
-Copyright (C) 2011-2012 German Aerospace Center DLR
+Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
 Institute of System Dynamics and Control 
 and BAUSCH-GALL GmbH, Munich
@@ -92,15 +92,11 @@ class ModelDescription:
 class ScalarModelVariable:
     ''' Class hosting information about a variable in /ModelDescription/Variables
     '''
-    def __init__(self, description=None, unit=None, causality=None, simpleTypeRow=-1, variability=None, seriesIndex=-1, categoryIndex=-1, aliasName=None, aliasNegated=None):
+    def __init__(self, description=None, causality=None, simpleTypeRow=-1, variability=None, seriesIndex=-1, categoryIndex=-1, aliasName=None, aliasNegated=None):
         if description is None:
             self.description = ''
         else:
-            self.description = description
-        if unit is None:
-            self.unit = ''
-        else:
-            self.unit = unit
+            self.description = description        
         if causality is None:
             self.causality = CausalityType['local']
         else:
@@ -182,21 +178,21 @@ class Enumeration:
         self.firstEntry = firstEntry
 
 
-class ExperimentSetup:
-    ''' Class hosting the attributes of /Results
-    '''
-    def __init__(self, startTime, stopTime, algorithm, relativeTolerance, author, description,
+def ExperimentSetup(startTime, stopTime, algorithm, relativeTolerance, author, description,
                 generationDateAndTime, generationTool, machine, cpuTime):
-        self.startTime = startTime
-        self.stopTime = stopTime
-        self.algorithm = algorithm
-        self.relativeTolerance = relativeTolerance
-        self.author = author
-        self.description = description
-        self.generationDateAndTime = generationDateAndTime
-        self.generationTool = generationTool
-        self.machine = machine
-        self.cpuTime = cpuTime
+    # Returns the attributes of /Results   
+    ret = dict()
+    ret["startTime"] = startTime
+    ret["stopTime"] = stopTime
+    ret["algorithm"] = algorithm
+    ret["relativeTolerance"] = relativeTolerance
+    ret["author"] = author
+    ret["description"] = description
+    ret["generationDateAndTime"] = generationDateAndTime
+    ret["generationTool"] = generationTool
+    ret["machine"] = machine
+    ret["cpuTime"] = cpuTime
+    return ret
 
 
 class Category:
@@ -210,11 +206,12 @@ class Category:
         self.series = series
 
     def writeInitial(self, host, initialRows):
-        compression = None
+        #compression = None
+        compression = "gzip"
         if self.name != 'H5T_C_S1':
             if self.nColumn >= 8:
-                #compression = "szip"
-                compression = None
+                compression = "gzip"
+                #compression = None
         self.dataset = host.create_dataset(self.name, shape=(initialRows, self.nColumn), dtype=eval('h5py.h5t.' + self.name[4:]), maxshape=(None, None), compression=compression)  # chunks=(c1,c2))
         self._data = numpy.zeros((max(min(10000000 / self.nColumn, initialRows), 1), self.nColumn))
         self._currentRow = 0
@@ -376,23 +373,6 @@ class FileData:
         self.descriptionList = None
 
 
-def convertDer(variableName):
-    ''' Converts a variable name  a.b.c.d_(der)  to  a.b.c.der(d)
-        If no "_(der)" is contained in variableName, the name
-        is returned unchanged.
-    ''' 
-    x = variableName
-    x = x.replace('.[', '[')
-    if len(x) > 6:
-        if x[-6:] == '_(der)':
-            x = x[:-6]
-            k = x.rfind('.')
-            if k > -1:
-                x = x[:k] + '.der(' + x[k+1:] + ')'                
-            else:
-                x = 'der(' + x + ')'
-    return x
-
 
 class MTSF:
     ''' This is the main class to write and read files in MTSF format
@@ -402,7 +382,7 @@ class MTSF:
             resultFileName               String
             modelDescription             ModelDescription
             modelVariables               ModelVariables
-            experimentSetup              ExperimentSetup
+            experimentSetup              dict
             simpleTypes                  list of SimpleTypes
             units                        list of Units
             enumerations                 list of Enumerations
@@ -447,7 +427,7 @@ class MTSF:
             return
 
         self.access = 'write'
-        self.file.attrs['mtsfVersion'] = "0.3"
+        self.file.attrs['mtsfVersion'] = "0.33"
 
         self.WriteResultStructure()
 
@@ -472,7 +452,7 @@ class MTSF:
                                'formats': ['S' + str(max(maxLenName, 1)),
                                           'int32',
                                           'S' + str(max(maxLenDescription, 1)),
-                                          'uint8']})  # h5py.special_dtype(enum=(numpy.uint8, {'false':0, 'true':1}))]})
+                                           h5py.special_dtype(enum=(numpy.uint8, {'false':0, 'true':1}))]}) #'uint8']})
         dataset = self.description.create_dataset('Enumerations', (len(self.enumerations), 1), dtype=numpyDataType, maxshape=(len(self.enumerations), 1), compression='gzip')
         allData = []
         for enum in self.enumerations:
@@ -489,7 +469,7 @@ class MTSF:
                                'formats': ['S' + str(max(maxLenTypeName, 1)),
                                           'double',
                                           'double',
-                                          'uint8']})  # h5py.special_dtype(enum=(numpy.uint8, {'BaseUnit':0, 'Unit':1, 'DefaultDisplayUnit':2}))]})
+                                          h5py.special_dtype(enum=(numpy.uint8, {'BaseUnit':0, 'Unit':1, 'DefaultDisplayUnit':2}))]})  #'uint8']})  
 
         dataset = self.description.create_dataset('Units', (len(self.units), 1), dtype=numpyDataType, maxshape=(len(self.units), 1), compression='gzip')
         allData = []
@@ -511,9 +491,9 @@ class MTSF:
                                               'unitOrEnumerationRow',
                                               ],
                                'formats': ['S' + str(max(maxLenTypeName, 1)),
-                                          'uint8',  # h5py.special_dtype(enum=(numpy.uint8, DataType)),
+                                           h5py.special_dtype(enum=(numpy.uint8, DataType)), #'uint8',
                                           'S' + str(max(maxLenQuantity, 1)),
-                                          'uint8',  # h5py.special_dtype(enum=(numpy.uint8, {'false':0, 'true':1})),
+                                          h5py.special_dtype(enum=(numpy.uint8, {'false':0, 'true':1})), # 'uint8',
                                           'S1',
                                           'int32']})
         dataset = self.description.create_dataset('SimpleTypes', (len(self.simpleTypes), 1), dtype=numpyDataType, maxshape=(len(self.simpleTypes), 1), compression='gzip')
@@ -544,12 +524,12 @@ class MTSF:
                                               'description', 'objectId', 'column', 'negated'],
                                'formats': ['S' + str(max(maxLenName, 1)),
                                           'uint32',
-                                          'uint8',  # h5py.special_dtype(enum=(numpy.uint8, CausalityType)),
-                                          'uint8',  # h5py.special_dtype(enum=(numpy.uint8, VariabilityType)),
+                                          h5py.special_dtype(enum=(numpy.uint8, CausalityType)), #'uint8',
+                                          h5py.special_dtype(enum=(numpy.uint8, VariabilityType)), #'uint8',
                                           'S' + str(max(maxLenDescription, 1)),
                                           h5py.special_dtype(ref=h5py.Reference),
                                           'uint32',
-                                          'uint8']})  # h5py.special_dtype(enum=(numpy.uint8, {'false':0, 'true':1}))]})
+                                          h5py.special_dtype(enum=(numpy.uint8, {'false':0, 'true':1}))]})  #'uint8']})
         self.description = self.file.create_group("ModelDescription")
         #Write information on Simulation group
         description = self.modelDescription
@@ -569,8 +549,8 @@ class MTSF:
         for variableName in nameList:
             variable = scalarVariables[variableName]
             i += 1
-            variable.rowIndex = i
-            x = convertDer(variableName)
+            variable.rowIndex = i            
+            x = variableName
             allData.append((x, variable.simpleTypeRow,
                             variable.causality, variable.variability,
                             variable.description,
@@ -581,6 +561,12 @@ class MTSF:
     def WriteResultStructure(self):
         self.resultsHandle = self.file.create_group('Results')
         setup = self.experimentSetup
+        if "ResultType" not in setup.keys():
+            self.resultsHandle.attrs["ResultType"] = "Simulation"
+        for x1, x2 in setup.iteritems():
+            self.resultsHandle.attrs[x1] = str(x2)
+        
+        '''
         self.resultsHandle.attrs["ResultType"] = "Simulation"
         self.resultsHandle.attrs["startTime"] = str(setup.startTime)
         self.resultsHandle.attrs["stopTime"] = str(setup.stopTime)
@@ -592,6 +578,7 @@ class MTSF:
         self.resultsHandle.attrs["generationTool"] = setup.generationTool
         self.resultsHandle.attrs["machine"] = setup.machine
         self.resultsHandle.attrs["cpuTime"] = setup.cpuTime
+        '''
         for series in self.results.series.values():
             series.writeInitial(self)
 
@@ -638,7 +625,7 @@ class MTSF:
             self.fileData.descriptionList = self.fileData.variables["description", :, 0].tolist()
 
 
-    def readData(self, variableNameIn):
+    def readData(self, variableName):
         ''' Reads numerical data from file for the variable given by its String-name  variableNameIn
         
             Outputs:
@@ -650,13 +637,13 @@ class MTSF:
         if not self.readable:
             return None, None, None            
         
-        variableName = convertDer(variableNameIn)
+       
         self.readVariableList()
         variableRowIndex = self.fileData.nameList.index(variableName)        
         seriesOfVariable = self.file[self.fileData.objectIdList[variableRowIndex]].parent.ref
         method = self.file[seriesOfVariable].attrs["interpolationMethod"]
         if self.access == 'write':
-            scalar = self.modelVariable[variableNameIn]
+            scalar = self.modelVariable[variableName]
             seriesName = self.allSeries[scalar.seriesIndex].name
             categoryName = self.allCategories[scalar.categoryIndex]
             category = self.results.series[seriesName].category[categoryName]

@@ -1,5 +1,5 @@
 ''' 
-Copyright (C) 2011-2012 German Aerospace Center DLR
+Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
 Institute of System Dynamics and Control
 and BAUSCH-GALL GmbH, Munich
@@ -80,12 +80,12 @@ def convertFromFmi(fmuFilename, fmi=None):
     simpleTypes = []
     units = []
     enumerationsMatrix = []
-    variable['Time'] = pyMtsf.ScalarModelVariable('Continuous Time', 's', 'input', 0, 'continuous', allSeriesNames.index('Continuous'), pyMtsf.StandardCategoryNames.index(pyMtsf.CategoryMapping['Real']), None, 0)
-    variable['TimeDiscrete'] = pyMtsf.ScalarModelVariable('Discrete Time at events', 's', 'input', 0, 'discrete', allSeriesNames.index('Discrete'), pyMtsf.StandardCategoryNames.index(pyMtsf.CategoryMapping['Real']), None, 0)
+    variable['Time'] = pyMtsf.ScalarModelVariable('Continuous Time', 'input', 0, 'continuous', allSeriesNames.index('Continuous'), pyMtsf.StandardCategoryNames.index(pyMtsf.CategoryMapping['Real']), None, 0)
+    variable['TimeDiscrete'] = pyMtsf.ScalarModelVariable('Discrete Time at events', 'input', 0, 'discrete', allSeriesNames.index('Discrete'), pyMtsf.StandardCategoryNames.index(pyMtsf.CategoryMapping['Real']), None, 0)
 
     # Alias
     for var in fmi.scalarVariables.values():
-        if var.alias is None or var.alias == "noAlias":
+        if var.alias is None or var.alias.lower() == "noalias":
             var.alias = 'NOAlias'   # To guarantee that this variable is the first
                                     # one in sorted order
     referenceList = [(x, y.valueReference, y.alias) for x, y in fmi.scalarVariables.iteritems()]
@@ -226,10 +226,11 @@ def convertFromFmi(fmuFilename, fmi=None):
             if variability == 'parameter':
                 causality = 'parameter'
                 variability = 'fixed'
+            if causality in ['internal', 'none']:
+                causality = 'local'
 
             simpleTypeRow = rowIndex[fmiVariableName]
-            variable[fmiVariableName] = pyMtsf.ScalarModelVariable(fmiVariable.description,
-                                                    fmiVariable.type.unit,
+            variable[fmiVariableName] = pyMtsf.ScalarModelVariable(fmiVariable.description,                                                    
                                                     causality,
                                                     simpleTypeRow,
                                                     variability,

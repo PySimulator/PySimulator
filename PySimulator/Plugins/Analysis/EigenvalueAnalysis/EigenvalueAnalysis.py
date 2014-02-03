@@ -1,5 +1,5 @@
 ''' 
-Copyright (C) 2011-2012 German Aerospace Center DLR
+Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
 Institute of System Dynamics and Control
 All rights reserved.
@@ -76,11 +76,15 @@ def getModelCallbacks():
     return [["Plot Eigenvalues", plotEigenvalues],["Animate Eigenvectors/States", animateEigenvectors]]
 
 
-def plotEigenvalues(model):
+def plotEigenvalues(model, gui):
     ''' This function calculates the linearization of model as well as additional information
         (eigenvalues, damping ...) if this was not done before.
         It opens a new plotting tab and displays this information
     '''
+    if model is None:
+        print("No model selected!")
+        return
+    
     #Check if already linearized, do so otherwise:
     try:
         data = model.pluginData["EigenvalueAnalysis"]
@@ -140,11 +144,15 @@ def plotEigenvalues(model):
 
 
 
-def animateEigenvectors(model):
+def animateEigenvectors(model, gui):
     ''' This function calculates the linearization of model as well as additional information
         (eigenvalues, damping ...) if this was not done before.
         It then opens a SimVis window with the model's animation and a gui to control the animation.
     '''    
+    if model is None:
+        print("No model selected!")
+        return
+    
     #Check if already linearized, do so otherwise:
     try:
         data = model.pluginData["EigenvalueAnalysis"]
@@ -197,32 +205,15 @@ class EigenvalueAnalysis(object):
         self.n = numpy.size(self.x0, 0)
         self.StateNames = model.getStateNames()
            
-        #Use on of this possibilies to obtain the linear system A,B,C,D
-        
-        '''
-        #Version 1: Load linearized system from file:
-        import scipy.io
-        mat = scipy.io.loadmat('D:\\hart_st\\rm-software\\fmuEnvironment\\trunk\\fmuEnvironment\\PySimulatorDevelopment\\PySimulator\\Examples\\neueModelle\\dslin.mat')
-        nx = mat['nx'][0]
-        ABCD = mat['ABCD']               
-        A = ABCD[0:nx,0:nx]
-        self.J = A
-        B = ABCD[0:nx,nx+1:-1]
-        C = ABCD[nx+1:-1,0:nx]
-        D = ABCD[nx+1:-1,nx+1:-1]        
-        '''
-        
+                        
         #Version 1: Linearized system by the linear system analysis plugin
-        linearizeAndShowABCD(model)
+        linearizeAndShowABCD(model, None)
         self.J = model.pluginData["LinearSystemAnalysis"].A
         #Original:
         A = model.pluginData["LinearSystemAnalysis"].A 
         B = model.pluginData["LinearSystemAnalysis"].B
         C = model.pluginData["LinearSystemAnalysis"].C 
         D = model.pluginData["LinearSystemAnalysis"].D
-        
-        
-        
         
                           
         print "Linearization: Calculate eigenvalues"

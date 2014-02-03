@@ -1,5 +1,5 @@
 ''' 
-Copyright (C) 2011-2012 German Aerospace Center DLR
+Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
 Institute of System Dynamics and Control
 All rights reserved.
@@ -249,16 +249,15 @@ def getPlotCallbacks():
     return [["FFT"             , plotFFT           ],
             ["FFT+Total Harmonic Distortion(THD)", plotFFTPlusTHD           ]]
     
-def test3(widget):
-    pass
-
-
+'''
 def test(model, variable, data, unit):
-    print "bla", model, variable, data, unit
+    print model, variable, data, unit
 
 
-def test2(model):
-    print "blubb", model
+def test2(model, checkedModel):
+    print model, checkedModel
+'''
+
 
 from PySide import QtGui
 import os
@@ -276,11 +275,14 @@ def saveAsCSV(model, variable, data, unit):
 
 
 def getVariableCallbacks():
-    return [["test", test], ["Save as CSV", saveAsCSV]]
+    return [["Save as CSV", saveAsCSV]]
 
 
 def getModelMenuCallbacks():
-    return [["test2", test2]]
+    return []
+
+def getModelCallbacks():   
+    return []
 
 
 def init(QMainWindow, subMenu):

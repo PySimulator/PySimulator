@@ -1,5 +1,5 @@
 ''' 
-Copyright (C) 2011-2012 German Aerospace Center DLR
+Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
 Institute of System Dynamics and Control
 All rights reserved.
@@ -21,8 +21,7 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 '''
 
 '''
-Plugin for finding the minimum and maximum in a plot
-The plugin system at currently very much work in progress!
+Plugin for finding the minimum and maximum in a plot.
 This is an eleborate example on the ussage of the plugin system.
 '''
 
@@ -30,21 +29,21 @@ This is an eleborate example on the ussage of the plugin system.
 from chaco.api import DataLabel
 
 
-def print0r(model):
+def print0r(model, gui):
     ''' Example callback function for model specific actions
         parameter: a model instance
     '''
-    print "bla", model
+    print "Model: ", model
 
 
 def plotprint0r(widget):
     ''' Example callback function for plot specific actions
         parameter a PlotWidget instance
     '''
-    print "blubb", widget
+    print "Widget: ", widget
 
 
-def logX(widget):
+def logY(widget):
     if widget.plot.value_scale == 'log':
         widget.plot.value_scale = 'linear'
     else:
@@ -52,7 +51,7 @@ def logX(widget):
     widget.plot.request_redraw()
 
 
-def logY(widget):
+def logX(widget):
     if widget.plot.index_scale == 'log':
         widget.plot.index_scale = 'linear'
     else:
@@ -156,21 +155,16 @@ def getModelCallbacks():
         containing a name for the function and a function pointer
     '''
     return []
-            #["a", print0r],
-            #            ["b", print0r]
-            #           ]
+
 
 
 def getPlotCallbacks():
     ''' see getModelCallbacks
     '''
-    return [
-            #["a", plotprint0r],
-            #["b", plotprint0r],
-            #["findMinMax", findMinMax],
-            ["Print Information about data elements", printData],
-            ["New plot row", createPlotRow],
-            ["new MDI window", createWindow],
-            ["log X", logX],
-            ["log Y", logY]
+    return [          
+            ["Print Information About Data Elements", printData],
+            ["New Plot Row", createPlotRow],
+            ["New MDI Window", createWindow],
+            ["Scale log X", logX],
+            ["Scale log Y", logY]
            ]

@@ -1,5 +1,5 @@
 ''' 
-Copyright (C) 2011-2012 German Aerospace Center DLR
+Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
 Institute of System Dynamics and Control
 All rights reserved.
@@ -84,7 +84,7 @@ class VariablesBrowser(QtGui.QTreeWidget):
             menu = QtGui.QMenu(self)
             model = self.parent.models[item.modelName]
             if not model.integrationResults.isAvailable:
-                menu.addAction("(Only availabe after simulation)", None)
+                menu.addAction("(Only Availabe after Simulation)", None)
                 menu.addSeparator()
                 menu.setDisabled(True)
                 variable = None
@@ -109,6 +109,7 @@ class VariablesBrowser(QtGui.QTreeWidget):
             modelName = str(item.text(0))
             menu = QtGui.QMenu(self)
             model = self.parent.models[modelName]
+            checkedModel = self.parent.models[self.currentModelItem.text(0)] 
 
             # default entries, which should show up for all models
             menu.addAction("Close Model", functools.partial(self.closeTheModel, model))
@@ -116,7 +117,7 @@ class VariablesBrowser(QtGui.QTreeWidget):
 
             for pluginEntry in self.parent.modelMenuCallbacks:
                 for name, func in pluginEntry:
-                    menu.addAction(name, functools.partial(func, model))
+                    menu.addAction(name, functools.partial(func, model, checkedModel))
 
             #At the end, add additional result file information:
             def fileSize2str(size):
@@ -137,7 +138,7 @@ class VariablesBrowser(QtGui.QTreeWidget):
             if fileName != '':
                 fileSize = fileSize2str(self.parent.models[modelName].integrationResults.fileSize())
                 if fileSize != '':
-                    res.addAction("File size: " + fileSize).setDisabled(True)
+                    res.addAction("File Size: " + fileSize).setDisabled(True)
 
             # shows menu at current cursor position
             menu.exec_(QtGui.QCursor.pos())
@@ -151,8 +152,8 @@ class VariablesBrowser(QtGui.QTreeWidget):
         self.blockSignals(True)
         # don't redraw after each change, but wait for all changes to finish
         self.setUpdatesEnabled(False)
-        if v[0].find(".") > -1:
-            qualifier, remainder = v[0].split(".", 1)
+        if v.find(".") > -1:
+            qualifier, remainder = v.split(".", 1)
             par = None
             ''' try to find tree element that already got the name of the qualifier,
                 otherwise add it.
@@ -169,7 +170,7 @@ class VariablesBrowser(QtGui.QTreeWidget):
 
             par.setText(0, qualifier)
             par.setChildIndicatorPolicy(QtGui.QTreeWidgetItem.ShowIndicator)
-            par._dynamic.append(list([list([remainder, v[1]]), qualifiedName]))
+            par._dynamic.append(list([remainder, qualifiedName]))
             par._m = model
             self.blockSignals(False)
             self.setUpdatesEnabled(True)
@@ -185,43 +186,45 @@ class VariablesBrowser(QtGui.QTreeWidget):
         treeItem.variable = qualifiedName
         treeItem.modelName = model.numberedModelName
         treeItem.setFlags(treeItem.flags() & ~QtCore.Qt.ItemIsEditable & ~QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsUserCheckable)
-        variableText = str(v[0])
-        if len(variableText) > 6:
-            if variableText[-6:] == '_(der)':
-                variableText = 'der(' + variableText[:-6] + ')'
+        
+        variableText = v
+        #variableText = str(v[0])
+        #if len(variableText) > 6:
+        #    if variableText[-6:] == '_(der)':
+        #        variableText = 'der(' + variableText[:-6] + ')'
         treeItem.setText(0, variableText)
 
-        if model.variableTree.variable[v[1]].variability == 'continuous':
+        if model.variableTree.variable[qualifiedName].variability == 'continuous':
             treeItem.setForeground(0, QtGui.QBrush(QtGui.QColor('blue')))
-        elif model.variableTree.variable[v[1]].variability == 'discrete':
+        elif model.variableTree.variable[qualifiedName].variability == 'discrete':
             treeItem.setForeground(0, QtGui.QBrush(QtGui.QColor('green')))
 
-        if model.variableTree.variable[v[1]].value is not None:
-            if model.variableTree.variable[v[1]].valueEdit is not None:
-                if model.variableTree.variable[v[1]].valueEdit:
+        if model.variableTree.variable[qualifiedName].value is not None:
+            if model.variableTree.variable[qualifiedName].valueEdit is not None:
+                if model.variableTree.variable[qualifiedName].valueEdit:
                     startValueBox = valueEdit(self, model.numberedModelName, treeItem.variable)
                     startValueBox.setEnabled(True)
                     startValueBox.setFrame(True)
                     startValueBox.setMaximumHeight(15)
-                    startValueBox.setText(str(model.variableTree.variable[v[1]].value))
+                    startValueBox.setText(str(model.variableTree.variable[qualifiedName].value))
                     startValueBox.setAlignment(QtCore.Qt.Alignment(2))
                     startValueBox.valueChanged.connect(self.valueChanged)
                     self._memoryHack.append(startValueBox)
                     self.setItemWidget(treeItem, 1, startValueBox)
                 else:
-                    treeItem.setText(1, str(model.variableTree.variable[v[1]].value))
+                    treeItem.setText(1, str(model.variableTree.variable[qualifiedName].value))
                     treeItem.setTextAlignment(1, QtCore.Qt.Alignment(2))
 
         # Set the showed unit
-        if model.variableTree.variable[v[1]].unit is not None:
-            treeItem.setText(2, str(model.variableTree.variable[v[1]].unit))
+        if model.variableTree.variable[qualifiedName].unit is not None:
+            treeItem.setText(2, str(model.variableTree.variable[qualifiedName].unit))
 
         # Define deepest treeitem: Additional attribute for each variable
-        if model.variableTree.variable[v[1]].attribute is not None:
+        if model.variableTree.variable[qualifiedName].attribute is not None:
             description = QtGui.QTreeWidgetItem(treeItem)
             description.setFlags(description.flags() & ~QtCore.Qt.ItemIsEditable & ~QtCore.Qt.ItemIsSelectable)
             description.setFirstColumnSpanned(True)
-            description.setText(0, model.variableTree.variable[v[1]].attribute)
+            description.setText(0, model.variableTree.variable[qualifiedName].attribute)
             self._memoryHack.append(description)
 
         self.blockSignals(False)
@@ -259,9 +262,13 @@ class VariablesBrowser(QtGui.QTreeWidget):
                 tipText += '\n\n' + model.variableTree.rootAttribute
         treeRoot.setToolTip(0, tipText)
         # Generate a nice list of model variables
-        variableNames = model.variableTree.variable.keys()
+        #variableNames = model.variableTree.variable.keys()
+        variableNames = list()        
+        for name, variable in model.variableTree.variable.iteritems():
+            variableNames.append([variable.browserName, name])
 
-        def sortKey(x):
+        def sortKey(x1):
+            x = x1[0]
             a = str(x).upper()
             i = a.rfind('.')
             if i < 0:
@@ -272,7 +279,7 @@ class VariablesBrowser(QtGui.QTreeWidget):
         variableNames.sort(key=sortKey)
 
         for v in variableNames:
-            self.addItemToTree(treeRoot, (v, v), v, model)
+            self.addItemToTree(treeRoot, v[0], v[1], model)
 
         # Show changed start values in startValueBox given in model.settings
         for variable in model.changedStartValue:
@@ -454,7 +461,7 @@ class valueEdit(QtGui.QLineEdit):
 if __name__ == "__main__":
     app = QtGui.QApplication([])
 
-    from Plugins.Simulator.FMUSimulator import FMUSimualtor
+    from Plugins.Simulator.FMUSimulator import FMUSimulator
     fmu = FMUSimulator.Model('Examples/Modelica_Mechanics_Rotational_Examples_Friction.fmu')
 
     def blub(a, b, c):

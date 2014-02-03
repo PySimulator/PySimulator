@@ -1,5 +1,5 @@
 ''' 
-Copyright (C) 2011-2012 German Aerospace Center DLR
+Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
 Institute of System Dynamics and Control
 All rights reserved.
@@ -27,13 +27,15 @@ from operator import itemgetter
 import time
 import os
 from Plugins.SimulationResult import IntegrationResults
-import Plugins.SimulationResult.DymolaMat.DymolaMat as DymolaMat
+
 
 import pyMtsf
 import MtsfFmi
 
+fileExtension = 'mtsf'
+description = 'MA Time Series File Format'
 
-class MTSF(IntegrationResults.Results):
+class Results(IntegrationResults.Results):
     ''' Result file object for an MTSF file    
     '''
     
@@ -41,10 +43,10 @@ class MTSF(IntegrationResults.Results):
         IntegrationResults.Results.__init__(self)        
 
         self._mtsf = pyMtsf.MTSF(resultFileName, modelDescription, modelVariables, experimentSetup, simpleTypes, units, enumerations)
-                       
+        
         self.fileName = self._mtsf.fileName
-        self.isAvailable = self._mtsf.file is not None
-        self.canLoadPartialData = True        
+        self.canLoadPartialData = True     
+        self.isAvailable = self._mtsf.file is not None           
 
     def close(self):        
         self._mtsf.close()    
@@ -73,11 +75,34 @@ class MTSF(IntegrationResults.Results):
         DataTypeStrings = range(len(pyMtsf.DataType) + 1)
         for i, k in pyMtsf.DataType.items():
             DataTypeStrings[k] = i
+            
+
+        if len(self.timeSeries) == 0:               
+            for series in self._mtsf.file['/Results'].itervalues():
+                row = series.attrs['independentVariableRow']
+                interpolationMethod = series.attrs['interpolationMethod']
+                if row < 0:
+                    independentVariable = None
+                else:
+                    independentVariable, trash, trash = self.readData(self._mtsf.fileData.nameList[row])
+                for category in series.itervalues():                    
+                    if category.size > 5000000:
+                        data = None # Memory problem for huge files
+                    else:
+                        data = numpy.array(category)
+                    self.timeSeries.append(IntegrationResults.TimeSeries(independentVariable, data, interpolationMethod))
+                    self.timeSeries[-1].name = category.name
+                                
+            self.nTimeSeries = len(self.timeSeries)
+        
+            
+        timeSeriesNameList = [x.name for x in self.timeSeries]
+            
         # Generate the dict
         variables = dict()
         # Fill the values of the dict
         for i in xrange(len(self._mtsf.fileData.nameList)):
-            name = self._mtsf.fileData.nameList[i].replace('[', '.[')
+            name = self._mtsf.fileData.nameList[i]
             simpleTypeRow = SimpleTypeRows[i]
             unitRow = UnitRows[simpleTypeRow]
             dataType = DataTypes[simpleTypeRow]
@@ -107,8 +132,13 @@ class MTSF(IntegrationResults.Results):
             if unitRow > -1:
                 unit = Units[unitRow]
             else:
-                unit = None
-            variables[name] = IntegrationResults.ResultVariable(value, unit, variability, infos)
+                unit = None            
+            
+            objectId = self._mtsf.fileData.objectIdList[i]            
+            seriesIndex = timeSeriesNameList.index(self._mtsf.file[objectId].name)
+            column = self._mtsf.fileData.columnList[i]            
+            sign = -1 if self._mtsf.fileData.negatedList[i] else 1            
+            variables[name] = IntegrationResults.ResultVariable(value, unit, variability, infos, seriesIndex, column, sign)
         return variables
 
 
@@ -136,8 +166,9 @@ def convertFromDymolaMatFile(matFilename, mtsfFilename=None):
         else:
             resultFileName = mtsfFilename + '.mtsf'
     
+    import Plugins.SimulationResult.DymolaMat.DymolaMat as DymolaMat
     # Load mat-file
-    res = DymolaMat.loadDymolaResult(matFilename)
+    res = DymolaMat.Results(matFilename)
 
     # Define basic structure of result file
     variable = collections.OrderedDict()
@@ -177,8 +208,7 @@ def convertFromDymolaMatFile(matFilename, mtsfFilename=None):
                 dataIndexFixed.append(abs(res._dataInfo[index, 1]) - 1)
             else:
                 dataIndexContinuous.append(abs(res._dataInfo[index, 1]) - 1)
-        variable[variableName] = pyMtsf.ScalarModelVariable(res._description[index],
-                                                    res._unit[index],
+        variable[variableName] = pyMtsf.ScalarModelVariable(res._description[index],                                                   
                                                     'option',
                                                     0,  # may be set later
                                                     variability,

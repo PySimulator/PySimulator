@@ -1,5 +1,5 @@
 ''' 
-Copyright (C) 2011-2012 German Aerospace Center DLR
+Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
 Institute of System Dynamics and Control
 All rights reserved.
@@ -552,6 +552,13 @@ class simulationThread(QtCore.QThread):
             Do the numerical integration in a try branch
             to avoid loosing the thread when an intended exception is raised
             '''
+            try:
+                import pydevd
+                pydevd.connected = True
+                pydevd.settrace(suspend=False)
+            except:
+                #do nothing, since error message only indicates we are not in debug mode
+                pass
             self.model.simulate()            
         except Plugins.Simulator.SimulatorBase.Stopping:
             print("solver canceled ... ")

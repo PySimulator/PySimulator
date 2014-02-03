@@ -1,5 +1,5 @@
 ''' 
-Copyright (C) 2011-2012 German Aerospace Center DLR
+Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
 Institute of System Dynamics and Control
 All rights reserved.
@@ -24,15 +24,25 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 import os
 
 
+class TimeSeries():
+    def __init__(self, independentVariable, data, method):
+        self.independentVariable = independentVariable
+        self.data = data
+        self.interpolationMethod = method      
+
+
 class ResultVariable():
     ''' Class to hold information about a variable in a result file 
     '''
-    def __init__(self, value, unit, variability, infos):
+    def __init__(self, value, unit, variability, infos, seriesIndex, column, sign):
         #                                  Types
         self.value = value               # E.g. Float, Integer, Boolean
         self.unit = unit                 # String
         self.variability = variability   # String
-        self.infos = infos               # Dictionary of Strings
+        self.infos = infos               # Dictionary of Strings        
+        self.seriesIndex = seriesIndex   # Integer
+        self.column = column             # Integer
+        self.sign = sign                 # Integer (-1 / +1)
 
 
 class Results():
@@ -44,7 +54,9 @@ class Results():
         self.fileName = ''               # File name of result file
         self.isAvailable = False         # Shows, if there is a file available to be read 
         self.canLoadPartialData = False  # True, if data can be loaded from
-        #                                  result file although simulation is not finished
+        #                                  result file although simulation is not finished        
+        self.nTimeSeries = 0
+        self.timeSeries = []
 
     
     def readData(self, variableName):

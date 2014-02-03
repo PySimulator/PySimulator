@@ -1,5 +1,5 @@
 ''' 
-Copyright (C) 2011-2012 German Aerospace Center DLR
+Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
 Institute of System Dynamics and Control
 All rights reserved.
@@ -34,6 +34,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import zipfile
 import re
 import ctypes
+import _ctypes
 import tempfile
 import platform
 import numpy
@@ -91,6 +92,14 @@ class fmiEventInfo(ctypes.Structure):
                 ('nextEventTime', fmiReal)]
 ''' end of file-type correspondents '''
 
+''' C-interface for system functions '''
+Logger         = ctypes.CFUNCTYPE(None, fmiComponent, fmiString, fmiStatus, fmiString, fmiString)
+AllocateMemory = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_uint, ctypes.c_uint)
+FreeMemory     = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
+class _fmiCallbackFunctions(ctypes.Structure):
+    _fields_ = [('logger', Logger), ('allocateMemory', AllocateMemory), ('freeMemory', FreeMemory)]
+    
+
 
 class FMUInterface:
     ''' This class encapsulates the FMU C-Interface
@@ -129,6 +138,7 @@ class FMUInterface:
             raise FMUError.FMUError('FMU file corrupted!\nFile name and model identifier differ: ' + re.match(r'.*/(.*?).fmu$', fileName).group(1) + ' vs. ' + self.description.modelIdentifier + '\n')
 
         self._InstantiateModel()
+        self._file.close()
         self._createCInterface()
 
     def _assembleBinaryName(self, modelName):
@@ -168,20 +178,15 @@ class FMUInterface:
         except BaseException as e:
             raise FMUError.FMUError("Error when reading binary file from FMU.\n" + str(e) + '\n')
         self._tmpfile.file.write(binFile)
-        self._tmpfile.file.close()
+        self._tmpfile.file.close()        
 
-        ''' C-interface for system functions '''
-        Logger         = ctypes.CFUNCTYPE(None, fmiComponent, fmiString, fmiStatus, fmiString, fmiString)
-        AllocateMemory = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_uint, ctypes.c_uint)
-        FreeMemory     = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
+        
 
         def _Logger(c, instanceName, status, category, message):
             if self._loggingOn:
                 print(message)
             #self.log.append( (c, instanceName, status, category, message) )
 
-        class _fmiCallbackFunctions(ctypes.Structure):
-            _fields_ = [('logger', Logger), ('allocateMemory', AllocateMemory), ('freeMemory', FreeMemory)]
         ''' mapping of memory management functions for FMU to operating system functions, depending on OS.
             For Linux it refers to the std-C library - this should always be present
         '''
@@ -197,12 +202,16 @@ class FMUInterface:
                                      freeMemory=FreeMemory(ctypes.cdll.msvcrt.free))
 
         ''' Load instance of library into memory '''
-        try:
+        try:        
             self._libraryHandle = ctypes.cdll.LoadLibrary(self._tmpfile.name)._handle
             self._library = ctypes.CDLL(self._tmpfile.name, handle=self._libraryHandle)
         except BaseException as e:
             raise FMUError.FMUError('Error when loading binary from FMU.\n' + str(e) + '\n')
+        
+        
 
+
+    def fmiInstantiateModel(self):
         InstantiateModel = getattr(self._library, self.description.modelIdentifier + '_fmiInstantiateModel')
         InstantiateModel.argtypes = [fmiString, fmiString, _fmiCallbackFunctions, fmiBoolean]
         InstantiateModel.restype = fmiComponent
@@ -212,12 +221,20 @@ class FMUInterface:
 
     def free(self):
         ''' Call FMU destructor before being destructed. Just cleaning up. '''
-        if hasattr(self, '_library'):
-            FreeModelInstance = getattr(self._library, self.description.modelIdentifier + '_fmiFreeModelInstance')
-            FreeModelInstance.argtypes = [fmiComponent]
-            FreeModelInstance.restype = None
-            FreeModelInstance(self._modelInstancePtr)
+        if hasattr(self, '_library'):                     
+            self.freeModelInstance()            
             self._tmpfile.close()
+            _ctypes.FreeLibrary(self._libraryHandle)
+            
+    def freeModelInstance(self):
+        ''' Call FMU destructor before being destructed. Just cleaning up. '''
+        if hasattr(self, '_library') and hasattr(self, '_modelInstancePtr'):
+            if self._modelInstancePtr is not None:
+                FreeModelInstance = getattr(self._library, self.description.modelIdentifier + '_fmiFreeModelInstance')
+                FreeModelInstance.argtypes = [fmiComponent]
+                FreeModelInstance.restype = None
+                FreeModelInstance(self._modelInstancePtr)
+                self._modelInstancePtr = None               
 
     def _createCInterface(self):
         ''' Create interfaces to C-function calls.

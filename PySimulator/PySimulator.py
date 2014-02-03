@@ -1,6 +1,8 @@
-''' 
-Copyright (C) 2011-2012 German Aerospace Center DLR
-(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
+#!/usr/bin/env python
+
+'''
+Copyright (C) 2011-2014 German Aerospace Center DLR
+(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
 
@@ -28,14 +30,14 @@ The main UI window
 import os
 from PySide import QtGui
 
-version = '0.5'
+version = '0.6'
 
 
 def loadPlugins(type):
     def get_immediate_subdirectories(directory):
         return [name for name in os.listdir(directory) if os.path.isdir(os.path.join(directory, name)) and name[0] != '.']
-
-    PlugInNames = get_immediate_subdirectories(os.path.abspath(os.path.dirname(__file__)) + "/Plugins/" + type)
+    
+    PlugInNames = get_immediate_subdirectories(os.path.abspath(os.path.dirname(inspect.getfile(inspect.currentframe()))) + "/./Plugins/" + type)
     ret = dict()
     for i in range(len(PlugInNames)):
             try:
@@ -52,7 +54,7 @@ class SimulatorGui(QtGui.QMainWindow):
     '''
     # Dictionary of currently loaded models; key is the model name
     models = dict()
-    plotContainers = []    
+    plotContainers = []
     activePlotContainer = None
     activePlot = None
     plotWindowNr = 0
@@ -61,22 +63,16 @@ class SimulatorGui(QtGui.QMainWindow):
         QtGui.QMainWindow.__init__(self)
 
         self.lastCurrentPlotWindow = None
-        self.rootDir = os.path.abspath(os.path.dirname(__file__))
-       
-        self.setWindowTitle("Simulation and Analysis Environment")
-        self.setWindowIcon(QtGui.QIcon(self.rootDir + '/Icons/anonymous_simple_weather_symbols_1.png'))
+        self.rootDir = os.path.abspath(os.path.dirname(inspect.getfile(inspect.currentframe())))
+
+        self.setWindowTitle("PySimulator - Simulation and Analysis Environment")
+        self.setWindowIcon(QtGui.QIcon(self.rootDir + '/Icons/pysimulator.ico'))
         self.setCorner(QtCore.Qt.BottomLeftCorner, QtCore.Qt.LeftDockWidgetArea)
 
-        '''  The information output shall replace the outputs from the python shell '''
-        self.textOutput = WindowConsole(self)
-        self.dockTextOutput = QtGui.QDockWidget('Information output', self)
-        self.dockTextOutput.setWidget(self.textOutput)
-        self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.dockTextOutput)
-        self._origStdout = sys.stdout
-        #sys.stdout = self.textOutput       # sometimes causes crashes of Python.exe
+        self.createConsoleWindow()
 
         self.simulatorPlugins = loadPlugins("Simulator")
-        self.SimulationResult = loadPlugins("SimulationResult")
+        self.simulationResultPlugins = loadPlugins("SimulationResult")            
         self.analysisPlugins = loadPlugins("Analysis")
 
         '''  Defining the menu bar  '''
@@ -84,12 +80,16 @@ class SimulatorGui(QtGui.QMainWindow):
         subMenu = menu.addMenu('File')
         openModelMenu = subMenu.addMenu("Open Model")
         for key, value in self.simulatorPlugins.items():
-            openModelMenu.addAction(key, partial(self._openFileMenu, value))
+            image = None
+            if hasattr(value, 'iconImage'):
+                image = self.rootDir + "/Icons/" + value.iconImage
+            openModelMenu.addAction(QtGui.QIcon(image),key+'...', partial(self._openFileMenu, value))
 
         subMenu.addSeparator()
-        subMenu.addAction("Open Result File", self._openResultFileMenu)
-        subMenu.addAction("Convert to MTSF", self._convertResultFileMenu)
+        subMenu.addAction("Open Result File...", self._openResultFileMenu)
+        subMenu.addAction("Convert to MTSF...", self._convertResultFileMenu)
         subMenu.addSeparator()
+        subMenu.addAction("Change Directory...", self._changeDirectoryMenu)
         subMenu.addAction('Exit', self.close)
         self.simulateAction = menu.addAction("Simulate", self._showIntegratorControl)
         self.plotMenuCallbacks = []
@@ -112,11 +112,25 @@ class SimulatorGui(QtGui.QMainWindow):
         pluginsMenu = menu.addMenu("Plugins")
         for pluginName, plugin in self.analysisPlugins.items():
             try:
-                pluginMenu = pluginsMenu.addMenu(pluginName)
-                for name, func in plugin.getModelCallbacks():
-                    pluginMenu.addAction(name, partial(self._execAnalysisPlugin, func))
+                if len(plugin.getModelCallbacks()) > 0:
+                    pluginMenu = pluginsMenu.addMenu(pluginName)
+                    for name, func in plugin.getModelCallbacks():
+                        pluginMenu.addAction(name, partial(self._execAnalysisPlugin, func))
             except:
-                print "No Model Callbacks for plugin: ", pluginName
+                print "No Model Callbacks found for plugin: ", pluginName
+
+        ''' The top toolbar provides buttons for user actions.
+        '''
+        self._modelbar = QtGui.QToolBar('Menu bar', self)
+        self.addToolBar(QtCore.Qt.TopToolBarArea, self._modelbar)
+        #self._modelbar.setIconSize(QtCore.QSize(18, 18))
+        for key, value in self.simulatorPlugins.items():
+            image = None
+            if hasattr(value, 'iconImage'):
+                image = self.rootDir + "/Icons/" + value.iconImage
+            self._modelbar.addAction(QtGui.QIcon(image), 'Open Model in '+key, partial(self._openFileMenu, value))
+            #self._modelbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/CloseModel_20x20.ico"), 'Close Model', self.closeModel(???))
+        self._modelbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/OpenResults_20x20.ico"), "Open Result File", self._openResultFileMenu)
 
         ''' The variables browser on the left side is added as dock to the main window. '''
         self._dock = QtGui.QDockWidget(self)
@@ -131,18 +145,18 @@ class SimulatorGui(QtGui.QMainWindow):
 
         ''' The toolbar provides buttons for user actions.
         '''
-        self._plotbar = QtGui.QToolBar('Plot', self)
+        self._plotbar = QtGui.QToolBar('Plot bar', self)
         self.addToolBar(QtCore.Qt.RightToolBarArea, self._plotbar)
         #self._plotbar.setIconSize(QtCore.QSize(18, 18))
-        self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/window-new-6.png"), 'New Plot Window', self._newPlotContainer)
+        self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/plotTabAdd_20x20.ico"), 'New Plot Window', self._newPlotContainer)
         #self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/draw-eraser-2.png"), 'Erase lines from current plot', self.erasePlotCurrentAxes)
         self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/document-save-5.png"), 'Save Figure', self.saveFigure)
         #self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/zoom-in-5.png"), 'Not yet implemented: Zoom plot', self.zoomCurrentAxes)
         #self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/dlr-grid.png"), 'Grid on/off', self.setGridOnCurrentAxes)
-        self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/dlr-subplot-add.png"), 'Add row to subplot', self.addRowToPlot)
-        self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/dlr-subplot-remove.png"), 'Remove row from subplot', self.removeRowFromPlot)
-        self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/view-right-new-3.png"), 'Add column to subplot', self.addColumnToPlot)
-        self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/view-right-close.png"), 'Remove column from subplot', self.removeColumnFromPlot)
+        self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/plotSubBottomAdd_20x20.ico"), 'Add Row to Subplot', self.addRowToPlot)
+        self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/plotSubBottomRemove_20x20.ico"), 'Remove Row from Subplot', self.removeRowFromPlot)
+        self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/plotSubRightAdd_20x20.ico"), 'Add Column to Subplot', self.addColumnToPlot)
+        self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/plotSubRightRemove_20x20.ico"), 'Remove Column from Subplot', self.removeColumnFromPlot)
 
         self.mdi = QtGui.QMdiArea(self)
         self.mdi.setViewMode(QtGui.QMdiArea.TabbedView)
@@ -155,17 +169,51 @@ class SimulatorGui(QtGui.QMainWindow):
         # Help should be the last menu item
         helpMenu = menu.addMenu("Help")
         helpMenu.addAction("Documentation", self.showHelp)
-        helpMenu.addAction("About", self.showAbout)
+        helpMenu.addAction(QtGui.QIcon(self.rootDir + "/Icons/pysimulator.ico"), "About PySimulator", self.showAbout)
         self.setMenuBar(menu)
+        
+        # Load config file and adapt it to a minimum structure according to loaded plugins        
+        self.config = configobj.ConfigObj(self.rootDir + '/PySimulator.ini')
+        if not self.config.has_key('PySimulator'):
+            self.config['PySimulator'] = {}
+            self.config['PySimulator']['workingDirectory'] = os.getcwd()
+        else:
+            if not os.path.exists(self.config['PySimulator']['workingDirectory']):
+                self.config['PySimulator']['workingDirectory'] = os.getcwd()             
+        if not self.config.has_key('Plugins'):
+            self.config['Plugins'] = {}
+        for plugin in self.simulatorPlugins.keys():
+            if not self.config['Plugins'].has_key(plugin):
+                self.config['Plugins'][plugin] = {}
+        for plugin in self.simulationResultPlugins.keys():
+            if not self.config['Plugins'].has_key(plugin):
+                self.config['Plugins'][plugin] = {}
+        for plugin in self.analysisPlugins.keys():
+            if not self.config['Plugins'].has_key(plugin):
+                self.config['Plugins'][plugin] = {}
+        self.config.write()
+        
+        os.chdir(self.config['PySimulator']['workingDirectory'])
+
+    def createConsoleWindow(self):
+        '''  The information output shall replace the outputs from the python shell '''
+        
+        self.textOutput = windowConsole.WindowConsole(self)
+        self.dockTextOutput = QtGui.QDockWidget('Information output', self)
+        self.dockTextOutput.setWidget(self.textOutput)
+        self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.dockTextOutput)
+        self._origStdout = sys.stdout
+        sys.stdout = self.textOutput       # sometimes causes crashes of Python.exe
 
     def _execAnalysisPlugin(self, func):
         if self.nvb.currentModelItem:
-            func(self.models[self.nvb.currentModelItem.numberedModelName])
+            func(self.models[self.nvb.currentModelItem.numberedModelName], self)
         else:
-            print("No Model selected, unable to execute Plugin\n")
+            func(None, self)
+            #print("No Model selected, unable to execute Plugin\n")
 
     def showHelp(self):
-        os.startfile("file:///" + self.rootDir + "/Documentation/index.html")
+        os.startfile("file:///" + os.path.join(self.rootDir, "Documentation/index.html"))
 
     def showAbout(self):
         widget = QtGui.QDialog(self)
@@ -179,7 +227,7 @@ class SimulatorGui(QtGui.QMainWindow):
         iconLabel = QtGui.QLabel()
         iconLabel.setPixmap(pixmap)
         layout.addWidget(iconLabel, 0, 0)
-        layout.addWidget(QtGui.QLabel("Copyright (C) 2011-2012 German Aerospace Center DLR (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),\nInstitute of System Dynamics and Control. All rights reserved.\n\nPySimulator is free software: you can redistribute it and/or modify\nit under the terms of the GNU Lesser General Public License as published by\nthe Free Software Foundation, either version 3 of the License, or\n(at your option) any later version.\n\nPySimulator is distributed in the hope that it will be useful,\nbut WITHOUT ANY WARRANTY; without even the implied warranty of\nMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the\nGNU Lesser General Public License for more details.\n\nYou should have received a copy of the GNU Lesser General Public License\nalong with PySimulator. If not, see www.gnu.org/licenses."), 1, 0)
+        layout.addWidget(QtGui.QLabel("Copyright (C) 2011-2014 German Aerospace Center DLR (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),\nInstitute of System Dynamics and Control. All rights reserved.\n\nPySimulator is free software: You can redistribute it and/or modify\nit under the terms of the GNU Lesser General Public License as published by\nthe Free Software Foundation, either version 3 of the License, or\n(at your option) any later version.\n\nPySimulator is distributed in the hope that it will be useful,\nbut WITHOUT ANY WARRANTY; without even the implied warranty of\nMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the\nGNU Lesser General Public License for more details.\n\nYou should have received a copy of the GNU Lesser General Public License\nalong with PySimulator. If not, see www.gnu.org/licenses."), 1, 0)
         layout.addWidget(QtGui.QLabel("PySimulator Version: " + str(version)), 2, 0)
         button = QtGui.QPushButton("OK")
         button.clicked.connect(widget.close)
@@ -187,19 +235,19 @@ class SimulatorGui(QtGui.QMainWindow):
         widget.show()
 
     def zoomCurrentAxes(self):
-        print("functionality temporarily not available\n")
+        print("Functionality temporarily not available\n")
 
     def setGridOnCurrentAxes(self):
-        print("functionality temporarily not available\n")
+        print("Functionality temporarily not available\n")
 
     def saveFigure(self):
         ''' Exports the current window to an image '''
         if self.activePlotContainer and self.activePlot:
-            rast = "rasterized images (*.png *.tiff *.bmp *.jpg *.jpeg *.gif)"
+            rast = "Rasterized Images (*.png *.tiff *.bmp *.jpg *.jpeg *.gif)"
             pdf = "Portable Document Format (*.pdf)"
             svg = "Scalable Vector Graphics (*.svg *.html)"
             #(fileName, extension) = QtGui.QFileDialog().getSaveFileName(self, 'Save Plot as image', os.getcwd(), rast + ";;" + pdf + ";;" + svg)
-            (fileName, extension) = QtGui.QFileDialog().getSaveFileName(self, 'Save Plot as image', os.getcwd(), rast)
+            (fileName, extension) = QtGui.QFileDialog().getSaveFileName(self, 'Save Plot as Image', os.getcwd(), rast)
             if not fileName:
                 return
             if extension == rast:
@@ -233,11 +281,12 @@ class SimulatorGui(QtGui.QMainWindow):
             self.activePlotContainer.addBottom(self, self.plotMenuCallbacks)
 
     def erasePlotCurrentAxes(self):
-        print("functionality temporarily not available\n")
+        print("Functionality temporarily not available\n")
 
     def removeRowFromPlot(self):
         ''' Removes the last row from the current subplot '''
-        print("functionality temporarily not available\n")
+        if self.activePlotContainer:
+            self.activePlotContainer.removeBottom()
 
     def addColumnToPlot(self):
         ''' Adds a new column to the current subplot '''
@@ -246,7 +295,8 @@ class SimulatorGui(QtGui.QMainWindow):
 
     def removeColumnFromPlot(self):
         ''' Removes the last column of the current subplot '''
-        print("functionality temporarily not available\n")
+        if self.activePlotContainer:
+            self.activePlotContainer.removeRight()
 
     def _currentPlotChanged(self, plot):
         if self.activePlot:
@@ -258,22 +308,36 @@ class SimulatorGui(QtGui.QMainWindow):
         self.activePlot = plot
 
     def _currentContainerChanged(self):
-        children = self.mdi.currentSubWindow().findChildren(plotWidget.plotContainer)
-        if children:
-            self.activePlotContainer = children[0]
-            self._currentPlotChanged(self.activePlotContainer.activeWidget)
+        csw = self.mdi.currentSubWindow()
+        if csw is not None:
+            children = csw.findChildren(plotWidget.plotContainer)
+            if children:
+                self.activePlotContainer = children[0]
+                self._currentPlotChanged(self.activePlotContainer.activeWidget)
+            else:
+                self.activePlotContainer = None
+                self._currentPlotChanged(None)
         else:
             self.activePlotContainer = None
             self._currentPlotChanged(None)
 
+    def _chDir(self, pathName):
+        self.config['PySimulator']['workingDirectory'] = pathName                    
+        self.config.write()  
+        os.chdir(self.config['PySimulator']['workingDirectory'])
+    
+    
     def openModelFile(self, loaderplugin, fileName, modelName=None):
         if fileName == '':
             return
         if modelName is None:
             sp = string.rsplit(fileName, '.', 1)
             modelName = string.rsplit(sp[0], '/', 1)[1]
-        model = loaderplugin.Model(modelName, str(fileName))
+            
+        self._chDir(os.path.dirname(fileName))        
+        model = loaderplugin.Model(modelName, [str(fileName)], self.config)        
         self._newModel(model)
+        
 
     def _openFileMenu(self, loaderplugin):
         extensionStr = ''
@@ -290,7 +354,7 @@ class SimulatorGui(QtGui.QMainWindow):
         if len(split) > 1:
             suffix = split[1]
         else:
-            suffix = ''
+            suffix = ''        
         modelName = None
         if suffix in ['mo', 'moe']:
             if len(split[0]) > 0:
@@ -319,19 +383,28 @@ class SimulatorGui(QtGui.QMainWindow):
         self._loadingFileInfo()
         sp = string.rsplit(fileName, '.', 1)
         modelName = string.rsplit(sp[0], '/', 1)[1]
-        model = Plugins.Simulator.SimulatorBase.Model(modelName, None, 'None')
+        model = Plugins.Simulator.SimulatorBase.Model(modelName, None, 'None', self.config)
         model.loadResultFile(fileName)
         model.integrationResultFileSemaphore = threading.Semaphore()
         self._newModel(model)
         self.setEnabled(True)
+        
+        self._chDir(os.path.dirname(fileName))
 
     def _openResultFileMenu(self):
         ''' Load a Result file '''
-        (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open Result File', os.getcwd(), 'MA Time Series File Format (*.mtsf);;Dymola Result File (*.mat)')
-        fileName = str(fileName)
-        self.openResultFile(fileName)
+        formats = 'All formats ('
+        formats2 = ''       
+        for i, ext in enumerate(Plugins.SimulationResult.fileExtension):       
+            formats += ' *.' + ext            
+            formats2 += Plugins.SimulationResult.description[i] + ' (*.' + ext + ')'
+            if i+1 < len(Plugins.SimulationResult.fileExtension):
+                formats2 += ';;'            
+        formats += ');;' + formats2       
+        (fileNames, trash) = QtGui.QFileDialog().getOpenFileNames(self, 'Open Result File', os.getcwd(), formats)
+        for fileName in fileNames:
+            self.openResultFile(str(fileName).replace('\\','/'))
 
-    
     def _loadingFileInfo(self):
         ''' Shows a label 'Loading file...' '''
         w = QtGui.QWidget(None)
@@ -347,17 +420,24 @@ class SimulatorGui(QtGui.QMainWindow):
         w.show()
         app = QtGui.QApplication.instance()
         app.processEvents()
-        
-    
+
     def _convertResultFileMenu(self):
         ''' Select a result file '''
         (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Select Result File', os.getcwd(), 'Dymola Result File (*.mat)')
         fileName = str(fileName)
         if fileName == '':
             return
-        print("Convert " + fileName + " ...")                 
+        print("Convert " + fileName + " ...")
         mtsfFileName = Plugins.SimulationResult.Mtsf.Mtsf.convertFromDymolaMatFile(fileName)
         print(" done: " + mtsfFileName + "\n")
+
+    def _changeDirectoryMenu(self):
+        ''' Select a working directory '''
+        dirName = QtGui.QFileDialog().getExistingDirectory(self, 'Select Working Directory', os.getcwd())
+        dirName = str(dirName)
+        if dirName == '':
+            return
+        self._chDir(dirName)                  
 
     def _showIntegratorControl(self):
         ''' Show the Integrator Control window and connect its signals.  '''
@@ -373,7 +453,7 @@ class SimulatorGui(QtGui.QMainWindow):
                 self.ic.resultsUpdated.connect(self._resultsUpdated)
                 self.ic.reallyFinished.connect(self._finishIntegratorControl)
             else:
-                print("Only result file opened, no model existing that can be simulated!\n")
+                print("Only result files opened, no model existing that can be simulated!\n")
 
     def _finishIntegratorControl(self):
         self.simulateAction.setEnabled(True)
@@ -425,17 +505,14 @@ class SimulatorGui(QtGui.QMainWindow):
     def _removeLinesByModel(self, model):
         varList = []
         # Do NOT delete the lines in the following first loop, because plotw is changed by plotw.removeVariable -> undefined behaviour
-        
         # First, search for all variables of the model plotted in widgets 
         for container in self.plotContainers:
             for plotw in container.findChildren(plotWidget.PlotWidget):               
                 for var in (x[1] for x in plotw.variables if x[0].numberedModelName == model.numberedModelName):                        
                     varList.append([plotw, var])
-                    
         # Now delete the lines
         for v in varList:
             v[0].removeVariable(model, v[1])
-                    
 
     def setNumberedStuff(self, model):
         ''' Set the numbered model name and the corresponding result file name '''        
@@ -453,7 +530,7 @@ class SimulatorGui(QtGui.QMainWindow):
         # Set default values for GUI realted topics
         model.integrationSettings.plotOnline_isChecked = True
         model.integrationSettings.duplicateModel_isChecked = False
-        model.integrationStatistics.finished = True
+        model.integrationStatistics.finished = True        
         # Include the model in the model dictionary
         self.models[model.numberedModelName] = model
         # Add the model to the variables browser
@@ -478,12 +555,7 @@ class SimulatorGui(QtGui.QMainWindow):
         # Delete the corresponding tree in the variable browser
         self.nvb.removeModel(self.models[numberedModelName])
         # Delete the corresponding lines and information in the plot windows
-        self._removeLinesByModel(self.models[numberedModelName])
-        # Close the result file (if any)
-        try:
-            self.models[numberedModelName].integrationResults.close()
-        except:
-            pass
+        self._removeLinesByModel(self.models[numberedModelName])        
         # Delete the model itself:
         self.models[numberedModelName].close()
         del self.models[numberedModelName]
@@ -503,45 +575,15 @@ class SimulatorGui(QtGui.QMainWindow):
                 print "Closed Simulator Plugin " + pluginName
             except:
                 print "Closing of Simulator Plugin " + pluginName + " failed."
-        sys.stdout = self._origStdout
+        sys.stdout = self._origStdout     
+        
 
 
-class WindowConsole(QtGui.QWidget):
-    ''' Class to write stdout prints to the QTextEdit textField  '''
-
-    def __init__(self, parent=None):
-        QtGui.QWidget.__init__(self, parent)
-        self.setLayout(QtGui.QGridLayout(self))
-        self.layout().setContentsMargins(0, 0, 0, 0)
-        self.out = QtGui.QTextEdit(self)
-        self.layout().addWidget(self.out, 0, 0)
-        self.out.setStyleSheet("QTextEdit { background-color: white; color: black; font-weight: normal; }")
-        self.out.setReadOnly(True)
-        self.input = QtGui.QLineEdit()
-        self.layout().addWidget(self.input, 1, 0)
-        self.consoleAccessMutex = QtCore.QMutex()
-
-    def write(self, text):
-        self.consoleAccessMutex.lock()
-        self.out.setUpdatesEnabled(False)
-        cursor = self.out.textCursor()
-        cursor.movePosition(QtGui.QTextCursor.End, QtGui.QTextCursor.MoveAnchor)
-        # Set Cursor to the end of the visible text
-        self.out.setTextCursor(cursor)
-        # Insert the given text at this position
-        self.out.insertPlainText(text)
-        #self.textField.insertHtml(text)
-        self.update()
-        self.out.setUpdatesEnabled(True)
-        self.consoleAccessMutex.unlock()
-        # Process event to see the printed message immediatly
-        app = QtGui.QApplication.instance()
-        app.processEvents()
 
 
 ''' Just launches the application
 '''
-if __name__ == "__main__":
+def start_PySimulator():
     runBenchmark = False
     app = QtGui.QApplication.instance()
     if not app:
@@ -553,7 +595,10 @@ if __name__ == "__main__":
     app.processEvents()
 
     splash.showMessage("Loading External dependencies...")
+    path, file = os.path.split(os.path.realpath(__file__))
+    os.chdir(path)
     # modified import statements, allowing them to be processed inside this function and make them globally available
+    globals()["configobj"] = __import__("configobj", globals(), locals(), [], -1)
     globals()["QtCore"] = __import__("PySide", globals(), locals(), ["QtCore"], -1).QtCore
     globals()["ETSConfig"] = __import__("traits.etsconfig.etsconfig", globals(), locals(), ["ETSConfig"], -1).ETSConfig
     ETSConfig.toolkit = "qt4"
@@ -563,16 +608,17 @@ if __name__ == "__main__":
     globals()["os"] = __import__("os", globals(), locals(), [], -1)
     globals()["re"] = __import__("re", globals(), locals(), [], -1)
     globals()["sys"] = __import__("sys", globals(), locals(), [], -1)
+    globals()["inspect"] = __import__("inspect", globals(), locals(), [], -1)
     globals()["VariablesBrowser"] = __import__("VariablesBrowser", globals(), locals(), [], -1)
     globals()["IntegratorControl"] = __import__("IntegratorControl", globals(), locals(), [], -1)
     globals()["plotWidget"] = __import__("plotWidget", globals(), locals(), [], -1)
     globals()["IntegratorControl"] = __import__("IntegratorControl", globals(), locals(), [], -1)
     globals()["Plugins"] = __import__("Plugins", globals(), locals(), [], -1)
     globals()["partial"] = __import__("functools", globals(), locals(), ["partial"], -1).partial
+    globals()["windowConsole"] = __import__("windowConsole", globals(), locals(), [], -1)
     import compileall
-
     splash.showMessage("Loading PySimulator...")
-    compileall.compile_dir(os.getcwd(), force=True, quiet=True, rx=re.compile('/[.]svn'))
+    compileall.compile_dir(os.getcwd(), force=True, quiet=True)
     sg = SimulatorGui()
     sg.show()
     splash.finish(sg)
@@ -586,3 +632,6 @@ if __name__ == "__main__":
         p.strip_dirs().sort_stats('cumulative').print_stats()
     else:
         app.exec_()
+
+if __name__ == "__main__":
+    start_PySimulator()

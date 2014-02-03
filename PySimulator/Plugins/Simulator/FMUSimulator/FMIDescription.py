@@ -1,5 +1,5 @@
 ''' 
-Copyright (C) 2011-2012 German Aerospace Center DLR
+Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
 Institute of System Dynamics and Control
 All rights reserved.
@@ -218,18 +218,7 @@ class FMIDescription:
             reference = scalar.get('valueReference')
             ''' Change some variable names '''
             scalarName = scalar.get('name')
-            if len(scalarName) > 5:
-                ''' Change variable name for derivatives to include them
-                    correctly in the variable browser; only a temorary solution
-                '''
-                if scalarName[:4] == "der(":
-                    scalar.set('name', scalarName[4:-1] + "_(der)")
-                    scalarName = scalar.get('name')
-            '''
-            Change variable name for arrays to include them
-            correctly in the variable browser
-            '''
-            scalarName = scalarName.replace('[', '.[')
+                       
             # Set the scalarVariable
             s = FMIScalarVariable(type, reference)
             s.description = scalar.get('description')

@@ -1,5 +1,5 @@
 ''' 
-Copyright (C) 2011-2012 German Aerospace Center DLR
+Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
 Institute of System Dynamics and Control
 All rights reserved.
@@ -49,9 +49,11 @@ class LinearizeFMU:
             print myLin.D
         '''    
         if FMUModel is None:
-            self.fmu = FMUSimulator.Model(modelName=None,modelFileName=FMUfileName,loggingOn=False) 
+            self.fmu = FMUSimulator.Model(modelName=None,modelFileName=FMUfileName,config=self.config,loggingOn=False) 
         else:
             self.fmu=FMUModel
+        
+        self.fmu.initialize(t)
         self.inputNames=[]
         self.outputNames=[]
         self.stateNames = self.fmu.getStateNames()   
@@ -68,30 +70,9 @@ class LinearizeFMU:
         self.ny=len(self.outputNames)
         #if p is not None:
         self.p=p
+        self.fmu.interface.freeModelInstance()
         self.A,self.B,self.C,self.D = self.linearize(x,t,p,u_ss,tol)
-    def changeModel(self, FMUmodel,x=None,t=0.0,u_ss=None,tol=6e-6):
-        '''
-        Change the FMU model used for the linearization and linearize the model.
-        In addition a state (x) and start time (t) as well as a steady state input (u_ss) and 
-        a tolerance for the linearization can be used as inputs.
-        '''
-        self.fmu = FMUmodel
-        self.inputNames=[]
-        self.outputNames=[]
-        self.stateNames = self.fmu.getStateNames()   
-        scalVars=self.fmu.description.scalarVariables        
-        for name, v in scalVars.iteritems():              
-            if v.causality=='output':                
-                self.outputNames.append(name)
-            if v.causality=='input':                
-                self.inputNames.append(name)
-        self.outputNames.sort()
-        self.inputNames.sort()       
-        self.nx=len(self.stateNames)       
-        self.nu=len(self.inputNames)
-        self.ny=len(self.outputNames)
-        self.p=self.fmu.changedStartValue
-        self.A,self.B,self.C,self.D = self.linearize(x,t,self.p,u_ss,tol)
+    
     @property
     def eigenValues(self):
         '''Get the eigenvalues a of A.'''                   
@@ -109,15 +90,7 @@ class LinearizeFMU:
             V = 1            
         return numpy.array(V) 
     def jacobian(self,x=None,t=0.0,p=None,u_ss=None,tol=6e-6):
-        ''' Calculate the Jacobian at time t, parameter p and state x, input u_ss. Use tolerance tol for FMU and central diff. quotient'''
-        if p is not None:
-            self.fmu.changedStartValue=p
-        self.fmu.initialize(t, tol)
-        '''Define defaults if empty'''
-        if x is None:            
-            x=self.fmu.getStates()
-        if u_ss is None:
-            u_ss=0.0*numpy.ones(self.nx) 
+        ''' Calculate the Jacobian at time t, parameter p and state x, input u_ss. Use tolerance tol for FMU and central diff. quotient'''        
         Jacobian=numpy.zeros((self.nx,self.nx))    
         E = numpy.identity(self.nx)
         for i in range(self.nx):
@@ -225,6 +198,7 @@ class LinearizeFMU:
             self.C=C
             self.D=D
             self.p=p
+        self.fmu.interface.freeModelInstance()
         return A,B,C,D
     def writeDataToMat(self,matFileName):
         '''Write linearization data to MATLAB .mat file (with file name matFileName)'''
