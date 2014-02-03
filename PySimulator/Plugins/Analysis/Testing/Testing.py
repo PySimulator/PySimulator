@@ -493,10 +493,15 @@ class simulationThread(QtCore.QThread):
             for i in xrange(len(self.modelList['fileName'])):                        
                 modelName = self.modelList['modelName'][i]                
                 packageName.append(self.modelList['fileName'][i])                
-                if modelName != '':               
+                if modelName != '':            
                     canLoadAllPackages = True
                     for j in xrange(len(packageName)):
-                        if not packageName[j].rsplit('.', 1)[1] in simulator.modelExtension:
+                        sp = packageName[j].rsplit('.', 1)
+                        if len(sp) > 1:
+                            if not sp[1] in simulator.modelExtension:
+                                canLoadAllPackages = False
+                                break
+                        else:
                             canLoadAllPackages = False
                             break
                     
@@ -522,7 +527,12 @@ class simulationThread(QtCore.QThread):
                 if modelName != '':               
                     canLoadAllPackages = True
                     for j in xrange(len(packageName)):
-                        if not packageName[j].rsplit('.', 1)[1] in simulator.modelExtension:
+                        sp = packageName[j].rsplit('.', 1)
+                        if len(sp) > 1:
+                            if not sp[1] in simulator.modelExtension:
+                                canLoadAllPackages = False
+                                break
+                        else:
                             canLoadAllPackages = False
                             break
                         
