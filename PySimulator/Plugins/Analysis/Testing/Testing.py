@@ -335,7 +335,7 @@ def compareListMenu(model, gui):
                     self.dir2Edit.setText(dirName)
                     
             def _browseResultDo():                   
-                (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Define Analysis Result File', os.getcwd(), '(*.log);;All Files(*.*)')
+                (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, 'Define Analysis Result File', os.getcwd(), '(*.log);;All Files(*.*)')
                 fileName = str(fileName)
                 if fileName != '':
                     self.resultEdit.setText(fileName)
