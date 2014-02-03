@@ -30,7 +30,7 @@ The main UI window
 import os
 from PySide import QtGui
 
-version = '0.6'
+version = '0.6+'
 
 
 def loadPlugins(type):
