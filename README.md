@@ -15,7 +15,7 @@ Installation:
 
 To install PySimulator one of the following requirements has to be fulfilled:
  * Python(x,y) is installed (tested with version 2.7.5), see www.pythonxy.org. This is the recommended option.
- * Python 2.7 and Visual Studio 2008 is installed (for specialists).
+ * Python 2.7 and Microsoft Visual Studio 2008 is installed (for specialists).
  
 Start "Install PySimulator.bat".
 
