@@ -323,14 +323,14 @@ class Model():
 
     
     def getReachedSimulationTime(self):
-        ''' Results are avialable up to the returned time        
+        ''' Results are available up to the returned time        
         '''
         raise NameError('Not implemented.')
         #return simulationTime
 
 
     ''' **************************************************************************************
-        The follwing functions are optional.
+        The following functions are optional.
         They are necessary, if detailed
         access to the model equations
         shall be supported (e.g. to be used

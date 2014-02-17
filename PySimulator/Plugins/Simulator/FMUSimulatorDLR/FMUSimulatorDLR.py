@@ -102,11 +102,11 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         self.integrationSettings.resultFileExtension = 'mtsf'
         #Default values
         updateSettingsByFMI(self.description)
-        self._avilableIntegrationAlgorithms = ["BDF (IDA, Dassl like)", "BDF (CVode)", "Adams (CVode)", "Explicit Euler (fixed step size)"]
+        self._availableIntegrationAlgorithms = ["BDF (IDA, Dassl like)", "BDF (CVode)", "Adams (CVode)", "Explicit Euler (fixed step size)"]
         self._IntegrationAlgorithmHasFixedStepSize = [False, False, False, True]
         self._IntegrationAlgorithmCanProvideStepSizeResults = [True, True, True, True]
 
-        self.integrationSettings.algorithmName = self._avilableIntegrationAlgorithms[0]
+        self.integrationSettings.algorithmName = self._availableIntegrationAlgorithms[0]
         self.simulationStopRequest = False
 
 
@@ -645,13 +645,13 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         return
 
     def getAvailableIntegrationAlgorithms(self):
-        return self._avilableIntegrationAlgorithms
+        return self._availableIntegrationAlgorithms
 
     def getIntegrationAlgorithmHasFixedStepSize(self, algorithmName):
-        return self._IntegrationAlgorithmHasFixedStepSize[self._avilableIntegrationAlgorithms.index(algorithmName)]
+        return self._IntegrationAlgorithmHasFixedStepSize[self._availableIntegrationAlgorithms.index(algorithmName)]
 
     def getIntegrationAlgorithmCanProvideStepSizeResults(self, algorithmName):
-        return self._IntegrationAlgorithmCanProvideStepSizeResults[self._avilableIntegrationAlgorithms.index(algorithmName)]
+        return self._IntegrationAlgorithmCanProvideStepSizeResults[self._availableIntegrationAlgorithms.index(algorithmName)]
 
     def setVariableTree(self):
         ''' Sets the variable tree to be displayed in the variable browser.

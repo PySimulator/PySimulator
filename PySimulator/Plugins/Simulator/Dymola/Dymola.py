@@ -50,7 +50,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         self.integrationResults = DymolaMat.Results('') 
         self.integrationSettings.resultFileExtension = 'mat'                
         
-        self._avilableIntegrationAlgorithms = ["Dassl", "Explicit Euler", "Lsodar", "Rkfix2", "Rkfix3", "Rkfix4"]        
+        self._availableIntegrationAlgorithms = ["Dassl", "Explicit Euler", "Lsodar", "Rkfix2", "Rkfix3", "Rkfix4"]        
         '''
         ,"Radau IIa","Esdirk23a","Esdirk34a","Esdirk45a",
         "Dopri45","Dopri853","Sdirk34hw","Cerk23","Cerk34","Cerk45"]
@@ -58,7 +58,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         self._IntegrationAlgorithmHasFixedStepSize = [False, True, False, True, True, True] #, False, False, False, False, False, False, False, False, False, False]
         self._IntegrationAlgorithmCanProvideStepSizeResults = [False, False, False, False, False, False] #, False, False, False, False, False, False, False, False, False, False]
         
-        self.integrationSettings.algorithmName = self._avilableIntegrationAlgorithms[0]
+        self.integrationSettings.algorithmName = self._availableIntegrationAlgorithms[0]
 
         # Compile model, generate initialization file (including all avariable names) and read this file
         self._compileModel()       
@@ -349,21 +349,21 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
     def getAvailableIntegrationAlgorithms(self): 
         ''' Returns a list of strings with available integration algorithms
         '''       
-        return self._avilableIntegrationAlgorithms
+        return self._availableIntegrationAlgorithms
     
     def getIntegrationAlgorithmHasFixedStepSize(self, algorithmName):
         ''' Returns True or False dependent on the fact, 
             if the integration algorithm given by the string algorithmName
             has a fixed step size or not (if not it has a variable step size).
         '''
-        return self._IntegrationAlgorithmHasFixedStepSize[self._avilableIntegrationAlgorithms.index(algorithmName)]
+        return self._IntegrationAlgorithmHasFixedStepSize[self._availableIntegrationAlgorithms.index(algorithmName)]
     
     def getIntegrationAlgorithmCanProvideStepSizeResults(self, algorithmName):
         ''' Returns True or False dependent on the fact,
             if the integration algorithm given by the string algorithmName
             can provide result points at every integration step.
         '''
-        return self._IntegrationAlgorithmCanProvideStepSizeResults[self._avilableIntegrationAlgorithms.index(algorithmName)]
+        return self._IntegrationAlgorithmCanProvideStepSizeResults[self._availableIntegrationAlgorithms.index(algorithmName)]
   
   
 
