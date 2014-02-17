@@ -60,7 +60,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         
         self.integrationSettings.algorithmName = self._availableIntegrationAlgorithms[0]
 
-        # Compile model, generate initialization file (including all avariable names) and read this file
+        # Compile model, generate initialization file (including all variable names) and read this file
         self._compileModel()       
         subprocess.call(self.fileNameExec + ' -ib dsin.mat')
         self._initialResult = DymolaMat.loadDymolaInit(os.path.abspath('.') + '/dsin.mat')
@@ -333,7 +333,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         # End of defining functions in simulate           
             
         
-        # Compile the model if neccessary:        
+        # Compile the model if necessary:        
         self._compileModel()        
        
         # Write input file and start simulation
