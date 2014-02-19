@@ -24,7 +24,7 @@ import csv, numpy, collections, math
 from Plugins.SimulationResult import IntegrationResults
 
 fileExtension = 'csvx'
-description = 'Comma Separted Values for SimulationX'
+description = 'Comma Separated Values for SimulationX'
 
 class Results(IntegrationResults.Results):
     ''' Class for hosting simulation results in csv format:
