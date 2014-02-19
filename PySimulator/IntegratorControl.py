@@ -562,9 +562,9 @@ class simulationThread(QtCore.QThread):
             self.model.simulate()            
         except Plugins.Simulator.SimulatorBase.Stopping:
             print("solver canceled ... ")
-        #except Exception, e:
-        #    print("unexpected error ... ")
-        #    print e
+        except Exception, e:
+            print("unexpected error ... ")
+            print e
 
         # Define simulation completed to stop updating plots and come back to the GUI
         self.SimulationFinished.emit(True)
