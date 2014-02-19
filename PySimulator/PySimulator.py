@@ -563,7 +563,7 @@ class SimulatorGui(QtGui.QMainWindow):
     def _variableValueChanged(self, numberedModelName, variableName, value):
         ''' The user entered a new value for a variable in the variable browser.
             Store this information in the model. '''
-        print('Variable value changed: %s: %s = %s\n' % (numberedModelName, variableName, value))
+        print('Variable value changed: %s: %s = %s' % (numberedModelName, variableName, value))
         self.models[str(numberedModelName)].changedStartValue[variableName] = value
         # Delete pluginData because values of parameters have been changed
         self.models[str(numberedModelName)].pluginData.clear()
