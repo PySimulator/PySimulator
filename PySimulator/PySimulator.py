@@ -362,7 +362,7 @@ class SimulatorGui(QtGui.QMainWindow):
                 defaultModelName = split[1]
             else:
                 defaultModelName = ''
-            modelName, ok = QtGui.QInputDialog().getText(self, 'Modelica model', 'Modelica model name', text=defaultModelName)
+            modelName, ok = QtGui.QInputDialog().getText(self, 'Modelica model', 'Full Modelica model name / ident, e.g. Modelica.Blocks.Examples.PID_Controller', text=defaultModelName)
             if not ok:
                 return
             modelName = str(modelName)
