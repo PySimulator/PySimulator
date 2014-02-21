@@ -1,6 +1,6 @@
-''' 
+'''
 Copyright (C) 2011-2014 German Aerospace Center DLR
-(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
+(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
 
@@ -24,6 +24,7 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 import types
 from PySide import QtGui, QtCore
 import functools
+import locale
 
 
 class VariablesBrowser(QtGui.QTreeWidget):
@@ -109,7 +110,7 @@ class VariablesBrowser(QtGui.QTreeWidget):
             modelName = str(item.text(0))
             menu = QtGui.QMenu(self)
             model = self.parent.models[modelName]
-            checkedModel = self.parent.models[self.currentModelItem.text(0)] 
+            checkedModel = self.parent.models[self.currentModelItem.text(0)]
 
             # default entries, which should show up for all models
             menu.addAction("Close Model", functools.partial(self.closeTheModel, model))
@@ -186,7 +187,7 @@ class VariablesBrowser(QtGui.QTreeWidget):
         treeItem.variable = qualifiedName
         treeItem.modelName = model.numberedModelName
         treeItem.setFlags(treeItem.flags() & ~QtCore.Qt.ItemIsEditable & ~QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsUserCheckable)
-        
+
         variableText = v
         #variableText = str(v[0])
         #if len(variableText) > 6:
@@ -217,7 +218,8 @@ class VariablesBrowser(QtGui.QTreeWidget):
 
         # Set the showed unit
         if model.variableTree.variable[qualifiedName].unit is not None:
-            treeItem.setText(2, str(model.variableTree.variable[qualifiedName].unit))
+            os_encoding = locale.getpreferredencoding()
+            treeItem.setText(2, model.variableTree.variable[qualifiedName].unit.encode(os_encoding))
 
         # Define deepest treeitem: Additional attribute for each variable
         if model.variableTree.variable[qualifiedName].attribute is not None:
@@ -263,7 +265,7 @@ class VariablesBrowser(QtGui.QTreeWidget):
         treeRoot.setToolTip(0, tipText)
         # Generate a nice list of model variables
         #variableNames = model.variableTree.variable.keys()
-        variableNames = list()        
+        variableNames = list()
         for name, variable in model.variableTree.variable.iteritems():
             variableNames.append([variable.browserName, name])
 
@@ -314,7 +316,7 @@ class VariablesBrowser(QtGui.QTreeWidget):
         '''
         def checkNewItem():
             ''' Marks the item as current one
-            '''           
+            '''
             toItem.setCheckState(0, QtCore.Qt.Checked)
             font = toItem.font(0)
             font.setBold(True)
@@ -344,7 +346,7 @@ class VariablesBrowser(QtGui.QTreeWidget):
             if toItem is None:
                 uncheckCurrentItem()
                 # Emit currentModelChanged, because no item will be checked to emit the signal
-                self.currentModelItem = None                
+                self.currentModelItem = None
                 self.currentModelChanged.emit()
             elif toItem.numberedModelName == self.currentModelItem.numberedModelName:
                 checkNewItem()
