@@ -289,11 +289,23 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 		Plugins.Simulator.SimulatorBase.Model.__init__(self, modelName, modelFileName, 'SimulationX', config)
 
 		sim = None
+		self._doc = None
+
 		try:
 			if not config['Plugins']['SimulationX'].has_key('version'):
 				config['Plugins']['SimulationX']['version'] = 'Iti.Simx36'
 				config.write()
 			dispatch = config['Plugins']['SimulationX']['version']
+			if dispatch == 'Iti.Simx36':
+				ver = '3.6'
+			elif dispatch == 'Iti.Simx37':
+				ver = '3.7'
+			else:
+				ver = '3.5'
+			# Make sure Modelica models can be simulated
+			key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\ITI GmbH\SimulationX ' + ver + r'\Modelica', 0, winreg.KEY_ALL_ACCESS)
+			winreg.SetValueEx(key, 'AutoCreateSimModel', 0, winreg.REG_DWORD, 1)
+			winreg.CloseKey(key)
 
 			pythoncom.CoInitialize()
 
@@ -325,8 +337,6 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
 			if sim.InitState == simInitBase:
 				sim.InitSimEnvironment() # Necessary when a script is used to start SimulationX
-
-			self._doc = None
 
 			if len(modelFileName) == 1:
 				strMsg = 'PySimulator: Load model'
