@@ -28,7 +28,6 @@ Created on 08.04.2012
 
 import numpy
 import math
-import sys
 
 def to_Hz(w):
     """ 
