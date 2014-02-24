@@ -245,6 +245,11 @@ class IntegratorControl(QtGui.QDialog):
                 self.inTime.setChecked(True)
             self.useIntegratorGrid.setEnabled(False)
 
+    def reject(self):
+        ''' Overload the standard reject function to not close the GUI
+            when ESC is pressed '''
+        pass
+
     def closeEvent(self, event):
         #print "Close event"
         if not self.closebutton.isEnabled():
