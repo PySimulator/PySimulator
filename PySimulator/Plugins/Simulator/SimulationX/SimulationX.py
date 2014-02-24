@@ -650,10 +650,15 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			else:
 				doc.Parameters(name).Value = newValue
 
-		# Log all variables
-		for name in self.variableTree.variable.iteritems():
-			pChild = doc.Lookup(name[0])
-			if pChild.IsA(simVariable) and not pChild.GetProperty(simIsInput):
+		# Log all parameters and variables
+		paramName = list()
+		paramUnit = list()
+		paramValue = list()
+		for name, item in self.variableTree.variable.iteritems():
+			pChild = doc.Lookup(name)
+			childIsASimVariable = pChild.IsA(simVariable)
+			if childIsASimVariable and not pChild.GetProperty(simIsInput):
+				# Result
 				try:
 					pChild.Protocol = True
 				except:
@@ -661,6 +666,37 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 						pChild.Parent.Results(pChild.Name).Protocol = True
 					except:
 						pass
+			elif ((pChild.IsA(simParameter) or pChild.IsA(simGeneralParameter)) and not childIsASimVariable) or (pChild.GetProperty(simIsInput) and childIsASimVariable):
+				# Parameter
+				childRelIdent = re.sub(r'\[.*?\]', '', name)
+				childUnit = pChild.Unit.encode('utf-8')
+				childValue = pChild.Value
+				dim = pChild.Execute('GetDimension', [])[0]
+				if dim == '':
+					# Scalar dimension
+					if not childRelIdent in paramName:
+						paramName.append(childRelIdent)
+						paramUnit.append(childUnit)
+						if childValue == '':
+							childValue = 0
+						paramValue.append(childValue)
+				elif self._isNumeric(dim):
+					# Fixed vector dimension
+					dim = int(dim)
+					childValue = re.sub('[\{\}\[\] ]', '', childValue)
+					childValue = childValue.replace(';', ',')
+					childValueList = childValue.split(',')
+					if len(childValueList) == dim:
+						for i in range(1, dim + 1):
+							if self._isNumeric(childValueList[i - 1]):
+								childCompName = childRelIdent + '[' + str(i) + ']'
+								if not childCompName in paramName:
+									paramName.append(childCompName)
+									paramUnit.append(childUnit)
+									childValue = childValueList[i - 1]
+									if childValue == '':
+										childValue = 0
+									paramValue.append(childValue)
 
 		# Start simulation
 		doc.Reset()
@@ -676,41 +712,6 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			time.sleep(0.1)
 
 		# Integration is finished
-		# Log all parameters
-		paramName = list()
-		paramUnit = list()
-		paramValue = list()
-		for name in self.variableTree.variable.iteritems():
-			pChild = doc.Lookup(name[0])
-			childIsASimVariable = pChild.IsA(simVariable)
-			if ((pChild.IsA(simParameter) or pChild.IsA(simGeneralParameter)) and not childIsASimVariable) or (pChild.GetProperty(simIsInput) and childIsASimVariable):
-				childRelIdent = pChild.GetRelIdent(doc)
-				childUnit = pChild.Unit
-				childValue = pChild.Value
-				dim = pChild.Execute('GetDimension', [])[0]
-				if dim == '':
-					# Scalar dimension
-					paramName.append(childRelIdent)
-					paramUnit.append(childUnit)
-					if childValue == '':
-						childValue = 0
-					paramValue.append(childValue)
-				elif self._isNumeric(dim):
-					# Fixed vector dimension
-					dim = int(dim)
-					childValue = re.sub('[\{\}\[\] ]', '', childValue)
-					childValue = childValue.replace(';', ',')
-					childValueList = childValue.split(',')
-					if len(childValueList) == dim:
-						for i in range(1, dim + 1):
-							if self._isNumeric(childValueList[i - 1]):
-								paramName.append(childRelIdent + '[' + str(i) + ']')
-								paramUnit.append(childUnit)
-								childValue = childValueList[i - 1]
-								if childValue == '':
-									childValue = 0
-								paramValue.append(childValue)
-
 		if doc.SolutionState == simStopped:
 			# Save results in CSV file
 			resultFileName = os.path.abspath(simulation.resultFileName).replace('\\', '/')
