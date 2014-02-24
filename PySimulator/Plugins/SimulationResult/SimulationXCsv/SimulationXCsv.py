@@ -72,6 +72,10 @@ class Results(IntegrationResults.Results):
             self._name = self._name[1:] # delete 'Time'
             self._unit = self._unit[1:] # delete unit of 'Time'
             self._isParameter = self._isParameter[1:] # delete isParameter of 'Time'
+        else:
+            data = numpy.reshape(data, (len(data), 1))
+            self.timeSeries.append(IntegrationResults.TimeSeries(data, data, "linear"))
+
 
         # Load parameters
         try:
@@ -88,7 +92,7 @@ class Results(IntegrationResults.Results):
             data = numpy.loadtxt(csvfile, delimiter=';')
             csvfile.close()
 
-            data = numpy.reshape(data, (1,len(data)))
+            data = numpy.reshape(data, (1, len(data)))
             self.timeSeries.append(IntegrationResults.TimeSeries(None, data, "constant"))
             self._isParameter.extend(len(name2)*[True])
             self._name.extend(name2)
