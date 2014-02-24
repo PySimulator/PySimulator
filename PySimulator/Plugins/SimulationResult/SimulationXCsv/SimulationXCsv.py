@@ -1,6 +1,6 @@
-''' 
+'''
 Copyright (C) 2011-2013 German Aerospace Center DLR
-(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
+(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
 
@@ -32,75 +32,76 @@ class Results(IntegrationResults.Results):
         Second row: Unit (- marks no unit)
         First column: Independent variable, e.g. t
         Example:
-        
+
         t;Mechanical.Inertia.J;y;Mechnical.Inertia.w
         s;-;-;rad/s;
         0.0;20.0;3.6820238572822689e-4;0.0
         0.1;20.0;6.7829872398723383e-4;0.7293789273984797e-2
         0.2;20.0;4.0290389058209473e-3;0.7823794579232536e-1
-        
+
     '''
-    def __init__(self, fileName):        
+    def __init__(self, fileName):
         IntegrationResults.Results.__init__(self)
-        
+
         self.fileName = fileName         # File name of result file
         ''' Load file
         '''
-        
+
         self._name = []
-        self._unit = []       
-        
+        self._unit = []
+
         if self.fileName is not None:
             if self.fileName == '':
                 return
         else:
             return
-        
-        
-        # Load main data     
-        csvfile = open(self.fileName, 'rb')        
+
+
+        # Load main data
+        csvfile = open(self.fileName, 'rb')
         reader = csv.reader(csvfile, delimiter=';')
-        self._name = reader.next() # first row contains the variable names                
-        self._unit = reader.next() # second row contains the units        
-        data  = numpy.loadtxt(csvfile, delimiter=';')              
+        self._name = reader.next() # first row contains the variable names
+        self._unit = reader.next() # second row contains the units
+        data  = numpy.loadtxt(csvfile, delimiter=';')
         csvfile.close()
-        
+
         self._isParameter = len(self._name)*[False]
-        self.timeSeries.append(IntegrationResults.TimeSeries(data[:,0], data[:,1:], "linear")) 
-        
-        self._name = self._name[1:] # delete 'Time'
-        self._unit = self._unit[1:] # delete unit of 'Time'
-        self._isParameter = self._isParameter[1:] # delete isParameter of 'Time'
-        
-        # Load parameters        
+        if numpy.ndim(data) > 1:
+            self.timeSeries.append(IntegrationResults.TimeSeries(data[:,0], data[:,1:], "linear"))
+
+            self._name = self._name[1:] # delete 'Time'
+            self._unit = self._unit[1:] # delete unit of 'Time'
+            self._isParameter = self._isParameter[1:] # delete isParameter of 'Time'
+
+        # Load parameters
         try:
             csvfile = open(self.fileName+'p', 'rb')
             parameterFileExists = True
         except IOError:
             parameterFileExists = False
-        
-               
-        if parameterFileExists:                 
+
+
+        if parameterFileExists:
             reader = csv.reader(csvfile, delimiter=';')
-            name2 = reader.next() # first row contains the variable names                
-            unit2 = reader.next() # second row contains the units        
+            name2 = reader.next() # first row contains the variable names
+            unit2 = reader.next() # second row contains the units
             data = numpy.loadtxt(csvfile, delimiter=';')
-            csvfile.close()            
-            
+            csvfile.close()
+
             data = numpy.reshape(data, (1,len(data)))
-            self.timeSeries.append(IntegrationResults.TimeSeries(None, data, "constant"))  
-            self._isParameter.extend(len(name2)*[True])            
+            self.timeSeries.append(IntegrationResults.TimeSeries(None, data, "constant"))
+            self._isParameter.extend(len(name2)*[True])
             self._name.extend(name2)
             self._unit.extend(unit2)
-            
-        
-        self._info = len(self._name)*['']        
+
+
+        self._info = len(self._name)*['']
         self._filterName()
         self._filterUnit()
-        
-        self.nTimeSeries = len(self.timeSeries)                
-        
-        
+
+        self.nTimeSeries = len(self.timeSeries)
+
+
         # Hack to transform deg -> rad
         for i in xrange(len(self._unit)):
             if self._unit[i] is not None:
@@ -110,35 +111,35 @@ class Results(IntegrationResults.Results):
                         self.timeSeries[1].data[0,i-self.timeSeries[0].data.shape[1]] *= math.pi/180.0
                     else:
                         self.timeSeries[0].data[:,i] *= math.pi/180.0
-        
-        
-        self.isAvailable = True         # Shows, if there is a file available to be read 
-       
+
+
+        self.isAvailable = True         # Shows, if there is a file available to be read
+
     def _filterUnit(self):
-        
+
         for i in xrange(len(self._unit)):
             x = self._unit[i]
             if x == '-':
-                self._unit[i] = None         
-        
+                self._unit[i] = None
+
     def _filterName(self):
-        
+
         for i in xrange(len(self._name)):
             x = self._name[i]
             k = x.find('=')
-            if k > -1:  # Skip the parts behind "="                
+            if k > -1:  # Skip the parts behind "="
                 self._info[i] = x[k:]
                 x = x[:k]
-            
+
             #if len(x)>5:  # Convert der(a.b.c.d) to a.b.c.der(d)
             #    if x[:4] == 'der(':
             #        k = x.rfind('.')
             #        if k > -1:
             #            x = x[4:k] + '.der(' + x[k+1:]
-            self._name[i] = x            
-        
-    
-    def readData(self, variableName):       
+            self._name[i] = x
+
+
+    def readData(self, variableName):
         nameIndex = self._name.index(variableName)
         if nameIndex < 0:
             return None, None, None
@@ -147,19 +148,19 @@ class Results(IntegrationResults.Results):
             i = 1
         else:
             y = self.timeSeries[0].data[:,nameIndex]
-            i = 0   
-               
+            i = 0
+
         t = self.timeSeries[i].independentVariable
         method = self.timeSeries[i].interpolationMethod
-        
+
         return t, y, method
-    
-       
-    def getVariables(self):        
-        # Generate the dict           
+
+
+    def getVariables(self):
+        # Generate the dict
         variables = dict()
-        
-        # Fill the values of the dict        
+
+        # Fill the values of the dict
         for i in xrange(len(self._name)):
             name = self._name[i]
 
@@ -169,32 +170,26 @@ class Results(IntegrationResults.Results):
                 seriesIndex = 1
                 column = i - self.timeSeries[0].data.shape[1]
             else:
-                variability = 'continuous'            
+                variability = 'continuous'
                 value = None
                 seriesIndex = 0
-                column = i   
+                column = i
             infos = collections.OrderedDict()
             infos['Variability'] = variability
             if not self._info[i] == '':
-                infos['Description'] = self._info[i]              
+                infos['Description'] = self._info[i]
             unit = self._unit[i]
-            sign = 1           
-            
+            sign = 1
+
             if name in variables.keys():
                 print "Same name twice " + ('(Parameter): ' if self._isParameter[i] else '(Variable): ') + name
-            else:           
+            else:
                 variables[name] = IntegrationResults.ResultVariable(value, unit, variability, infos, seriesIndex, column, sign)
-        
-        #print self._name          
-        
+
+        #print self._name
+
         return variables
-    
+
     def getFileInfos(self):
         # No relevant file infos stored in a csv result file
         return dict()
-
-
-    
-    
-   
-
