@@ -7,6 +7,7 @@ with winshell.shortcut(link_filepath) as link:
   link.path = sys.prefix + r"\\pythonw.exe"
   link.description = "PySimulator - Simulation and Analysis Environment in Python"
   link.arguments = "-m PySimulator"
+  link.working_directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'PySimulator')
 
 import win32ui, win32con
 import urllib
