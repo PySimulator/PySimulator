@@ -8,6 +8,7 @@ with winshell.shortcut(link_filepath) as link:
   link.description = "PySimulator - Simulation and Analysis Environment in Python"
   link.arguments = "-m PySimulator"
   link.working_directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'PySimulator')
+  link.icon_location = (os.path.join(os.path.join(link.working_directory, 'Icons'), 'pysimulator.ico'), 0)
 
 import win32ui, win32con
 import urllib
