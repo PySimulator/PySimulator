@@ -737,13 +737,35 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 				ver = '3.7'
 			else:
 				ver = '3.5'
-			key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\ITI GmbH\SimulationX ' + ver + r'\DataFilter', 0, winreg.KEY_ALL_ACCESS)
-			frt = winreg.QueryValueEx(key, 'Format')
-			dec = winreg.QueryValueEx(key, 'Dec')
-			sep = winreg.QueryValueEx(key, 'Separator')
-			adT = winreg.QueryValueEx(key, 'AddTableName')
-			adN = winreg.QueryValueEx(key, 'AddColumnNames')
-			adU = winreg.QueryValueEx(key, 'AddColumnUnits')
+
+			try:
+				key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\ITI GmbH\SimulationX ' + ver + r'\DataFilter', 0, winreg.KEY_ALL_ACCESS)
+			except WindowsError:
+				key = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, r'Software\ITI GmbH\SimulationX ' + ver + r'\DataFilter', 0, winreg.KEY_ALL_ACCESS)
+			try:
+				frt = winreg.QueryValueEx(key, 'Format')
+			except WindowsError:
+				frt = (u'%.15lg',  winreg.REG_SZ)
+			try:
+				dec = winreg.QueryValueEx(key, 'Dec')
+			except WindowsError:
+				dec = (u'.',  winreg.REG_SZ)
+			try:
+				sep = winreg.QueryValueEx(key, 'Separator')
+			except WindowsError:
+				sep = (u'\t',  winreg.REG_SZ)
+			try:
+				adT = winreg.QueryValueEx(key, 'AddTableName')
+			except WindowsError:
+				adT = (0, winreg.REG_DWORD)
+			try:
+				adN = winreg.QueryValueEx(key, 'AddColumnNames')
+			except WindowsError:
+				adN = (1, winreg.REG_DWORD)
+			try:
+				adU = winreg.QueryValueEx(key, 'AddColumnUnits')
+			except WindowsError:
+				adU = (0, winreg.REG_DWORD)
 			winreg.SetValueEx(key, 'Format', 0, winreg.REG_SZ, '%.17lg')
 			winreg.SetValueEx(key, 'Dec', 0, winreg.REG_SZ, '.')
 			winreg.SetValueEx(key, 'Separator', 0, winreg.REG_SZ, ';')
