@@ -392,7 +392,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 					print 'SimulationX: Load error.'
 
 		except:
-			print 'SimulationX: Error'
+			print 'SimulationX: Error.'
 
 		finally:
 			try:
@@ -403,27 +403,30 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 				pass
 
 	def __exit__(self, _type, _value, _traceback):
-		pythoncom.CoReleaseMarshalData(self._marshalled_doc)
 		pythoncom.CoUninitialize()
 
 	def close(self):
+		''' Close a Modelica/SimulationX model
+		'''
 		sim = None
 		try:
-			if not type(self._doc) is types.NoneType:
-				sim = self._doc.Application
+			doc = win32com.client.Dispatch(pythoncom.CoUnmarshalInterface(self._marshalled_doc, pythoncom.IID_IDispatch))
+			self._marshalled_doc.Seek(0, pythoncom.STREAM_SEEK_SET)
+			if not type(doc) is types.NoneType:
+				sim = doc.Application
 				sim.Interactive = False
-				# Close model
-				self._doc.Close(False)
-				self._doc = None
+				doc.Close(False)
+				doc = None
 				pythoncom.CoReleaseMarshalData(self._marshalled_doc)
+				self._marshalled_doc = None
 		except win32com.client.pywintypes.com_error:
 			print 'SimulationX: COM error.'
+		except:
+			print 'SimulationX: Error.'
 		finally:
+			Plugins.Simulator.SimulatorBase.Model.close(self)
 			if not type(sim) is types.NoneType:
 				sim.Interactive = True
-
-		# Close the model
-		Plugins.Simulator.SimulatorBase.Model.close(self)
 
 	def _isNumeric(self, s):
 		'''  Check if a string value can be successfully converted to a double value
@@ -589,7 +592,6 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 		'''
 		sim = None
 		try:
-			pythoncom.CoInitialize()
 			doc = win32com.client.Dispatch(pythoncom.CoUnmarshalInterface(self._marshalled_doc, pythoncom.IID_IDispatch))
 			self._marshalled_doc.Seek(0, pythoncom.STREAM_SEEK_SET)
 			if not type(doc) is types.NoneType:
@@ -604,7 +606,6 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 		finally:
 			if not type(sim) is types.NoneType:
 				sim.Interactive = True
-			pythoncom.CoUninitialize()
 
 	def _simulate_sync(self, doc):
 		simulation = self.integrationSettings
@@ -614,7 +615,11 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 		doc.Lookup('tStop').Value = simulation.stopTime
 		doc.Lookup('relTol').Value = simulation.errorToleranceRel
 		if simulation.errorToleranceAbs is None:
-			doc.Lookup('absTol').Value = simulation.errorToleranceRel
+			if not self.config['Plugins']['SimulationX'].has_key('absTol'):
+				absTol = simulation.errorToleranceRel
+			else:
+				absTol = self.config['Plugins']['SimulationX']['absTol']
+			doc.Lookup('absTol').Value = absTol
 		else:
 			doc.Lookup('absTol').Value = simulation.errorToleranceAbs
 
@@ -622,7 +627,11 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 		if self._IntegrationAlgorithmHasFixedStepSize[ialg]:
 			doc.Lookup('dtMin').Value = simulation.fixedStepSize
 		else:
-			doc.Lookup('dtMin').Value = 1e-008
+			if not self.config['Plugins']['SimulationX'].has_key('dtMin'):
+				dtMin = '1e-010'
+			else:
+				dtMin = self.config['Plugins']['SimulationX']['dtMin']
+			doc.Lookup('dtMin').Value = dtMin
 		if simulation.gridPointsMode == 'NumberOf':
 			if simulation.gridPoints > 1:
 				gridWidth = (simulation.stopTime - simulation.startTime)/(simulation.gridPoints - 1)
@@ -649,6 +658,11 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 					doc.Parameters(name[0:i]).Value = '{' + ','.join(valueList) + '}'
 			else:
 				doc.Parameters(name).Value = newValue
+
+		# Build variable tree if empty, e.g. if simulate is called by the Testing plugin
+		if not bool(self.variableTree.variable):
+			self._fillTree(doc, doc)
+			treeWasEmpty = True
 
 		# Log all parameters and variables
 		paramName = list()
@@ -757,6 +771,9 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			self.integrationStatistics.nGridPoints = len(doc.Lookup('t').ProtValues)
 		elif doc.SolutionState == simFailed:
 			print('SimulationX: Simulation error.')
+
+		if treeWasEmpty:
+			self.variableTree.variable.clear()
 
 	def getAvailableIntegrationAlgorithms(self):
 		''' Returns a list of strings with available integration algorithms

@@ -1,6 +1,6 @@
-''' 
+'''
 Copyright (C) 2011-2014 German Aerospace Center DLR
-(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
+(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
 
@@ -23,6 +23,7 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 from PySide import QtGui, QtCore
 import threading
 import types
+import pythoncom
 
 import os
 import math
@@ -387,7 +388,7 @@ class IntegratorControl(QtGui.QDialog):
                     nDigits = 14
                     formatString = '0.' + str(nDigits) + 'g'
                 currentTimeText = format(math.floor(math.pow(10,nDigits)*statistics.reachedTime)/math.pow(10,nDigits), formatString)
-            
+
             if len(currentTimeText) > 0:
                 currentTimeText += ' s'
         self.showedTimeLabel.setText(currentTimeText)
@@ -559,13 +560,16 @@ class simulationThread(QtCore.QThread):
             except:
                 #do nothing, since error message only indicates we are not in debug mode
                 pass
-            self.model.simulate()            
+            pythoncom.CoInitialize() # Initialize the COM library on the current thread
+            self.model.simulate()
         except Plugins.Simulator.SimulatorBase.Stopping:
             print("solver canceled ... ")
         except Exception, e:
             print("unexpected error ... ")
             print e
+        finally:
+            pythoncom.CoUninitialize() # Close the COM library on the current thread
+
 
         # Define simulation completed to stop updating plots and come back to the GUI
         self.SimulationFinished.emit(True)
-
