@@ -2,5 +2,5 @@
 
 # List of models to be simulated
 # Model file                                                                     Model name                                                     tStart            tStop            errorTolerance          nIntervals     includeEvents
-"C:\Program Files (x86)\Dymola 2014\Modelica\Library\Modelica 3.2\package.mo"    Modelica.Electrical.Analog.Examples.Rectifier                   0.0               2.5                1e-6                   500              true 
-Modelica_Electrical_Analog_Examples_Rectifier.fmu                                Rectifier                                                       0.0               1                  1e-4                   5000             true 
+"C:\Modelica\Modelica 3.2.1\package.mo"                                          Modelica.Electrical.Analog.Examples.Rectifier                  0.0               2.5              1e-6                    500            true
+Modelica_Electrical_Analog_Examples_Rectifier.fmu                                Rectifier                                                      0.0               1                1e-4                    5000           true
