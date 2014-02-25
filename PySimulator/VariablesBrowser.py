@@ -24,7 +24,6 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 import types
 from PySide import QtGui, QtCore
 import functools
-import locale
 
 
 class VariablesBrowser(QtGui.QTreeWidget):
@@ -218,8 +217,13 @@ class VariablesBrowser(QtGui.QTreeWidget):
 
         # Set the showed unit
         if model.variableTree.variable[qualifiedName].unit is not None:
-            os_encoding = locale.getpreferredencoding()
-            treeItem.setText(2, model.variableTree.variable[qualifiedName].unit.encode(os_encoding))
+            if isinstance(model.variableTree.variable[qualifiedName].unit, str):
+                treeItem.setText(2, model.variableTree.variable[qualifiedName].unit)
+            else:
+                try:
+                    treeItem.setText(2, str(model.variableTree.variable[qualifiedName].unit))
+                except:
+                    pass
 
         # Define deepest treeitem: Additional attribute for each variable
         if model.variableTree.variable[qualifiedName].attribute is not None:
