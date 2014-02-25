@@ -32,6 +32,7 @@ import csv
 import pythoncom
 import re
 import os
+import locale
 import string
 import time
 import types
@@ -683,7 +684,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			elif ((pChild.IsA(simParameter) or pChild.IsA(simGeneralParameter)) and not childIsASimVariable) or (pChild.GetProperty(simIsInput) and childIsASimVariable):
 				# Parameter
 				childRelIdent = re.sub(r'\[.*?\]', '', name)
-				childUnit = pChild.Unit.encode('utf-8')
+				childUnit = pChild.Unit.encode(locale.getpreferredencoding())
 				childValue = pChild.Value
 				dim = pChild.Execute('GetDimension', [])[0]
 				if dim == '':
