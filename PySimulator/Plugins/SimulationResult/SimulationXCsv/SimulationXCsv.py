@@ -92,6 +92,8 @@ class Results(IntegrationResults.Results):
             data = numpy.loadtxt(csvfile, delimiter=';')
             csvfile.close()
 
+            if len(numpy.shape(data)) == 0:
+                data = numpy.array([data])
             data = numpy.reshape(data, (1, len(data)))
             self.timeSeries.append(IntegrationResults.TimeSeries(None, data, "constant"))
             self._isParameter.extend(len(name2)*[True])
