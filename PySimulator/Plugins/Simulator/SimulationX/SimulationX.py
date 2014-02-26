@@ -779,7 +779,10 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			winreg.SetValueEx(key, 'AddColumnNames', 0, winreg.REG_DWORD, 1)
 			winreg.SetValueEx(key, 'AddColumnUnits', 0, winreg.REG_DWORD, 1)
 			winreg.FlushKey(key)
-			doc.StoreAllResultsAsText(resultFileName)
+			if float(ver) >= 3.6:
+				doc.StoreAllResultsAsText(resultFileName, False)  # Export in displayUnit
+			else:
+				doc.StoreAllResultsAsText(resultFileName)  # Export in SI-Unit
 			winreg.SetValueEx(key, 'Format', 0, winreg.REG_SZ, frt[0])
 			winreg.SetValueEx(key, 'Dec', 0, winreg.REG_SZ, dec[0])
 			winreg.SetValueEx(key, 'Separator', 0, winreg.REG_SZ, sep[0])
