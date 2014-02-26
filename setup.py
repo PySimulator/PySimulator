@@ -5,11 +5,11 @@ import setuptools
 
 setuptools.setup(
     name="PySimulator",
-    version="0.6",  
+    version="0.6",
     packages=setuptools.find_packages(),
     package_dir={"": "."},
     include_package_data=True,
-    package_data={"": ["Examples/FMU1.0/*", "Examples/LinearSystems/*", "Examples/Testing/*", "Icons/*", "Documentation/*", "*.txt", "*.pdf", "*.pyd"]},    
+    package_data={"": ["Examples/FMU1.0/*", "Examples/LinearSystems/*", "Examples/Testing/*", "Icons/*", "Documentation/*", "*.txt", "*.pdf", "*.pyd"]},
     entry_points={
         "setuptools.installation":  ['PySimulator = PySimulator.PySimulator:start_PySimulator'],
         "gui_scripts":              ['PySimulator = PySimulator.PySimulator:start_PySimulator'],

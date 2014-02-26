@@ -1,33 +1,33 @@
-''' 
+'''
 Copyright (C) 2011-2014 German Aerospace Center DLR
-(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
-Institute of System Dynamics and Control 
+(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
+Institute of System Dynamics and Control
 and BAUSCH-GALL GmbH, Munich
 All rights reserved.
 
 This file is licensed under the "BSD New" license
 (see also http://opensource.org/licenses/BSD-3-Clause):
 
-Redistribution and use in source and binary forms, with or without modification, 
+Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
-   - Redistributions of source code must retain the above copyright notice, 
+   - Redistributions of source code must retain the above copyright notice,
      this list of conditions and the following disclaimer.
-   - Redistributions in binary form must reproduce the above copyright notice, 
-     this list of conditions and the following disclaimer in the documentation 
+   - Redistributions in binary form must reproduce the above copyright notice,
+     this list of conditions and the following disclaimer in the documentation
      and/or other materials provided with the distribution.
-   - Neither the name of the German Aerospace Center nor the names of its contributors 
-     may be used to endorse or promote products derived from this software 
+   - Neither the name of the German Aerospace Center nor the names of its contributors
+     may be used to endorse or promote products derived from this software
      without specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, 
-THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, 
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
 
@@ -47,7 +47,7 @@ import numpy
 
 
 
-''' 
+'''
 Some helpful global variables:
 '''
 DataType = {'Real': 1, 'Integer': 2, 'Boolean': 3, 'String': 4, 'Enumeration': 5}
@@ -77,7 +77,7 @@ StandardCategoryNames = ['H5T_NATIVE_DOUBLE',
 
 class ModelDescription:
     ''' Class hosting the attributes of /ModelDescription
-    '''    
+    '''
     def __init__(self, modelName, description, author, version, generationTool,
                  generationDateAndTime, variableNamingConvention):
         self.modelName = modelName
@@ -96,7 +96,7 @@ class ScalarModelVariable:
         if description is None:
             self.description = ''
         else:
-            self.description = description        
+            self.description = description
         if causality is None:
             self.causality = CausalityType['local']
         else:
@@ -129,7 +129,7 @@ class ModelVariables:
 
 
 class SimpleType:
-    ''' Class to hold information about one Simple Type (in the sense of MTSF)    
+    ''' Class to hold information about one Simple Type (in the sense of MTSF)
     '''
     def __init__(self, name, dataType, quantity, relativeQuantity, unitRow, description):
         if name is None:
@@ -150,7 +150,7 @@ class SimpleType:
 
 
 class Unit:
-    ''' Class to hold information about one Unit (in the sense of MTSF)    
+    ''' Class to hold information about one Unit (in the sense of MTSF)
     '''
     def __init__(self, name, factor, offset, mode):
         if name is None:
@@ -163,7 +163,7 @@ class Unit:
 
 
 class Enumeration:
-    ''' Class to hold information about one enumeration (in the sense of MTSF)    
+    ''' Class to hold information about one enumeration (in the sense of MTSF)
     '''
     def __init__(self, name, value, description, firstEntry):
         if name is None:
@@ -180,7 +180,7 @@ class Enumeration:
 
 def ExperimentSetup(startTime, stopTime, algorithm, relativeTolerance, author, description,
                 generationDateAndTime, generationTool, machine, cpuTime):
-    # Returns the attributes of /Results   
+    # Returns the attributes of /Results
     ret = dict()
     ret["startTime"] = startTime
     ret["stopTime"] = stopTime
@@ -196,7 +196,7 @@ def ExperimentSetup(startTime, stopTime, algorithm, relativeTolerance, author, d
 
 
 class Category:
-    ''' Class to handle a category. A category is a dataset of a time series group.    
+    ''' Class to handle a category. A category is a dataset of a time series group.
     '''
     def __init__(self, name, series=None):
         #Create the dataset in the HDF5 file
@@ -287,7 +287,7 @@ class Series:
     '''
     def __init__(self, name, independentVariable, interpolationMethod, initialRows):
         ''' Basically a series consists of the attributes independentVariableRow and
-            interpolationMethod. Further it contains (possibly several) categories        
+            interpolationMethod. Further it contains (possibly several) categories
         '''
         self.name = name
         self.independentVariable = independentVariable
@@ -323,7 +323,7 @@ class Results:
     '''
     def __init__(self, modelVariables):
         '''  Type of modelVariables: ModelVariables
-        '''        
+        '''
         self.series = {}
         # In a first step process all non-alias variables
         for scalar in modelVariables.variable.values():
@@ -346,7 +346,7 @@ class Results:
                 categoryName = modelVariables.allCategories[scalar.categoryIndex]
                 scalar.columnIndex = modelVariables.variable[scalar.aliasName].columnIndex
                 scalar.category = modelVariables.variable[scalar.aliasName].category
-                if modelVariables.variable[scalar.aliasName].categoryIndex != scalar.categoryIndex:                    
+                if modelVariables.variable[scalar.aliasName].categoryIndex != scalar.categoryIndex:
                     print("Categories do not match for " + scalar.aliasName + " and "
                                     + scalarName + ": " + modelVariables.variable[scalar.aliasName].category.name
                                     + "  vs.  " + scalar.category.name)
@@ -376,9 +376,9 @@ class FileData:
 
 class MTSF:
     ''' This is the main class to write and read files in MTSF format
-    '''    
+    '''
     def __init__(self, resultFileName, modelDescription=None, modelVariables=None, experimentSetup=None, simpleTypes=None, units=None, enumerations=None):
-        '''                              Type        
+        '''                              Type
             resultFileName               String
             modelDescription             ModelDescription
             modelVariables               ModelVariables
@@ -386,17 +386,17 @@ class MTSF:
             simpleTypes                  list of SimpleTypes
             units                        list of Units
             enumerations                 list of Enumerations
-            
+
             If modelDescription is not None then /ModelDescription is written, also the structure of /Results
             Otherwise the file given by resultFileName is opened for reading.
-            
+
             Currently, values of Enumerations are written as Integer, because reading of enumeration by h5py causes a Python crash.
             The correct formats are disabled, see the comments beginning by     '# h5py.special_dtype(enum=('
         '''
 
         self.readable = False
-        self.fileName = resultFileName        
-        self.file = None        
+        self.fileName = resultFileName
+        self.file = None
 
         if resultFileName is None:
             return
@@ -437,7 +437,7 @@ class MTSF:
         self.WriteEnumerations()
         for series in self.results.series.values():
             series.writeIndependentVariable(self)
-           
+
         self.readable = True
 
 
@@ -469,7 +469,7 @@ class MTSF:
                                'formats': ['S' + str(max(maxLenTypeName, 1)),
                                           'double',
                                           'double',
-                                          h5py.special_dtype(enum=(numpy.uint8, {'BaseUnit':0, 'Unit':1, 'DefaultDisplayUnit':2}))]})  #'uint8']})  
+                                          h5py.special_dtype(enum=(numpy.uint8, {'BaseUnit':0, 'Unit':1, 'DefaultDisplayUnit':2}))]})  #'uint8']})
 
         dataset = self.description.create_dataset('Units', (len(self.units), 1), dtype=numpyDataType, maxshape=(len(self.units), 1), compression='gzip')
         allData = []
@@ -549,7 +549,7 @@ class MTSF:
         for variableName in nameList:
             variable = scalarVariables[variableName]
             i += 1
-            variable.rowIndex = i            
+            variable.rowIndex = i
             x = variableName
             allData.append((x, variable.simpleTypeRow,
                             variable.causality, variable.variability,
@@ -565,7 +565,7 @@ class MTSF:
             self.resultsHandle.attrs["ResultType"] = "Simulation"
         for x1, x2 in setup.iteritems():
             self.resultsHandle.attrs[x1] = str(x2)
-        
+
         '''
         self.resultsHandle.attrs["ResultType"] = "Simulation"
         self.resultsHandle.attrs["startTime"] = str(setup.startTime)
@@ -599,14 +599,14 @@ class MTSF:
 
     def _openFileForReading(self, fileName):
         self.fileData = FileData()
-        self.file = h5py.File(fileName, 'r')       
+        self.file = h5py.File(fileName, 'r')
         if not 'mtsfVersion' in self.file.attrs.keys():
             print "Can only read mtsf-file. Unsupported file type for " + fileName
-            self.close()           
+            self.close()
         else:
             self.fileName = fileName
             self.access = 'read'
-          
+
 
     def readVariableList(self):
         if not hasattr(self, 'fileData'):
@@ -627,19 +627,19 @@ class MTSF:
 
     def readData(self, variableName):
         ''' Reads numerical data from file for the variable given by its String-name  variableNameIn
-        
+
             Outputs:
                t        numpy-array       Values of independent variable (normally time)
                y        numpy-array       Values of the given variable
                method   String            Interpolation method, e.g. 'linear', 'constant' or 'clocked'
-        '''        
-        
+        '''
+
         if not self.readable:
-            return None, None, None            
-        
-       
+            return None, None, None
+
+
         self.readVariableList()
-        variableRowIndex = self.fileData.nameList.index(variableName)        
+        variableRowIndex = self.fileData.nameList.index(variableName)
         seriesOfVariable = self.file[self.fileData.objectIdList[variableRowIndex]].parent.ref
         method = self.file[seriesOfVariable].attrs["interpolationMethod"]
         if self.access == 'write':
@@ -703,7 +703,7 @@ class MTSF:
         return t, y, method
 
     def getResultAttributes(self):
-        ''' Returns the HDF5 attributes of /Results        
+        ''' Returns the HDF5 attributes of /Results
         '''
         info = dict()
         for aName, a in self.file["Results"].attrs.items():
@@ -712,7 +712,7 @@ class MTSF:
                 info[aName] = x
         return info
 
-    
+
 
 
 

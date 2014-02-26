@@ -1,6 +1,6 @@
-''' 
+'''
 Copyright (C) 2011-2014 German Aerospace Center DLR
-(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
+(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
 
@@ -141,7 +141,7 @@ def plotBode2(zpk, n=200, f_range=None, f_logspace=True):
 
 
 if __name__ == "__main__":
-    
+
     # lti1 = lti.LTI(zpk=[[(2**4, [], [-2,-2,-2,-2])]])
     # print("lti1 = " + str(lti1))
     # plotBode(lti1)

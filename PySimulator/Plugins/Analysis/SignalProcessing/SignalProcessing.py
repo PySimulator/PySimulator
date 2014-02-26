@@ -1,6 +1,6 @@
-''' 
+'''
 Copyright (C) 2011-2014 German Aerospace Center DLR
-(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
+(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
 
@@ -73,7 +73,7 @@ def plotRootMeanSquare(widget):
 def plotFFT(widget):
     """ Determine fft of signals in selected widget """
     print("plotFFT")
-    
+
     model = ""
     for (modelNumber, modelName, variableName), data in widget.getData():
         # print "var:", var, "data: ", data
@@ -84,10 +84,10 @@ def plotFFT(widget):
     #Get data from data array:
     time = numpy.array(list((x for x, _ in data))) #data[0]
     values = numpy.array(list((x for _ , x in data)))
-    
+
     (Tmin, Tmax, N) = getFFTtimeRange(time)
     (timeInRange, valuesInRange) = getValuesInRange(time, values, Tmin, Tmax)
-    
+
     # Compute fft: A=A(f)
     import Algorithms
     (f,A) = Algorithms.fft(timeInRange, valuesInRange, N)
@@ -103,27 +103,27 @@ def plotFFT(widget):
     # Create the plot
     plotdata = ArrayPlotData(x = f, y = A, border_visible=True, overlay_border=True)
     plot = Plot(plotdata, title="FFT")  #Plot(plotdata, title="FFT")
-    barPlot = plot.plot(("x", "y"), type="bar",bar_width=0.1, color="blue")[0]   
-    #scatterPlot = plot.plot(("x", "y"), type="scatter", color="blue")[0]  
-    
+    barPlot = plot.plot(("x", "y"), type="bar",bar_width=0.1, color="blue")[0]
+    #scatterPlot = plot.plot(("x", "y"), type="scatter", color="blue")[0]
+
     # Attach some tools to the plot
     plot.tools.append(PanTool(plot))
-    plot.overlays.append(ZoomTool(plot))  
-       
+    plot.overlays.append(ZoomTool(plot))
+
     #Activate Plot:
-    plotWidget.setPlot(plot)   
-    container.setPlotWidget(plotWidget)       
+    plotWidget.setPlot(plot)
+    container.setPlotWidget(plotWidget)
 
     layout = QtGui.QBoxLayout(QtGui.QBoxLayout.TopToBottom)
     layout.addWidget(container)
     window.setLayout(layout)
     window.show()
-    
+
 def plotFFTPlusTHD(widget):
-    """ Determine fft of signals in selected widget and 
+    """ Determine fft of signals in selected widget and
         calculate Total harmonic disturbance"""
     print("plotFFT and Total Harmonic Disturbance")
-    
+
     model = ""
     for (modelNumber, modelName, variableName), data in widget.getData():
         # print "var:", var, "data: ", data
@@ -135,36 +135,36 @@ def plotFFTPlusTHD(widget):
     time = numpy.array(list((x for x, _ in data))) #data[0]
     values = numpy.array(list((x for _ , x in data)))
     unit = ""
-    
+
     (Tmin, Tmax, N) = getFFTtimeRange(time)
     (timeInRange, valuesInRange) = getValuesInRange(time, values, Tmin, Tmax)
-    
+
     # Compute fft: A=A(f)
     import Algorithms
     (f,A) = Algorithms.fft(timeInRange, valuesInRange, N)
-   
-   
-   
-   
-   
+
+
+
+
+
     #******* START THD CALCULATION    *************
     #Estimate fundamental frequency:
     maxindex = A.argmax()
     estimation = f[maxindex]
-    
+
     def getExFreq(estimation):
         return estimation
         """
         Inquire im measured fundamental frequency is correct:
-        """ 
-        
+        """
+
         '''
         import guidata
         guidata.qapplication()
         import guidata.dataset.dataitems as di
         import guidata.dataset.datatypes as dt
-    
-        
+
+
         class Processing(dt.DataSet):
             """ Fundamental Frequency """
             correctedFreq    = di.FloatItem("fundamental frequency [Hz]", default=estimation)
@@ -177,7 +177,7 @@ def plotFFTPlusTHD(widget):
         '''
     #Ask for a better fundamental frequency
     exFreq = max(0, min(f.max(), getExFreq(estimation)))
-    
+
     #Check if we have at least one harmonic:
     if exFreq>0.5*f.max():
         print "THD calculation not possible, extend frequency window to at least 2*fundamental frequency"
@@ -194,27 +194,27 @@ def plotFFTPlusTHD(widget):
             mask = (f>(i+2)*exFreq*0.975) & (f<(i+2)*exFreq*1.025)
             PH = PH + (numpy.vdot(A[mask],A[mask]))  #squared amplitude
         THD = PH / P1 *100
-    
+
     #******* END THD CALCULATION    *************
-    
+
     #Open new plot tab:
     import plotWidget
     window = widget.createNewWindow()
     container = plotWidget.plotContainer(window)
     plotWidget = plotWidget.PlotWidget(container)
     container.setPlotWidget(plotWidget)
-    
-    #Plot data    
+
+    #Plot data
     plotdata = ArrayPlotData(x = f, y = A, border_visible=True, overlay_border=True)
     plot = Plot(plotdata, title="FFT")  #Plot(plotdata, title="FFT")
-    barPlot = plot.plot(("x", "y"), type="bar",bar_width=0.3, color="blue")[0]   
-    
+    barPlot = plot.plot(("x", "y"), type="bar",bar_width=0.3, color="blue")[0]
+
     # Attach some tools to the plot
     plot.tools.append(PanTool(plot))
-    plot.overlays.append(ZoomTool(plot))  
-       
+    plot.overlays.append(ZoomTool(plot))
+
     #Activate Plot:
-    plotWidget.setPlot(plot)   
+    plotWidget.setPlot(plot)
     if THD != 999:
         thdLabel = DataLabel(component=plotWidget.plot, data_point=(f[A.argmax()], A.max()),
                            label_position="bottom right", padding_bottom=20,
@@ -223,19 +223,19 @@ def plotFFTPlusTHD(widget):
                            marker="circle",
                            arrow_visible=False,
                            label_format= str('THD = %.4g percent based on %d harmonics of the %.4g Hz frequency' %(THD, noHarmonics,exFreq)))
-        plotWidget.plot.overlays.append(thdLabel)       
-    container.setPlotWidget(plotWidget)       
+        plotWidget.plot.overlays.append(thdLabel)
+    container.setPlotWidget(plotWidget)
 
     layout = QtGui.QBoxLayout(QtGui.QBoxLayout.TopToBottom)
     layout.addWidget(container)
     window.setLayout(layout)
     window.show()
-    
+
 
 def getPlotCallbacks():
     ''' Return callbacks for plot plugins
     '''
-    
+
     #Add here functionality as soon as it is implemented with chaco:
     '''
     return [["Minimum"         , plotMin           ],
@@ -248,7 +248,7 @@ def getPlotCallbacks():
     '''
     return [["FFT"             , plotFFT           ],
             ["FFT+Total Harmonic Distortion(THD)", plotFFTPlusTHD           ]]
-    
+
 '''
 def test(model, variable, data, unit):
     print model, variable, data, unit
@@ -281,7 +281,7 @@ def getVariableCallbacks():
 def getModelMenuCallbacks():
     return []
 
-def getModelCallbacks():   
+def getModelCallbacks():
     return []
 
 
@@ -301,7 +301,7 @@ def getTimeRange(time):
     """
     Tmin_default = time[0]
     Tmax_default = time[-1]
-    
+
     Tmin = Tmin_default
     Tmax = Tmax_default
 
@@ -325,7 +325,7 @@ def getTimeRange(time):
     else:  # Cancel button pressed
         Tmin = Tmin_default
         Tmax = Tmax_default
-        
+
     '''
     return (Tmin, Tmax)
 
@@ -364,8 +364,8 @@ def getFFTtimeRange(time):
         Tmin    = Tmin_default
         Tmax    = Tmax_default
         nPoints = nPoints_default
-    ''' 
-       
+    '''
+
     return (Tmin, Tmax, nPoints)
 
 

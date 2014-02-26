@@ -15,4 +15,4 @@ description = []
 for p in plugin:
     fileExtension.append(p.fileExtension)
     description.append(p.description)
-   
+

@@ -1,6 +1,6 @@
-''' 
+'''
 Copyright (C) 2011-2014 German Aerospace Center DLR
-(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
+(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
 
@@ -28,37 +28,37 @@ class TimeSeries():
     def __init__(self, independentVariable, data, method):
         self.independentVariable = independentVariable
         self.data = data
-        self.interpolationMethod = method      
+        self.interpolationMethod = method
 
 
 class ResultVariable():
-    ''' Class to hold information about a variable in a result file 
+    ''' Class to hold information about a variable in a result file
     '''
     def __init__(self, value, unit, variability, infos, seriesIndex, column, sign):
         #                                  Types
         self.value = value               # E.g. Float, Integer, Boolean
         self.unit = unit                 # String
         self.variability = variability   # String
-        self.infos = infos               # Dictionary of Strings        
+        self.infos = infos               # Dictionary of Strings
         self.seriesIndex = seriesIndex   # Integer
         self.column = column             # Integer
         self.sign = sign                 # Integer (-1 / +1)
 
 
 class Results():
-    ''' Base Class for hosting simulation results of each type.    
+    ''' Base Class for hosting simulation results of each type.
     '''
     def __init__(self):
-        ''' Set important variables to default values 
+        ''' Set important variables to default values
         '''
         self.fileName = ''               # File name of result file
-        self.isAvailable = False         # Shows, if there is a file available to be read 
+        self.isAvailable = False         # Shows, if there is a file available to be read
         self.canLoadPartialData = False  # True, if data can be loaded from
-        #                                  result file although simulation is not finished        
+        #                                  result file although simulation is not finished
         self.nTimeSeries = 0
         self.timeSeries = []
 
-    
+
     def readData(self, variableName):
         ''' Returns numeric data of the variable given by its name variableName.
             The Time vector t is returned as well as the data-vector y. Both
@@ -66,11 +66,11 @@ class Results():
             The third return value method is a String, that indicates how the
             result points shall be interpreted. Possible values for method are
             'linear' for linear interpolation, 'constant' for constant interpolation
-            and 'clocked' for discrete values only at the time instances.        
+            and 'clocked' for discrete values only at the time instances.
         '''
         pass
         #return t, y, method  # Types  numpy-array, numpy-array, String
-    
+
     def getVariables(self):
         ''' Returns a dictionary with names of variables as keys
             and instances of ResultVariable as values. This
@@ -78,11 +78,11 @@ class Results():
             in the variable browser (see SimulatorBase.py),
             if the model type is 'None'. It means that this function
             is called if only the
-            result file is loaded without model information.         
+            result file is loaded without model information.
         '''
         pass
         # return allVariables
-    
+
     def getFileInfos(self):
         ''' Returns a dictionary with property names as keys
             and property Strings as values. This
@@ -90,23 +90,23 @@ class Results():
             for variable browser (see SimulatorBase.py),
             if the model type is 'None'. It means that this function
             is called if only the
-            result file is loaded without model information.        
+            result file is loaded without model information.
         '''
         pass
         # return fileInfos
-    
+
     def fileSize(self):
         ''' Returns a String with the file size of the result file in MB.
-            If file does not exist, the return value is None. 
+            If file does not exist, the return value is None.
         '''
         fs = None
         if self.fileName is not None and self.fileName != '':
             if os.path.exists(self.fileName):
                 fs = os.path.getsize(self.fileName) / 1048576.0
-        return fs   
-     
+        return fs
+
     def close(self):
-        ''' Closes the simulation result, especially closing the file 
-            or releasing resources can be done here.        
+        ''' Closes the simulation result, especially closing the file
+            or releasing resources can be done here.
         '''
         pass

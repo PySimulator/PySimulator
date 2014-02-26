@@ -1,6 +1,6 @@
-''' 
+'''
 Copyright (C) 2011-2014 German Aerospace Center DLR
-(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
+(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
 
@@ -32,13 +32,13 @@ import numpy.fft
 def arithmeticMean(t,y):
     """
     Compute arithmetic mean of time series y(t) with trapezoidal integration
-    
+
     Inputs:
        t: Vector of time points
        y: Vector of signal values
-    
+
     Outputs:
-       result: Arithmetic mean of y (= Integral(y*dt)/(tEnd-tStart)) 
+       result: Arithmetic mean of y (= Integral(y*dt)/(tEnd-tStart))
     """
     if y.size == 1:
         result = y[0]
@@ -50,13 +50,13 @@ def arithmeticMean(t,y):
 def rectifiedMean(t,y):
     """
     Compute rectified mean of time series y(t) with trapezoidal integration
-    
+
     Inputs:
        t: Vector of time points
        y: Vector of signal values
-    
+
     Outputs:
-       result: Rectified mean of y (= Integral(abs(y)*dt)/(tEnd-tStart)) 
+       result: Rectified mean of y (= Integral(abs(y)*dt)/(tEnd-tStart))
     """
     if y.size == 1:
         result = abs(y[0])
@@ -68,13 +68,13 @@ def rectifiedMean(t,y):
 def rootMeanSquare(t,y):
     """
     Compute root mean square of time series y(t) with trapezoidal integration
-    
+
     Inputs:
        t: Vector of time points
        y: Vector of signal values
-    
+
     Outputs:
-       result: Root mean square of y (= sqrt( Integral(y^2*dt)/(tEnd-tStart)) ) 
+       result: Root mean square of y (= sqrt( Integral(y^2*dt)/(tEnd-tStart)) )
     """
     if y.size == 1:
         result = y[0]
@@ -86,13 +86,13 @@ def rootMeanSquare(t,y):
 def fft(t,y,N):
     """
     Compute fft of time series y(t)
-    
+
     Inputs:
        t: Vector of time points (need not to be equidistant)
        y: Vector of signal values
        N: Number of points of the FFT
-          (most efficient for a multiple of the numbers 2,3,4,5) 
-         
+          (most efficient for a multiple of the numbers 2,3,4,5)
+
     Outputs:
        (f,A): Frequency f in [Hz] and amplitude A = A(f) in [unit of y]
               (f.size = A.size = N//2 + 1; mean value of y removed from A)
@@ -101,16 +101,16 @@ def fft(t,y,N):
 
     Ts = (t[-1] - t[0]) / (N-1)
     fs = 1.0/Ts
-    
+
     # Compute number of frequency points nf and frequency f
     nf = N//2 + 1
     f  = (fs/N)*numpy.linspace(0,nf-1,nf)   # highest frequency f[-1] = fs/2
     print("T=" + str(t[-1]) + ", N="+str(N)+", Ts="+str(Ts)+", fs="+str(fs)+", nf="+str(nf))
-   
+
     # Compute mean value yMean and subtract it from y
     yMean = arithmeticMean(t,y)
     yy    = y - yMean
-    
+
     # Compute vectors te and ye, so that te consists of N equidistant time points
     # Here: simplest possibility by linear interpolation (would be better to use a low pass filter)
     fc = scipy.interpolate.interp1d(t, yy)
@@ -118,7 +118,7 @@ def fft(t,y,N):
     #set last value to exactly t to avoid extrapolation(some numerical issue):
     te[-1] = t[-1]
     ye = fc(te)
-    
+
     # Compute normalized fft of real sequence ye
     #original: ye_fft = numpy.fft.rfft(ye) / nf
     ye_fft = numpy.fft.rfft(ye) / nf
@@ -137,39 +137,39 @@ if __name__ == "__main__":
     t  = numpy.linspace(0,T,num=np)    # Time points 0 ... T
     c1 = 2*numpy.pi*f1
     c2 = 2*numpy.pi*f2
-    y  = A1*numpy.sin(c1*t) + A2*numpy.sin(c2*t)    
-    
+    y  = A1*numpy.sin(c1*t) + A2*numpy.sin(c2*t)
+
     # Plot time signals
     import matplotlib.pyplot as plt
     plt.figure()
     plt.plot(t, y)
     plt.grid(True, which="both")
     plt.xlabel("time [s]")
-    plt.ylabel("y(t)")    
-    
+    plt.ylabel("y(t)")
+
     # Compute fft
     n = 2*N1*(f2//f1)
     n = 10*n
     n = 160
-    k = f1*n*T/(n-1)   
-    print("n=" + str(n) + ", k=" + str(k))    
+    k = f1*n*T/(n-1)
+    print("n=" + str(n) + ", k=" + str(k))
     (f,A) = fft(t,y,n)
-    
+
     # Determine distance df between two frequency points
     df = (f[-1] - f[0])/(len(f)-1)
     print("1/fmax = " + str(1/f[-1]) + ", len(f) = " + str(len(f))+
           ", T = " + str(T))
     wf = 0.8*df/2
-    print("fmax = " + str(f[-1]) + ", df = " + str(df) + ", df2 = " + str(1/T))    
+    print("fmax = " + str(f[-1]) + ", df = " + str(df) + ", df2 = " + str(1/T))
     print("nf = " + str(len(f)))
     plt.figure()
     #plt.plot(f,A)
     plt.bar(f-wf/2, A, width=wf)
     plt.grid(True, which="both")
     plt.xlabel("Frequency [Hz]")
-    plt.ylabel("Amplitude") 
-    #plt.show()    
-      
+    plt.ylabel("Amplitude")
+    #plt.show()
+
     # Second Test fft
     f1 = 10.0     # Frequency of signal 1 in [Hz]
     A1 = 10.0     # Amplitude of signal 1
@@ -181,19 +181,19 @@ if __name__ == "__main__":
     t  = numpy.linspace(0,T,num=np)    # Time points 0 ... T
     c1 = 2*numpy.pi*f1
     c2 = 2*numpy.pi*f2
-    y2 = 100 + A1*numpy.sin(c1*t) + A2*numpy.sin(c2*t)    
-    
+    y2 = 100 + A1*numpy.sin(c1*t) + A2*numpy.sin(c2*t)
+
     # Plot time signals
-    plt.figure()   
+    plt.figure()
     plt.plot(t, y2)
     plt.grid(True, which="both")
     plt.xlabel("time [s]")
-    plt.ylabel("y2(t)")    
-    
+    plt.ylabel("y2(t)")
+
     # Compute fft
     n = 10000
     (f,A) = fft(t,y2,n)
-    
+
     # Plot fft
     df = (f[-1] - f[0])/(len(f)-1)
     wf = 0.8*df/2
@@ -202,7 +202,6 @@ if __name__ == "__main__":
     plt.bar(f-wf/2, A, width=wf)
     plt.grid(True, which="both")
     plt.xlabel("Frequency [Hz]")
-    plt.ylabel("Amplitude") 
-    plt.show()  
-    
- 
+    plt.ylabel("Amplitude")
+    plt.show()
+

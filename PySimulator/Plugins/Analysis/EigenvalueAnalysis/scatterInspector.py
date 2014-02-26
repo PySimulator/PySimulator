@@ -1,6 +1,6 @@
-''' 
+'''
 Copyright (C) 2011-2014 German Aerospace Center DLR
-(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
+(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
 
@@ -49,7 +49,7 @@ class myScatterInspectorOverlay(AbstractOverlay):
 
     Used in conjuction with ScatterInspector.
     """
-    
+
     # The style to use when a point is hovered over
     hover_metadata_name = Str('hover')
     hover_marker = Trait(None, None, MarkerTrait)
@@ -65,16 +65,16 @@ class myScatterInspectorOverlay(AbstractOverlay):
     selection_line_width = Trait(None, None, Float)
     selection_color = Trait(None, None, ColorTrait)
     selection_outline_color = Trait(None, None, ColorTrait)
-    
+
     stateNames = []
     eigenVectors = None
-    
+
     frequencies = None
     damping = None
     observability = None
     controllability = None
-    
-    
+
+
     label = None    #Label with information
     hasOverlay = []
     labelIndex = [] #index where the label is actually
@@ -84,7 +84,7 @@ class myScatterInspectorOverlay(AbstractOverlay):
     # class)
     #@on_trait_change('component.index.metadata_changed,component.value.metadata_changed')
     def metadata_changed(self, object, name, old, new):
-        
+
         if self.component is not None:
             self.component.request_redraw()
         return
@@ -99,18 +99,18 @@ class myScatterInspectorOverlay(AbstractOverlay):
             #print " hover on/off1"
             #Hartweg: 2. Bedingung zugefuegt
             if inspect_type in plot.index.metadata:
-                
+
                 if hasattr(plot,"value") and not inspect_type in plot.value.metadata:
                     continue
                 index = plot.index.metadata.get(inspect_type, None)
-                
+
                 if index is not None and len(index) > 0:
                     index = asarray(index)
                     index_data = plot.index.get_data()
 
                     # Only grab the indices which fall within the data range.
                     index = index[index < len(index_data)]
-                    
+
                     # FIXME: In order to work around some problems with the
                     # selection model, we will only use the selection on the
                     # index.  The assumption that they are the same is
@@ -126,16 +126,16 @@ class myScatterInspectorOverlay(AbstractOverlay):
                     else:
                         screen_pts = plot.map_screen(index_data[index])
                         #print "2 ", index_data[index]
-                    
+
                     if inspect_type == self.selection_metadata_name:
-                        
+
                         #Hartweg: Erstmal keine Selection
                         #prefix = "selection"
                         prefix = "hover"
-                        
+
                     else:
                         prefix = "hover"
-                        
+
                         if self.label == None:
                             #if self.label.data_point != (index_data[index[-1]], value_data[index[-1]]):
                             #Find the right position for  the information panel:
@@ -143,25 +143,25 @@ class myScatterInspectorOverlay(AbstractOverlay):
                                 label_position = "bottom "
                             else:
                                 label_position = "top "
-                                
+
                             if screen_pts[0][0] > plot.bounds[0]/2:
                                 label_position = label_position + "left"
                             else:
                                 label_position = label_position + "right"
-                                   
-                                                   
-                            labIdx = index[-1] 
-                            self.labelIndex =   labIdx                                                 
+
+
+                            labIdx = index[-1]
+                            self.labelIndex =   labIdx
                             self.label = DataLabel(component=plot, data_point=(index_data[labIdx], value_data[labIdx]),
                                               label_position = label_position, padding=30,
                                               bgcolor = "lightgray",
                                               border_visible=False,
                                               show_label_coords = False)
                             #Collect information for output:
-                   
+
                             self.label.label_text = ""#"Eigenvalue no. %g", % (labIdx)
                             self.label.label_text = self.label.label_text + "Eigenvalue no. %s" % (labIdx)
-                            #'eigenvalue %.7g: %.7g +%.7g *i \nfrequency: %.5s Hz' % (evClicked, x, y, frequency) 
+                            #'eigenvalue %.7g: %.7g +%.7g *i \nfrequency: %.5s Hz' % (evClicked, x, y, frequency)
                             self.label.label_text = self.label.label_text + "\n %g +i*%g" % (index_data[labIdx], value_data[labIdx])
                             self.label.label_text = self.label.label_text + "\nFrequency: %.5s Hz" % (self.frequencies[labIdx])
                             if self.damping[labIdx]>0:
@@ -171,19 +171,19 @@ class myScatterInspectorOverlay(AbstractOverlay):
                             if self.damping[labIdx]<=0:
                                 self.label.label_text = self.label.label_text + "\nNot Stable"
                             else:
-                                self.label.label_text = self.label.label_text + "\nStable"                                     
+                                self.label.label_text = self.label.label_text + "\nStable"
                             if self.observability[labIdx]>0:
                                 self.label.label_text = self.label.label_text + "\nObservable"
                             else:
-                                self.label.label_text = self.label.label_text + "\nNot observable"           
+                                self.label.label_text = self.label.label_text + "\nNot observable"
                             if self.controllability[labIdx]>0:
                                 self.label.label_text = self.label.label_text + "\nControllable"
                             else:
-                                self.label.label_text = self.label.label_text + "\nNot controllable"                               
-                            
+                                self.label.label_text = self.label.label_text + "\nNot controllable"
+
                             plot.overlays.append(self.label)
                             tool = DataLabelTool(self.label, drag_button="right", auto_arrow_root=True)
-                            self.label.tools.append(tool) 
+                            self.label.tools.append(tool)
 
                         self._render_at_indices(gc, screen_pts, prefix)
                 elif prefix != "hover":
@@ -196,9 +196,9 @@ class myScatterInspectorOverlay(AbstractOverlay):
                         if self.label != None:
                             print "delete label"
                             plot.overlays.pop(-1)#=last element
-                            self.label = None     
-                            self.labelIndex = 9999999                  
-                    
+                            self.label = None
+                            self.labelIndex = 9999999
+
         return
 
     def _render_at_indices(self, gc, screen_pts, inspect_type):
@@ -210,7 +210,7 @@ class myScatterInspectorOverlay(AbstractOverlay):
         if len(screen_pts) == 0:
             return
 
-        
+
         plot = self.component
 
         mapped_attribs = ("color", "outline_color", "marker")

@@ -1,32 +1,32 @@
-''' 
+'''
 Copyright (C) 2011-2014 German Aerospace Center DLR
-(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
+(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
 
 This file is licensed under the "BSD New" license
 (see also http://opensource.org/licenses/BSD-3-Clause):
 
-Redistribution and use in source and binary forms, with or without modification, 
+Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
-   - Redistributions of source code must retain the above copyright notice, 
+   - Redistributions of source code must retain the above copyright notice,
      this list of conditions and the following disclaimer.
-   - Redistributions in binary form must reproduce the above copyright notice, 
-     this list of conditions and the following disclaimer in the documentation 
+   - Redistributions in binary form must reproduce the above copyright notice,
+     this list of conditions and the following disclaimer in the documentation
      and/or other materials provided with the distribution.
-   - Neither the name of the German Aerospace Center nor the names of its contributors 
-     may be used to endorse or promote products derived from this software 
+   - Neither the name of the German Aerospace Center nor the names of its contributors
+     may be used to endorse or promote products derived from this software
      without specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, 
-THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, 
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
 
@@ -98,7 +98,7 @@ AllocateMemory = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_uint, ctypes.c_uint)
 FreeMemory     = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
 class _fmiCallbackFunctions(ctypes.Structure):
     _fields_ = [('logger', Logger), ('allocateMemory', AllocateMemory), ('freeMemory', FreeMemory)]
-    
+
 
 
 class FMUInterface:
@@ -178,9 +178,9 @@ class FMUInterface:
         except BaseException as e:
             raise FMUError.FMUError("Error when reading binary file from FMU.\n" + str(e) + '\n')
         self._tmpfile.file.write(binFile)
-        self._tmpfile.file.close()        
+        self._tmpfile.file.close()
 
-        
+
 
         def _Logger(c, instanceName, status, category, message):
             if self._loggingOn:
@@ -202,13 +202,13 @@ class FMUInterface:
                                      freeMemory=FreeMemory(ctypes.cdll.msvcrt.free))
 
         ''' Load instance of library into memory '''
-        try:        
+        try:
             self._libraryHandle = ctypes.cdll.LoadLibrary(self._tmpfile.name)._handle
             self._library = ctypes.CDLL(self._tmpfile.name, handle=self._libraryHandle)
         except BaseException as e:
             raise FMUError.FMUError('Error when loading binary from FMU.\n' + str(e) + '\n')
-        
-        
+
+
 
 
     def fmiInstantiateModel(self):
@@ -221,11 +221,11 @@ class FMUInterface:
 
     def free(self):
         ''' Call FMU destructor before being destructed. Just cleaning up. '''
-        if hasattr(self, '_library'):                     
-            self.freeModelInstance()            
+        if hasattr(self, '_library'):
+            self.freeModelInstance()
             self._tmpfile.close()
             _ctypes.FreeLibrary(self._libraryHandle)
-            
+
     def freeModelInstance(self):
         ''' Call FMU destructor before being destructed. Just cleaning up. '''
         if hasattr(self, '_library') and hasattr(self, '_modelInstancePtr'):
@@ -234,7 +234,7 @@ class FMUInterface:
                 FreeModelInstance.argtypes = [fmiComponent]
                 FreeModelInstance.restype = None
                 FreeModelInstance(self._modelInstancePtr)
-                self._modelInstancePtr = None               
+                self._modelInstancePtr = None
 
     def _createCInterface(self):
         ''' Create interfaces to C-function calls.

@@ -1,6 +1,6 @@
-''' 
+'''
 Copyright (C) 2011-2014 German Aerospace Center DLR
-(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
+(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
 
@@ -161,7 +161,7 @@ def getModelCallbacks():
 def getPlotCallbacks():
     ''' see getModelCallbacks
     '''
-    return [          
+    return [
             ["Print Information About Data Elements", printData],
             ["New Plot Row", createPlotRow],
             ["New MDI Window", createWindow],

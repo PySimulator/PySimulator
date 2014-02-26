@@ -1,6 +1,6 @@
-''' 
+'''
 Copyright (C) 2011-2014 German Aerospace Center DLR
-(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
+(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 and BAUSCH-GALL GmbH, Munich
 All rights reserved.
@@ -8,26 +8,26 @@ All rights reserved.
 This file is licensed under the "BSD New" license
 (see also http://opensource.org/licenses/BSD-3-Clause):
 
-Redistribution and use in source and binary forms, with or without modification, 
+Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
-   - Redistributions of source code must retain the above copyright notice, 
+   - Redistributions of source code must retain the above copyright notice,
      this list of conditions and the following disclaimer.
-   - Redistributions in binary form must reproduce the above copyright notice, 
-     this list of conditions and the following disclaimer in the documentation 
+   - Redistributions in binary form must reproduce the above copyright notice,
+     this list of conditions and the following disclaimer in the documentation
      and/or other materials provided with the distribution.
-   - Neither the name of the German Aerospace Center nor the names of its contributors 
-     may be used to endorse or promote products derived from this software 
+   - Neither the name of the German Aerospace Center nor the names of its contributors
+     may be used to endorse or promote products derived from this software
      without specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, 
-THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, 
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
 
@@ -45,23 +45,23 @@ StandardSeriesForFmi = [pyMtsf.Series('Fixed', None, 'constant', 1), pyMtsf.Seri
 
 def convertFromFmi(fmuFilename, fmi=None):
     ''' Returns data to initialize an MTSF result file from an FMU.
-        The call to initialize an MTSF result file is 
+        The call to initialize an MTSF result file is
             pyMtsf.MTSF(resultFileName, modelDescription, modelVariables, experimentSetup, simpleTypes, units, enumerationsMatrix)
-        The missing data is resultFileName and experimentSetup to be specified before initializing the MTSF object.   
-        
+        The missing data is resultFileName and experimentSetup to be specified before initializing the MTSF object.
+
         Inputs                       Type:
             fmuFilename              String
             fmi                      FMIDescription      [optional]
             if fmi is given, then fmuFilename is ignored. Otherwise the FMI description is loaded from the given file.
-            
+
         Outputs
-           modelDescription          pyMtsf.ModelDescription        
+           modelDescription          pyMtsf.ModelDescription
            modelVariables            pyMtsf.ModelVariables
            simpleTypes               list of pyMtsf.SimpleType
            units                     list of pyMtsf.Unit
            enumerationsMatrix        list of pyMtsf.Enumeration
     '''
-  
+
     def _None2Str(x):
         if x is None:
             return ''
@@ -122,7 +122,7 @@ def convertFromFmi(fmuFilename, fmi=None):
         if dataType == 'Enumeration':
             enumerations = ''.join([_None2Str(x[0]) + _None2Str(x[1]) for x in type.item])
         uniqueSimpleType.append((fmiVariableName, type, _None2Str(type.name) + str(pyMtsf.DataType[dataType]) + _None2Str(type.quantity) + str(type.relativeQuantity), ''.join(unitList), enumerations))
-    
+
     # Simple Types
     uniqueSimpleType.sort(key=itemgetter(3))
     uniqueSimpleType.sort(key=itemgetter(2))
@@ -230,7 +230,7 @@ def convertFromFmi(fmuFilename, fmi=None):
                 causality = 'local'
 
             simpleTypeRow = rowIndex[fmiVariableName]
-            variable[fmiVariableName] = pyMtsf.ScalarModelVariable(fmiVariable.description,                                                    
+            variable[fmiVariableName] = pyMtsf.ScalarModelVariable(fmiVariable.description,
                                                     causality,
                                                     simpleTypeRow,
                                                     variability,
@@ -244,7 +244,7 @@ def convertFromFmi(fmuFilename, fmi=None):
     units.append(pyMtsf.Unit('min', 60.0, 0.0, 1))
     units.append(pyMtsf.Unit('h', 3600.0, 0.0, 1))
     units.append(pyMtsf.Unit('d', 86400.0, 0.0, 1))
-   
+
     simpleTypes.append(pyMtsf.SimpleType('Time', pyMtsf.DataType["Real"], 'Time',  False, startRow, ''))
     variable['Time'].simpleTypeRow = len(simpleTypes) - 1
     variable['TimeDiscrete'].simpleTypeRow = len(simpleTypes) - 1
@@ -258,15 +258,15 @@ def convertFromFmi(fmuFilename, fmi=None):
 
 
 if __name__ == '__main__':
-    
+
     import time
     import numpy
-         
+
     nPoints = 60
     BlockSize = 100
-        
+
     # Prepare information from FMU
-    name_fmu_file = 'Examples/fullRobot'    
+    name_fmu_file = 'Examples/fullRobot'
     (modelDescription, modelVariables, simpleTypes, units, enumerations) = convertFromFmi(name_fmu_file)
     modelVariables.allSeries[1].initialRows = nPoints * BlockSize  # Continuous
     # Phase 1 of result file generation
@@ -276,11 +276,11 @@ if __name__ == '__main__':
                         generationDateAndTime=time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime()),
                         generationTool="Python", machine=os.getenv('COMPUTERNAME'),
                         cpuTime="")
-    
+
     startTime = time.clock()
     #Create result object
     mtsf = pyMtsf.MTSF(resultFileName, modelDescription, modelVariables, experimentSetup, simpleTypes, units, enumerations)
-    
+
     # Some aliases
     realParameter = mtsf.results.series['Fixed'].category[pyMtsf.CategoryMapping['Real']]
     #integerParameter = mtsf.results.series['Fixed'].category[CategoryMapping['Integer']]
@@ -297,7 +297,7 @@ if __name__ == '__main__':
     #integerParameter.writeData(numpy.floor(0.5+numpy.random.rand(1,integerParameter.nColumn)*2e5-1e5).astype(int))
     booleanParameter.writeData(numpy.floor(0.5 + numpy.random.rand(1, booleanParameter.nColumn)).astype(int))
 
-    for i in range(nPoints):        
+    for i in range(nPoints):
         #write continuous
         realContinuous.writeData(numpy.random.rand(BlockSize, realContinuous.nColumn) * 2e5 - 1e5)
         #write discrete
@@ -306,7 +306,7 @@ if __name__ == '__main__':
         #integerDiscrete.writeData(numpy.floor(0.5+numpy.random.rand(2, integerDiscrete.nColumn)*2e5-1e5).astype(int))
         #write String
         #mtsf.series['Continuous'].categories['H5T_C_S1'].writeData(numpy.ones((1,k_str),dtype=numpy.str_))
-    
+
     # Write times:
     #realContinuous.member[0].dataset[:,0] = numpy.linspace(0,1,realContinuous.member[0].dataset.shape[0])
     #realDiscrete.member[0].dataset[:,0] = numpy.linspace(0,1,realDiscrete.member[0].dataset.shape[0])
@@ -316,4 +316,4 @@ if __name__ == '__main__':
     # Phase 3 of result file generation
     mtsf.close()
     print  "Elapsed time = " + format(time.clock() - startTime, '0.2f') + " s."
-   
+

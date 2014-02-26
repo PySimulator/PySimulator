@@ -1,6 +1,6 @@
-''' 
+'''
 Copyright (C) 2011-2014 German Aerospace Center DLR
-(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
+(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
 
@@ -210,32 +210,32 @@ class StateSpace:
         """
         # Check whether already computed
         if self.zpk != None: return self.zpk
-        
+
         # Compute eigenvalues
         p = self.eig()
-        
+
         # Generate a matrix of zpk systems with k=1 each
         ZPK = ZerosAndPoles.ZerosAndPolesSISO
-        zpk = ZerosAndPoles.ZerosAndPoles( [[ZPK( (1.0, self.zeros_ij(i,j), p) ) 
+        zpk = ZerosAndPoles.ZerosAndPoles( [[ZPK( (1.0, self.zeros_ij(i,j), p) )
                                              for i in xrange(0,self.nu)]
                                              for j in xrange(0,self.ny)] )
-        
+
         # Select a real "s_k" that is neither an eigenvalue nor a zero.
         re_max = p.real.max()
         for i in xrange(0,self.nu):
             for j in xrange(0,self.ny):
                 re_max = max( re_max, zpk[j,i].z.real.max() )
         s_k = max(0.0, re_max + 1.0)
-        
+
         # Compute gains of zpk and of ss objects and fix gain of zpk objects
         K1 = self.evaluate_at_s(s_k)
         for i in xrange(0,self.nu):
             for j in xrange(0,self.ny):
                 k2 = zpk[j,i].evaluate_at_s(s_k).real
-                (zpk[j,i]).set_k( float(K1[j,i])/k2 )            
+                (zpk[j,i]).set_k( float(K1[j,i])/k2 )
         self.zpk = zpk
         return zpk
-        
+
 
 if __name__ == "__main__":
     ss1 = StateSpace([[1,2],[3,4]], [1,3], [3,4], [4])
@@ -275,7 +275,7 @@ if __name__ == "__main__":
     # Check transformation to zpk
     zpk4 = ss4.to_zpk()
     print("zpk4 =" + str(zpk4))
-   
+
     # Check transformation to zpk
     zpk2 = ss2.to_zpk()
     print("zpk2 =" + str(zpk2))
