@@ -37,7 +37,6 @@ from chaco.tools.pan_tool import PanTool  # there is some bug in in the default 
 from functools import partial
 from numpy import array
 import math
-#import locale
 
 
 class plotContainer_test(QtGui.QWidget):
@@ -704,8 +703,14 @@ class DefaultPlotWidget(PlotWidget):
             markDownSampling = '*'
         if model.variableTree.variable[variable].unit is not None:
             if len(model.variableTree.variable[variable].unit) > 0:
-                #os_encoding = locale.getpreferredencoding()
-                unit = ' [' + model.variableTree.variable[variable].unit.decode('Windows-1252') + ']'
+                try:
+                    if isinstance(model.variableTree.variable[variable].unit, unicode):
+                        unit = ' [' + model.variableTree.variable[variable].unit + ']'
+                    elif isinstance(model.variableTree.variable[variable].unit, str):
+                        unit = ' [' + model.variableTree.variable[variable].unit.decode('cp1252') + ']'
+                except:
+                    pass
+
         return markDownSampling + model.numberedModelName.split(':', 1)[0] + ':' + variable + unit
 
     def addVariable(self, model, variable):

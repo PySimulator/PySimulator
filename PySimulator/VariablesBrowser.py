@@ -215,18 +215,17 @@ class VariablesBrowser(QtGui.QTreeWidget):
                     treeItem.setText(1, str(model.variableTree.variable[qualifiedName].value))
                     treeItem.setTextAlignment(1, QtCore.Qt.Alignment(2))
 
-        # Set the showed unit               
+        # Set the showed unit
         if model.variableTree.variable[qualifiedName].unit is not None:
-            treeItem.setText(2, model.variableTree.variable[qualifiedName].unit.decode('Windows-1252'))
-            '''
-            if isinstance(model.variableTree.variable[qualifiedName].unit, str):
-                treeItem.setText(2, model.variableTree.variable[qualifiedName].unit)
-            else:
-                try:
-                    treeItem.setText(2, str(model.variableTree.variable[qualifiedName].unit))
-                except:
-                    pass
-            '''
+            try:
+                if isinstance(model.variableTree.variable[qualifiedName].unit, unicode):
+                    treeItem.setText(2, model.variableTree.variable[qualifiedName].unit)
+                elif isinstance(model.variableTree.variable[qualifiedName].unit, str):
+                    treeItem.setText(2, model.variableTree.variable[qualifiedName].unit.decode('cp1252'))
+                else:
+                    treeItem.setText(2, '')
+            except:
+                treeItem.setText(2, '')
 
         # Define deepest treeitem: Additional attribute for each variable
         if model.variableTree.variable[qualifiedName].attribute is not None:
