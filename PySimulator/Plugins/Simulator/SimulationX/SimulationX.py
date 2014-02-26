@@ -315,6 +315,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			self.integrationSettings.resultFileExtension = 'csvx'
 
 			self._availableIntegrationAlgorithms = ['BDF', 'MEBDF', 'CVODE', 'FixedStep']
+			self._solverByName = dict([('BDF', 'MultiStepMethod2'), ('MEBDF', 'MEBDFDAE'), ('CVODE', 'CVODE'), ('FixedStep', 'FixStep')])
 
 			self._IntegrationAlgorithmHasFixedStepSize = [False, False, False, True]
 			self._IntegrationAlgorithmCanProvideStepSizeResults = [False, False, False, False]
@@ -337,7 +338,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			sim.Interactive = False
 
 			if sim.InitState == simInitBase:
-				sim.InitSimEnvironment() # Necessary when a script is used to start SimulationX
+				sim.InitSimEnvironment()  # Necessary when a script is used to start SimulationX
 
 			if len(modelFileName) == 1:
 				strMsg = 'PySimulator: Load model'
@@ -490,7 +491,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 									if childComment != '':
 										childVariableAttr += 'Description:' + chr(9) + childComment + '\n'
 									childVariableAttr += 'Causality:' + chr(9) + 'parameter' + '\n'
-									childVariableAttr += 'Variability:' + chr(9) + childVariability # + '\n'
+									childVariableAttr += 'Variability:' + chr(9) + childVariability  # + '\n'
 									self.variableTree.variable[childRelIdent] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent), childValue, childValueEdit, childUnit, childVariability, childVariableAttr)
 						elif self._isNumeric(dim):
 							# Fixed vector dimension
@@ -514,7 +515,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 										if childComment != '':
 											childVariableAttr += 'Description:' + chr(9) + childComment + '\n'
 										childVariableAttr += 'Causality:' + chr(9) + 'parameter' + '\n'
-										childVariableAttr += 'Variability:' + chr(9) + childVariability # + '\n'
+										childVariableAttr += 'Variability:' + chr(9) + childVariability  # + '\n'
 										for i in range(1, dim + 1):
 											if self._isNumeric(childValueList[i - 1]):
 												self.variableTree.variable[childRelIdent + '[' + str(i) + ']'] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent + '[' + str(i) + ']'), childValueList[i - 1], childValueEdit, childUnit, childVariability, childVariableAttr)
@@ -539,7 +540,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 								if childComment != '' :
 									childVariableAttr += 'Description:' + chr(9) + childComment + '\n'
 								childVariableAttr += 'Causality:' + chr(9) + 'state' + '\n'
-								childVariableAttr += 'Variability:' + chr(9) + childVariability # + '\n'
+								childVariableAttr += 'Variability:' + chr(9) + childVariability  # + '\n'
 								self.variableTree.variable[childRelIdent] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent), childValue, childValueEdit, childUnit, childVariability, childVariableAttr)
 						elif self._isNumeric(dim):
 							# Fixed vector dimension
@@ -560,7 +561,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 								if childComment != '':
 									childVariableAttr += 'Description:' + chr(9) + childComment + '\n'
 								childVariableAttr += 'Causality:' + chr(9) + 'state' + '\n'
-								childVariableAttr += 'Variability:' + chr(9) + childVariability # + '\n'
+								childVariableAttr += 'Variability:' + chr(9) + childVariability  # + '\n'
 								for i in range(1, dim + 1):
 									self.variableTree.variable[childRelIdent + '[' + str(i) + ']'] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent + '[' + str(i) + ']'), childValue, childValueEdit, childUnit, childVariability, childVariableAttr)
 				childIsOuter = pChild.GetProperty(simIsOuter)
@@ -635,14 +636,17 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			doc.Lookup('dtMin').Value = dtMin
 		if simulation.gridPointsMode == 'NumberOf':
 			if simulation.gridPoints > 1:
-				gridWidth = (simulation.stopTime - simulation.startTime)/(simulation.gridPoints - 1)
+				gridWidth = (simulation.stopTime - simulation.startTime) / (simulation.gridPoints - 1)
 			else:
-				gridWidth = (simulation.stopTime - simulation.startTime)/500
+				gridWidth = (simulation.stopTime - simulation.startTime) / 500
 		elif simulation.gridPointsMode == 'Width':
 			gridWidth = simulation.gridWidth
 		doc.Lookup('dtProtMin').Value = gridWidth
-		doc.Lookup('protKind').Value = 0 # = 'BaseModel.ProtKind.EquidistantTimeSteps'
-		doc.SolverByName = simulation.algorithmName
+		doc.Lookup('protKind').Value = 0  # = 'BaseModel.ProtKind.EquidistantTimeSteps'
+		try:
+			doc.SolverByName = self._solverByName[simulation.algorithmName]
+		except KeyError:
+			pass
 
 		for name, newValue in self.changedStartValue.iteritems():
 			i = name.find('[')
@@ -745,15 +749,15 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			try:
 				frt = winreg.QueryValueEx(key, 'Format')
 			except WindowsError:
-				frt = (u'%.15lg',  winreg.REG_SZ)
+				frt = (u'%.15lg', winreg.REG_SZ)
 			try:
 				dec = winreg.QueryValueEx(key, 'Dec')
 			except WindowsError:
-				dec = (u'.',  winreg.REG_SZ)
+				dec = (u'.', winreg.REG_SZ)
 			try:
 				sep = winreg.QueryValueEx(key, 'Separator')
 			except WindowsError:
-				sep = (u'\t',  winreg.REG_SZ)
+				sep = (u'\t', winreg.REG_SZ)
 			try:
 				adT = winreg.QueryValueEx(key, 'AddTableName')
 			except WindowsError:
@@ -785,7 +789,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			# Save parameters in CSV file
 			if len(paramName) > 0:
 				with open(resultFileName + 'p', 'wb') as csvfile:
-					csvwriter = csv.writer(csvfile, delimiter = ';')
+					csvwriter = csv.writer(csvfile, delimiter=';')
 					csvwriter.writerow(paramName)
 					csvwriter.writerow(paramUnit)
 					csvwriter.writerow(paramValue)
