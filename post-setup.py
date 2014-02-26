@@ -1,6 +1,5 @@
 import os, sys
 import winshell
-import pkgutil
 
 link_filepath = os.path.join(winshell.desktop(), "PySimulator.lnk")
 with winshell.shortcut(link_filepath) as link:
