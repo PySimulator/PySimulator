@@ -91,7 +91,7 @@ class SimulatorGui(QtGui.QMainWindow):
             image = None
             if hasattr(value, 'iconImage'):
                 image = self.rootDir + "/Icons/" + value.iconImage
-            openModelMenu.addAction(QtGui.QIcon(image),key+'...', partial(self._openFileMenu, value))
+            openModelMenu.addAction(QtGui.QIcon(image), key + '...', partial(self._openFileMenu, value))
 
         subMenu.addSeparator()
         subMenu.addAction("Open Result File...", self._openResultFileMenu)
@@ -131,13 +131,13 @@ class SimulatorGui(QtGui.QMainWindow):
         '''
         self._modelbar = QtGui.QToolBar('Menu bar', self)
         self.addToolBar(QtCore.Qt.TopToolBarArea, self._modelbar)
-        #self._modelbar.setIconSize(QtCore.QSize(18, 18))
+        # self._modelbar.setIconSize(QtCore.QSize(18, 18))
         for key, value in self.simulatorPlugins.items():
             image = None
             if hasattr(value, 'iconImage'):
                 image = self.rootDir + "/Icons/" + value.iconImage
-            self._modelbar.addAction(QtGui.QIcon(image), 'Open Model in '+key, partial(self._openFileMenu, value))
-            #self._modelbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/CloseModel_20x20.ico"), 'Close Model', self.closeModel(???))
+            self._modelbar.addAction(QtGui.QIcon(image), 'Open Model in ' + key, partial(self._openFileMenu, value))
+            # self._modelbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/CloseModel_20x20.ico"), 'Close Model', self.closeModel(???))
         self._modelbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/OpenResults_20x20.ico"), "Open Result File", self._openResultFileMenu)
 
         ''' The variables browser on the left side is added as dock to the main window. '''
@@ -155,12 +155,12 @@ class SimulatorGui(QtGui.QMainWindow):
         '''
         self._plotbar = QtGui.QToolBar('Plot bar', self)
         self.addToolBar(QtCore.Qt.RightToolBarArea, self._plotbar)
-        #self._plotbar.setIconSize(QtCore.QSize(18, 18))
+        # self._plotbar.setIconSize(QtCore.QSize(18, 18))
         self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/plotTabAdd_20x20.ico"), 'New Plot Window', self._newPlotContainer)
-        #self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/draw-eraser-2.png"), 'Erase lines from current plot', self.erasePlotCurrentAxes)
+        # self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/draw-eraser-2.png"), 'Erase lines from current plot', self.erasePlotCurrentAxes)
         self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/document-save-5.png"), 'Save Figure', self.saveFigure)
-        #self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/zoom-in-5.png"), 'Not yet implemented: Zoom plot', self.zoomCurrentAxes)
-        #self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/dlr-grid.png"), 'Grid on/off', self.setGridOnCurrentAxes)
+        # self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/zoom-in-5.png"), 'Not yet implemented: Zoom plot', self.zoomCurrentAxes)
+        # self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/dlr-grid.png"), 'Grid on/off', self.setGridOnCurrentAxes)
         self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/plotSubBottomAdd_20x20.ico"), 'Add Row to Subplot', self.addRowToPlot)
         self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/plotSubBottomRemove_20x20.ico"), 'Remove Row from Subplot', self.removeRowFromPlot)
         self._plotbar.addAction(QtGui.QIcon(self.rootDir + "/Icons/plotSubRightAdd_20x20.ico"), 'Add Column to Subplot', self.addColumnToPlot)
@@ -211,14 +211,14 @@ class SimulatorGui(QtGui.QMainWindow):
         self.dockTextOutput.setWidget(self.textOutput)
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.dockTextOutput)
         self._origStdout = sys.stdout
-        sys.stdout = self.textOutput       # sometimes causes crashes of Python.exe
+        sys.stdout = self.textOutput  # sometimes causes crashes of Python.exe
 
     def _execAnalysisPlugin(self, func):
         if self.nvb.currentModelItem:
             func(self.models[self.nvb.currentModelItem.numberedModelName], self)
         else:
             func(None, self)
-            #print("No Model selected, unable to execute Plugin\n")
+            # print("No Model selected, unable to execute Plugin\n")
 
     def showHelp(self):
         os.startfile("file:///" + os.path.join(self.rootDir, "Documentation/index.html"))
@@ -254,7 +254,7 @@ class SimulatorGui(QtGui.QMainWindow):
             rast = "Rasterized Images (*.png *.tiff *.bmp *.jpg *.jpeg *.gif)"
             pdf = "Portable Document Format (*.pdf)"
             svg = "Scalable Vector Graphics (*.svg *.html)"
-            #(fileName, extension) = QtGui.QFileDialog().getSaveFileName(self, 'Save Plot as image', os.getcwd(), rast + ";;" + pdf + ";;" + svg)
+            # (fileName, extension) = QtGui.QFileDialog().getSaveFileName(self, 'Save Plot as image', os.getcwd(), rast + ";;" + pdf + ";;" + svg)
             (fileName, extension) = QtGui.QFileDialog().getSaveFileName(self, 'Save Plot as Image', os.getcwd(), rast)
             if not fileName:
                 return
@@ -406,12 +406,12 @@ class SimulatorGui(QtGui.QMainWindow):
         for i, ext in enumerate(Plugins.SimulationResult.fileExtension):
             formats += ' *.' + ext
             formats2 += Plugins.SimulationResult.description[i] + ' (*.' + ext + ')'
-            if i+1 < len(Plugins.SimulationResult.fileExtension):
+            if i + 1 < len(Plugins.SimulationResult.fileExtension):
                 formats2 += ';;'
         formats += ');;' + formats2
         (fileNames, trash) = QtGui.QFileDialog().getOpenFileNames(self, 'Open Result File', os.getcwd(), formats)
         for fileName in fileNames:
-            self.openResultFile(str(fileName).replace('\\','/'))
+            self.openResultFile(str(fileName).replace('\\', '/'))
 
     def _loadingFileInfo(self):
         ''' Shows a label 'Loading file...' '''
@@ -457,7 +457,7 @@ class SimulatorGui(QtGui.QMainWindow):
                 self.simulateAction.setDisabled(True)
                 self.ic = IntegratorControl.IntegratorControl(self, self.models)
                 self.ic.show()
-                #self.ic.printText.connect(print)
+                # self.ic.printText.connect(print)
                 self.ic.resultsUpdated.connect(self._resultsUpdated)
                 self.ic.reallyFinished.connect(self._finishIntegratorControl)
             else:
@@ -470,8 +470,8 @@ class SimulatorGui(QtGui.QMainWindow):
     def _newPlotContainer(self):
         ''' Create a new plot and add it to the current tab '''
         plotContainer = plotWidget.plotContainer(self.mdi)
-        #defaultWidget = plotWidget.DefaultPlotWidget(self, self.plotMenuCallbacks)
-        #plotContainer.addRight(defaultWidget)
+        # defaultWidget = plotWidget.DefaultPlotWidget(self, self.plotMenuCallbacks)
+        # plotContainer.addRight(defaultWidget)
         plotContainer.addFirst(self, self.plotMenuCallbacks)
         self.plotContainers.append(plotContainer)
         plotContainer.activeWidgetChanged.connect(self._currentPlotChanged)
@@ -632,7 +632,7 @@ def start_PySimulator():
     splash.finish(sg)
 
     if runBenchmark:
-        #shows a benchmark including the time spent in diffrent routines during execution
+        # shows a benchmark including the time spent in diffrent routines during execution
         import cProfile
         cProfile.run('app.exec_()', 'logfile')
         import pstats

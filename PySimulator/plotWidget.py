@@ -54,7 +54,7 @@ class plotContainer_test(QtGui.QWidget):
 
     def resizeEvent(self, event):
         print event.oldSize(), event.size()
-        #print self.itemAt(100, 100)
+        # print self.itemAt(100, 100)
         self.widgets[0].resize(event.size())
 
     def dragEnterEvent(self, event):
@@ -613,7 +613,7 @@ class TimeMarker(enable.api.BaseTool):
             # redraws are handled by the updateHack in regular intervals.
             # redraws must be handled carefully or otherwise they lock up
             # the entire CPU
-            #self.component.request_redraw()
+            # self.component.request_redraw()
 
     def do_layout(self):
         pass
@@ -687,7 +687,7 @@ class DefaultPlotWidget(PlotWidget):
     def activatePlot(self):
         # some parts cause problems on initialization
         self.plot.legend.visible = True
-        #self.plot.overlays.append(TimeMarker(self.plot))
+        # self.plot.overlays.append(TimeMarker(self.plot))
         self.plot.overlays.append(axisZoom(self.plot))
         self.plot.tools.append(NonAxisPan(self.plot))
         self.plot.overlays.append(Selector(self.plot, self))

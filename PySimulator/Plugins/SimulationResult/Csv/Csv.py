@@ -43,7 +43,7 @@ class Results(IntegrationResults.Results):
     def __init__(self, fileName):
         IntegrationResults.Results.__init__(self)
 
-        self.fileName = fileName         # File name of result file
+        self.fileName = fileName  # File name of result file
         ''' Load file
         '''
 
@@ -64,19 +64,19 @@ class Results(IntegrationResults.Results):
         dialect = csv.Sniffer().sniff(csvfile.readline())
         csvfile.seek(0)
         reader = csv.reader(csvfile, dialect)
-        self._name = reader.next() # first row contains the variable names
-        self._info = len(self._name)*['']
+        self._name = reader.next()  # first row contains the variable names
+        self._info = len(self._name) * ['']
         self._filterName()
         data = numpy.loadtxt(csvfile, delimiter=dialect.delimiter)
 
-        t = data[:,0]
+        t = data[:, 0]
         self.timeSeries.append(IntegrationResults.TimeSeries(t, data, "linear"))
         self.nTimeSeries = len(self.timeSeries)
 
 
         csvfile.close()
 
-        self.isAvailable = True         # Shows, if there is a file available to be read
+        self.isAvailable = True  # Shows, if there is a file available to be read
 
 
     def _filterName(self):
@@ -88,11 +88,11 @@ class Results(IntegrationResults.Results):
                 self._info[i] = x[k:]
                 x = x[:k]
 
-            if len(x)>5:  # Convert der(a.b.c.d) to a.b.c.der(d)
+            if len(x) > 5:  # Convert der(a.b.c.d) to a.b.c.der(d)
                 if x[:4] == 'der(':
                     k = x.rfind('.')
                     if k > -1:
-                        x = x[4:k] + '.der(' + x[k+1:]
+                        x = x[4:k] + '.der(' + x[k + 1:]
             self._name[i] = x
 
 
@@ -100,7 +100,7 @@ class Results(IntegrationResults.Results):
         nameIndex = self._name.index(variableName)
         if nameIndex < 0:
             return None, None, None
-        y = self.timeSeries[0].data[:,nameIndex]
+        y = self.timeSeries[0].data[:, nameIndex]
         t = self.timeSeries[0].independentVariable
         method = self.timeSeries[0].interpolationMethod
         return t, y, method
@@ -109,7 +109,7 @@ class Results(IntegrationResults.Results):
         nameIndex = self._name.index(variableName)
         if nameIndex < 0:
             return None
-        return self.timeSeries[0].data[:,nameIndex]
+        return self.timeSeries[0].data[:, nameIndex]
 
 
     def getVariables(self):
