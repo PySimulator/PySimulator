@@ -668,6 +668,8 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 		if not bool(self.variableTree.variable):
 			self._fillTree(doc, doc)
 			treeWasEmpty = True
+		else:
+			treeWasEmpty = False
 
 		# Log all parameters and variables
 		paramName = list()
