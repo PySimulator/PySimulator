@@ -75,14 +75,14 @@ class myScatterInspectorOverlay(AbstractOverlay):
     controllability = None
 
 
-    label = None    #Label with information
+    label = None  # Label with information
     hasOverlay = []
-    labelIndex = [] #index where the label is actually
+    labelIndex = []  # index where the label is actually
     oldIndex = array([])
     # For now, implement the equivalent of this Traits 3 feature manually
     # using a series of trait change handlers (defined at the end of the
     # class)
-    #@on_trait_change('component.index.metadata_changed,component.value.metadata_changed')
+    # @on_trait_change('component.index.metadata_changed,component.value.metadata_changed')
     def metadata_changed(self, object, name, old, new):
 
         if self.component is not None:
@@ -94,13 +94,13 @@ class myScatterInspectorOverlay(AbstractOverlay):
         plot = self.component
         if not plot or not plot.index or not getattr(plot, "value", True):
             return
-        prefix =""
+        prefix = ""
         for inspect_type in (self.hover_metadata_name, self.selection_metadata_name):
-            #print " hover on/off1"
-            #Hartweg: 2. Bedingung zugefuegt
+            # print " hover on/off1"
+            # Hartweg: 2. Bedingung zugefuegt
             if inspect_type in plot.index.metadata:
 
-                if hasattr(plot,"value") and not inspect_type in plot.value.metadata:
+                if hasattr(plot, "value") and not inspect_type in plot.value.metadata:
                     continue
                 index = plot.index.metadata.get(inspect_type, None)
 
@@ -115,68 +115,68 @@ class myScatterInspectorOverlay(AbstractOverlay):
                     # selection model, we will only use the selection on the
                     # index.  The assumption that they are the same is
                     # implicit, though unchecked, already.
-                    #value = plot.value.metadata.get(inspect_type, None)
+                    # value = plot.value.metadata.get(inspect_type, None)
                     value = index
 
                     if hasattr(plot, "value"):
                         value_data = plot.value.get_data()
                         screen_pts = plot.map_screen(array([index_data[index],
                                                             value_data[value]]).T)
-                        #print "1 ", array([index_data[index], value_data[value]])
+                        # print "1 ", array([index_data[index], value_data[value]])
                     else:
                         screen_pts = plot.map_screen(index_data[index])
-                        #print "2 ", index_data[index]
+                        # print "2 ", index_data[index]
 
                     if inspect_type == self.selection_metadata_name:
 
-                        #Hartweg: Erstmal keine Selection
-                        #prefix = "selection"
+                        # Hartweg: Erstmal keine Selection
+                        # prefix = "selection"
                         prefix = "hover"
 
                     else:
                         prefix = "hover"
 
                         if self.label == None:
-                            #if self.label.data_point != (index_data[index[-1]], value_data[index[-1]]):
-                            #Find the right position for  the information panel:
-                            if screen_pts[0][1] > plot.bounds[1]/2:
+                            # if self.label.data_point != (index_data[index[-1]], value_data[index[-1]]):
+                            # Find the right position for  the information panel:
+                            if screen_pts[0][1] > plot.bounds[1] / 2:
                                 label_position = "bottom "
                             else:
                                 label_position = "top "
 
-                            if screen_pts[0][0] > plot.bounds[0]/2:
+                            if screen_pts[0][0] > plot.bounds[0] / 2:
                                 label_position = label_position + "left"
                             else:
                                 label_position = label_position + "right"
 
 
                             labIdx = index[-1]
-                            self.labelIndex =   labIdx
+                            self.labelIndex = labIdx
                             self.label = DataLabel(component=plot, data_point=(index_data[labIdx], value_data[labIdx]),
-                                              label_position = label_position, padding=30,
-                                              bgcolor = "lightgray",
+                                              label_position=label_position, padding=30,
+                                              bgcolor="lightgray",
                                               border_visible=False,
-                                              show_label_coords = False)
-                            #Collect information for output:
+                                              show_label_coords=False)
+                            # Collect information for output:
 
-                            self.label.label_text = ""#"Eigenvalue no. %g", % (labIdx)
+                            self.label.label_text = ""  # "Eigenvalue no. %g", % (labIdx)
                             self.label.label_text = self.label.label_text + "Eigenvalue no. %s" % (labIdx)
-                            #'eigenvalue %.7g: %.7g +%.7g *i \nfrequency: %.5s Hz' % (evClicked, x, y, frequency)
+                            # 'eigenvalue %.7g: %.7g +%.7g *i \nfrequency: %.5s Hz' % (evClicked, x, y, frequency)
                             self.label.label_text = self.label.label_text + "\n %g +i*%g" % (index_data[labIdx], value_data[labIdx])
                             self.label.label_text = self.label.label_text + "\nFrequency: %.5s Hz" % (self.frequencies[labIdx])
-                            if self.damping[labIdx]>0:
+                            if self.damping[labIdx] > 0:
                                 self.label.label_text = self.label.label_text + "\nDamping: %.5s" % self.damping[labIdx]
                             else:
                                 self.label.label_text = self.label.label_text + "\nExcitation: %.5s" % self.damping[labIdx]
-                            if self.damping[labIdx]<=0:
+                            if self.damping[labIdx] <= 0:
                                 self.label.label_text = self.label.label_text + "\nNot Stable"
                             else:
                                 self.label.label_text = self.label.label_text + "\nStable"
-                            if self.observability[labIdx]>0:
+                            if self.observability[labIdx] > 0:
                                 self.label.label_text = self.label.label_text + "\nObservable"
                             else:
                                 self.label.label_text = self.label.label_text + "\nNot observable"
-                            if self.controllability[labIdx]>0:
+                            if self.controllability[labIdx] > 0:
                                 self.label.label_text = self.label.label_text + "\nControllable"
                             else:
                                 self.label.label_text = self.label.label_text + "\nNot controllable"
@@ -188,14 +188,14 @@ class myScatterInspectorOverlay(AbstractOverlay):
                         self._render_at_indices(gc, screen_pts, prefix)
                 elif prefix != "hover":
                     if self.label != None:
-                        plot.overlays.pop(-1)#=last element
+                        plot.overlays.pop(-1)  # =last element
                         self.label = None
                         self.labelIndex = 999999
-                if  len(index)>0:
+                if  len(index) > 0:
                     if self.labelIndex != index[-1]:
                         if self.label != None:
                             print "delete label"
-                            plot.overlays.pop(-1)#=last element
+                            plot.overlays.pop(-1)  # =last element
                             self.label = None
                             self.labelIndex = 9999999
 
@@ -223,7 +223,7 @@ class myScatterInspectorOverlay(AbstractOverlay):
             else:
                 valname = attr
 
-            tmp = getattr(self, prefix+sep+valname)
+            tmp = getattr(self, prefix + sep + valname)
             if tmp is not None:
                 kwargs[attr] = tmp
             else:
@@ -243,7 +243,7 @@ class myScatterInspectorOverlay(AbstractOverlay):
         self.overlay(self.component, gc, view_bounds, mode)
 
     def _component_changed(self, old, new):
-        #print "hover on or out"
+        # print "hover on or out"
         if old:
             old.on_trait_change(self._ds_changed, 'index', remove=True)
             if hasattr(old, "value"):
@@ -254,7 +254,7 @@ class myScatterInspectorOverlay(AbstractOverlay):
                     continue
                 new.on_trait_change(self._ds_changed, dsname)
                 if getattr(new, dsname):
-                    self._ds_changed(new, dsname, None, getattr(new,dsname))
+                    self._ds_changed(new, dsname, None, getattr(new, dsname))
         return
 
     def _ds_changed(self, object, name, old, new):

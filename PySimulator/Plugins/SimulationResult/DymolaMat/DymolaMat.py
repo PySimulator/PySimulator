@@ -38,7 +38,7 @@ def charArrayToStrList(charArray):
     """
     strList = []
     for item in charArray:
-        strList.append(str(string.rstrip(string.join([x for x in item if len(x)>0 and ord(x) < 128],""))))
+        strList.append(str(string.rstrip(string.join([x for x in item if len(x) > 0 and ord(x) < 128], ""))))
     return strList
 
 
@@ -52,7 +52,7 @@ class Results(IntegrationResults.Results):
         # Not possible to load data from a partially written mat-file
         self.canLoadPartialData = False
 
-        self.fileName     = fileName
+        self.fileName = fileName
 
         if fileName is None:
             return
@@ -72,7 +72,7 @@ class Results(IntegrationResults.Results):
         # Check Aclass array
         if not("Aclass" in fileData):
             raise WrongDymolaResultFile("Matrix 'Aclass' is missing in result file " + fullFileName)
-        Aclass  = charArrayToStrList( fileData["Aclass"] )
+        Aclass = charArrayToStrList(fileData["Aclass"])
         if len(Aclass) < 3:
             raise WrongDymolaResultFile("Matrix 'Aclass' has not 3 or more rows in result file " + fullFileName)
         if Aclass[1] != "1.1":
@@ -91,18 +91,18 @@ class Results(IntegrationResults.Results):
             raise WrongDymolaResultFile("Matrix 'data_2' is not in result file " + fullFileName)
 
         # Get the raw matrices
-        name        = fileData["name"]
+        name = fileData["name"]
         description = fileData["description"]
-        dataInfo    = fileData["dataInfo"]
-        data        = [ fileData["data_1"], fileData["data_2"][:,:-1] ]
+        dataInfo = fileData["dataInfo"]
+        data = [ fileData["data_1"], fileData["data_2"][:, :-1] ]
 
         # Transpose the data, if necessary
         if len(Aclass) > 3 and Aclass[3] == "binTrans":
-            name        = name.T
+            name = name.T
             description = description.T
-            dataInfo    = dataInfo.T
-            data[0]     = data[0].T
-            data[1]     = data[1].T
+            dataInfo = dataInfo.T
+            data[0] = data[0].T
+            data[1] = data[1].T
 
 
         # Transform the charArrays in string lists
@@ -117,16 +117,16 @@ class Results(IntegrationResults.Results):
         unit, description = extractUnits(description)
 
         # Collect data
-        self._name        = name
+        self._name = name
         self._description = description
-        self._unit        = unit
-        self._dataInfo    = dataInfo
-        self._data        = data
+        self._unit = unit
+        self._dataInfo = dataInfo
+        self._data = data
 
 
         t = self.data("Time")
-        data0 = data[0][0,:]
-        data0 = numpy.reshape(data0, (1,len(data0)))
+        data0 = data[0][0, :]
+        data0 = numpy.reshape(data0, (1, len(data0)))
         self.timeSeries.append(IntegrationResults.TimeSeries(None, data0, "constant"))
         self.timeSeries.append(IntegrationResults.TimeSeries(t, data[1], "linear"))
         self.nTimeSeries = len(self.timeSeries)
@@ -144,7 +144,7 @@ class Results(IntegrationResults.Results):
             nameIndex = self._name.index(name)
         except ValueError:
             return -1
-            #print("'" + name + "' is not present in the result")
+            # print("'" + name + "' is not present in the result")
         return nameIndex
 
     def readData(self, variableName):
@@ -152,7 +152,7 @@ class Results(IntegrationResults.Results):
         if nameIndex < 0:
             return None, None, None
 
-        seriesIndex = self._dataInfo[nameIndex,0]-1
+        seriesIndex = self._dataInfo[nameIndex, 0] - 1
 
         y = self.data(variableName)
         t = self.timeSeries[seriesIndex].independentVariable
@@ -172,9 +172,9 @@ class Results(IntegrationResults.Results):
                v1     = result.data(i_v1)       # numpy vector of v1 values
         """
         # Get index of the desired signal and check it
-        if isinstance(name,str):
+        if isinstance(name, str):
             nameIndex = self.index(name)
-        elif isinstance(name,int):
+        elif isinstance(name, int):
             if name < 0 or name >= len(self._name):
                 raise UnknownIndex("Index = " + str(name) + " is not correct")
             nameIndex = name
@@ -185,20 +185,20 @@ class Results(IntegrationResults.Results):
             return None
 
         # Determine location of data
-        signalInfo   = self._dataInfo[nameIndex,:]
+        signalInfo = self._dataInfo[nameIndex, :]
         signalMatrix = signalInfo[0] if nameIndex > 0 else 2
         if signalMatrix < 1 or signalMatrix > 2:
-            raise WrongDymolaResultFile("dataInfo[" + str(nameIndex) +
-                                        ",0] = " + str(signalMatrix) +
+            raise WrongDymolaResultFile("dataInfo[" + str(nameIndex) + 
+                                        ",0] = " + str(signalMatrix) + 
                                         ", but must be 1 or 2")
-        signalColumn = abs(signalInfo[1])-1
-        signalSign   = +1 if signalInfo[1] >= 0 else -1
+        signalColumn = abs(signalInfo[1]) - 1
+        signalSign = +1 if signalInfo[1] >= 0 else -1
         if signalMatrix == 1:
             # Data consists of constant data, expand data to match abscissa vector
-            #n = self._data[1].shape[0]
-            signalData = numpy.array([signalSign*self._data[0][0,signalColumn]])  #*numpy.ones(n)
-        else: # signalMatrix = 2
-            signalData = signalSign*self._data[1][:,signalColumn]
+            # n = self._data[1].shape[0]
+            signalData = numpy.array([signalSign * self._data[0][0, signalColumn]])  # *numpy.ones(n)
+        else:  # signalMatrix = 2
+            signalData = signalSign * self._data[1][:, signalColumn]
         return signalData
 
 
@@ -213,14 +213,14 @@ class Results(IntegrationResults.Results):
         # Fill the values of the dict
         for i in xrange(len(self._name)):
             name = self._name[i]
-            if self._dataInfo[i,0] == 1:
+            if self._dataInfo[i, 0] == 1:
                 variability = 'fixed'
                 seriesIndex = 0
             else:
                 variability = 'continuous'
                 seriesIndex = 1
-            column = abs(self._dataInfo[i,1])-1
-            sign = 1 if self._dataInfo[i,1] > 0 else -1
+            column = abs(self._dataInfo[i, 1]) - 1
+            sign = 1 if self._dataInfo[i, 1] > 0 else -1
 
             value = None
             if variability == 'fixed':
@@ -254,14 +254,14 @@ def extractUnits(description):
                 if t[1][-1] == ']':
                     if '|' in t[1]:
                         if ':#' not in t[1]:
-                            unit[index] = t[1].split('|',1)[0]
+                            unit[index] = t[1].split('|', 1)[0]
                     elif ':#' not in t[1]:
                         unit[index] = t[1][:-1]
 
                     if len(t[0]) > 0:
-                        description[index] = t[0][:-1] # Delete space
+                        description[index] = t[0][:-1]  # Delete space
                     else:
-                        description[index] = ''#
+                        description[index] = ''  #
     return unit, description
 
 
@@ -296,7 +296,7 @@ def loadDymolaInit(fileName):
     # Check Aclass array
     if not("Aclass" in fileData):
         raise WrongDymolaResultFile("Matrix 'Aclass' is missing in file " + fullFileName)
-    Aclass  = charArrayToStrList( fileData["Aclass"] )
+    Aclass = charArrayToStrList(fileData["Aclass"])
     if len(Aclass) < 3:
         raise WrongDymolaResultFile("Matrix 'Aclass' has not 3 or more rows in file " + fullFileName)
     if Aclass[1] != "1.4":
@@ -312,20 +312,20 @@ def loadDymolaInit(fileName):
 
 
     # Get the raw matrices
-    name        = fileData["initialName"]
+    name = fileData["initialName"]
     description = fileData["initialDescription"]
-    value    = fileData["initialValue"]
+    value = fileData["initialValue"]
 
 
     # Transpose the data, if necessary
     if len(Aclass) > 3 and Aclass[3] == "binTrans":
-        name        = name.T
+        name = name.T
         description = description.T
-        value       = value.T
+        value = value.T
 
 
     # Transform the charArrays in string lists
-    name        = charArrayToStrList(name)
+    name = charArrayToStrList(name)
     description = charArrayToStrList(description)
 
     # Extract units
@@ -350,7 +350,7 @@ if __name__ == "__main__":
     print result._name
     print result._description
     t = result.index("Time")
-    print("time="+str(t))
+    print("time=" + str(t))
     t1 = result.data("Time")
     v1 = result.data("PI.y")
     result.plot("PI.y")

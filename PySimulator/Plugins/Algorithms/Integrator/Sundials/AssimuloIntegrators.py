@@ -38,15 +38,15 @@ class AssimuloRK34():
     '''
     def __init__(self):
 
-        #Have to be set from outside:
-        self.atol = 1e-6                #Default 1e-6. The absulute tolerance
-        self.rtol = 1e-6                #Default 1e-6. The relative tolerance
-        self.verbosity = 50             #QUIET = 50 WHISPER = 40 NORMAL = 30 LOUD = 20 SCREAM = 10
-        self.inith = 0.01              #Default 0.01. The initial step-size to be used in the integration.
+        # Have to be set from outside:
+        self.atol = 1e-6  # Default 1e-6. The absulute tolerance
+        self.rtol = 1e-6  # Default 1e-6. The relative tolerance
+        self.verbosity = 50  # QUIET = 50 WHISPER = 40 NORMAL = 30 LOUD = 20 SCREAM = 10
+        self.inith = 0.01  # Default 0.01. The initial step-size to be used in the integration.
         self.t0 = 0
         self.y0 = None
 
-    #Define dummy functions with warning message:
+    # Define dummy functions with warning message:
     def handle_result(self, t, x):
         print 'AssimuloRK34: handle_result has to be overwritten from the outside!'
 
@@ -56,7 +56,7 @@ class AssimuloRK34():
     def handle_event(self, solver, event_info):
         print 'AssimuloRK34: handle_event has to be overwritten from the outside!'
 
-    def rhs(self, t, x, xd=None):   ##rhs: explicit, res = implicit,
+    def rhs(self, t, x, xd=None):  # #rhs: explicit, res = implicit,
         print 'AssimuloRK34: rhs has to be overwritten from the outside!'
 
     def finalize(self, solver):
@@ -77,24 +77,24 @@ class AssimuloRK34():
 
         simulation = RungeKutta34(problem)
 
-        #Sets additional parameters
-        simulation.atol=self.atol
-        simulation.rtol=self.rtol
+        # Sets additional parameters
+        simulation.atol = self.atol
+        simulation.rtol = self.rtol
         simulation.verbosity = self.verbosity
-        simulation.continuous_output = False #default 0, if one step approach should be used
+        simulation.continuous_output = False  # default 0, if one step approach should be used
         simulation.inith = self.inith
 
-        #Calculate nOutputIntervals:
+        # Calculate nOutputIntervals:
         if gridWidth <> None:
-            nOutputIntervals = int((Tend - self.t0)/gridWidth)
+            nOutputIntervals = int((Tend - self.t0) / gridWidth)
         else:
             nOutputIntervals = nIntervals
-        #Check for feasible input parameters
+        # Check for feasible input parameters
         if nOutputIntervals == 0:
             print 'Error: gridWidth too high or nIntervals set to 0! Continue with nIntervals=1'
             nOutputIntervals = 1
-        #Perform simulation
-        simulation.simulate(Tend, nOutputIntervals) #to get the values: t_new, y_new = simulation.simulate
+        # Perform simulation
+        simulation.simulate(Tend, nOutputIntervals)  # to get the values: t_new, y_new = simulation.simulate
 
 
 class AssimuloCVode():
@@ -106,17 +106,17 @@ class AssimuloCVode():
     '''
     def __init__(self):
 
-        #Have to be set from outside:
-        self.iter = 'FixedPoint'    #Default FixedPoint: The iteration method used by the solver('Newton' or 'FixedPoint')
-        self.discr = 'Adams'        #Default 'Adams'. The discretization method
-        self.atol = 1e-6            #Default 1e-6. The absulute tolerance
-        self.rtol = 1e-6            #Default 1e-6. The relative tolerance
-        self.verbosity = 50         #QUIET = 50 WHISPER = 40 NORMAL = 30 LOUD = 20 SCREAM = 10
+        # Have to be set from outside:
+        self.iter = 'FixedPoint'  # Default FixedPoint: The iteration method used by the solver('Newton' or 'FixedPoint')
+        self.discr = 'Adams'  # Default 'Adams'. The discretization method
+        self.atol = 1e-6  # Default 1e-6. The absulute tolerance
+        self.rtol = 1e-6  # Default 1e-6. The relative tolerance
+        self.verbosity = 50  # QUIET = 50 WHISPER = 40 NORMAL = 30 LOUD = 20 SCREAM = 10
 
         self.t0 = 0
         self.y0 = None
 
-    #Define dummy functions with warning message:
+    # Define dummy functions with warning message:
     def handle_result(self, t, x):
         print 'AssimuloCVode: handle_result has to be overwritten from the outside!'
 
@@ -129,7 +129,7 @@ class AssimuloCVode():
     def handle_event(self, solver, event_info):
         print 'AssimuloCVode: handle_event has to be overwritten from the outside!'
 
-    def rhs(self, t, x, xd=None):   ##rhs: explicit, res = implicit,
+    def rhs(self, t, x, xd=None):  # #rhs: explicit, res = implicit,
         print 'AssimuloCVode: rhs has to be overwritten from the outside!'
 
     def finalize(self, solver):
@@ -140,7 +140,7 @@ class AssimuloCVode():
 
         problem = Explicit_Problem(self.rhs, self.y0)
         problem.name = 'CVode'
-        #solver.rhs = self.right_hand_side
+        # solver.rhs = self.right_hand_side
         problem.handle_result = self.handle_result
         problem.state_events = self.state_events
         problem.handle_event = self.handle_event
@@ -149,40 +149,40 @@ class AssimuloCVode():
 
         simulation = CVode(problem)
 
-        #Change multistep method: 'adams' or 'VDF'
+        # Change multistep method: 'adams' or 'VDF'
         if self.discr == 'Adams':
             simulation.discr = 'Adams'
             simulation.maxord = 12
         else:
             simulation.discr = 'BDF'
             simulation.maxord = 5
-        #Change iteration algorithm: functional(FixedPoint) or newton
+        # Change iteration algorithm: functional(FixedPoint) or newton
         if self.iter == 'FixedPoint':
             simulation.iter = 'FixedPoint'
         else:
             simulation.iter = 'Newton'
 
-        #Sets additional parameters
-        simulation.atol=self.atol
-        simulation.rtol=self.rtol
+        # Sets additional parameters
+        simulation.atol = self.atol
+        simulation.rtol = self.rtol
         simulation.verbosity = self.verbosity
-        simulation.continuous_output = False #default 0, if one step approach should be used
+        simulation.continuous_output = False  # default 0, if one step approach should be used
 
-        #'''Initialize problem '''
-        #self.t_cur = self.t0
-        #self.y_cur = self.y0
+        # '''Initialize problem '''
+        # self.t_cur = self.t0
+        # self.y_cur = self.y0
 
-        #Calculate nOutputIntervals:
+        # Calculate nOutputIntervals:
         if gridWidth <> None:
-            nOutputIntervals = int((Tend - self.t0)/gridWidth)
+            nOutputIntervals = int((Tend - self.t0) / gridWidth)
         else:
             nOutputIntervals = nIntervals
-        #Check for feasible input parameters
+        # Check for feasible input parameters
         if nOutputIntervals == 0:
             print 'Error: gridWidth too high or nIntervals set to 0! Continue with nIntervals=1'
             nOutputIntervals = 1
-        #Perform simulation
-        simulation.simulate(Tend, nOutputIntervals) #to get the values: t_new, y_new = simulation.simulate
+        # Perform simulation
+        simulation.simulate(Tend, nOutputIntervals)  # to get the values: t_new, y_new = simulation.simulate
 
 
 class AssimuloIda():
@@ -194,19 +194,19 @@ class AssimuloIda():
     '''
     def __init__(self):
 
-        #Have to be set from outside:
-        self.atol = 1e-6            #Default 1e-6. The absulute tolerance
-        self.rtol = 1e-6            #Default 1e-6. The relative tolerance
-        self.verbosity = 50         #QUIET = 50 WHISPER = 40 NORMAL = 30 LOUD = 20 SCREAM = 10
-        self.tout1 = 0.001          #Default 0.001. The value used in the internal Sundials function for determine init. cond.
-        #self.suppress_alg = False   #Default False. Indicates that the error-tests are suppressed on algebraic variables
-        self.lsoff = False          #Default False. Value to turn OFF Sundials LineSearch when calculating initial conditions.
+        # Have to be set from outside:
+        self.atol = 1e-6  # Default 1e-6. The absulute tolerance
+        self.rtol = 1e-6  # Default 1e-6. The relative tolerance
+        self.verbosity = 50  # QUIET = 50 WHISPER = 40 NORMAL = 30 LOUD = 20 SCREAM = 10
+        self.tout1 = 0.001  # Default 0.001. The value used in the internal Sundials function for determine init. cond.
+        # self.suppress_alg = False   #Default False. Indicates that the error-tests are suppressed on algebraic variables
+        self.lsoff = False  # Default False. Value to turn OFF Sundials LineSearch when calculating initial conditions.
 
         self.t0 = 0
         self.y0 = None
         self.yd0 = None
 
-    #Define dummy functions with warning message:
+    # Define dummy functions with warning message:
     def handle_result(self, t, x, xd):
         print 'AssimuloIda: handle_result has to be overwritten from the outside!'
 
@@ -219,7 +219,7 @@ class AssimuloIda():
     def handle_event(self, solver, event_info):
         print 'AssimuloIda: handle_event has to be overwritten from the outside!'
 
-    def rhs(self, t, x, xd):   ##rhs: explicit, res = implicit,
+    def rhs(self, t, x, xd):  # #rhs: explicit, res = implicit,
         print 'AssimuloIda: rhs has to be overwritten from the outside!'
 
     def finalize(self, solver):
@@ -230,52 +230,52 @@ class AssimuloIda():
 
         problem = Implicit_Problem(self.rhs, self.y0, self.yd0)
         problem.name = 'IDA'
-        #solver.rhs = self.right_hand_side
+        # solver.rhs = self.right_hand_side
         problem.handle_result = self.handle_result
         problem.state_events = self.state_events
         problem.handle_event = self.handle_event
         problem.time_events = self.time_events
         problem.finalize = self.finalize
-        #Create IDA object and set additional parameters
+        # Create IDA object and set additional parameters
         simulation = IDA(problem)
-        simulation.atol=self.atol
-        simulation.rtol=self.rtol
+        simulation.atol = self.atol
+        simulation.rtol = self.rtol
         simulation.verbosity = self.verbosity
-        simulation.continuous_output = False #default 0, if one step approach should be used
+        simulation.continuous_output = False  # default 0, if one step approach should be used
         simulation.tout1 = self.tout1
         simulation.lsoff = self.lsoff
 
-        #Calculate nOutputIntervals:
+        # Calculate nOutputIntervals:
         if gridWidth <> None:
-            nOutputIntervals = int((Tend - self.t0)/gridWidth)
+            nOutputIntervals = int((Tend - self.t0) / gridWidth)
         else:
             nOutputIntervals = nIntervals
-        #Check for feasible input parameters
+        # Check for feasible input parameters
         if nOutputIntervals == 0:
             print 'Error: gridWidth too high or nIntervals set to 0! Continue with nIntervals=1'
             nOutputIntervals = 1
-        #Perform simulation
-        simulation.simulate(Tend, nOutputIntervals) #to get the values: t_new, y_new,  yd_new = simulation.simulate
+        # Perform simulation
+        simulation.simulate(Tend, nOutputIntervals)  # to get the values: t_new, y_new,  yd_new = simulation.simulate
 
 
 class AssimuloRK():
     '''Not working yet'''
     def __init__(self):
 
-        #Have to be set from outside:
+        # Have to be set from outside:
         self.iter = 'FixedPoint'
         self.discr = 'Adams'
         self.atol = 1e-6
         self.rtol = 1e-6
-        self.verbosity = 50             #QUIET = 50 WHISPER = 40 NORMAL = 30 LOUD = 20 SCREAM = 10
+        self.verbosity = 50  # QUIET = 50 WHISPER = 40 NORMAL = 30 LOUD = 20 SCREAM = 10
 
-        self.rhs = None                 #rhs: explicit, res = implicit,
+        self.rhs = None  # rhs: explicit, res = implicit,
         self.handle_result = None
         self.state_events = None
         self.handle_event = None
         self.time_events = None
         self.finalize = None
-        self.completed_step = None      # NOT supported
+        self.completed_step = None  # NOT supported
         self.t0 = 0
         self.y0 = None
         self.yd0 = None
@@ -285,7 +285,7 @@ class AssimuloRK():
 
     def f(self, t, y, sw):
         yarray = np.array(y)
-        return self.rhs(t,yarray)
+        return self.rhs(t, yarray)
 
     def rootf(self, t, y, sw):
         yarray = np.array(y)
@@ -303,21 +303,21 @@ class AssimuloRK():
 
     def simulate(self, Tend, nIntervals, gridWidth):
 
-        #define assimulo problem:(has to be done here because of the starting value in Explicit_Problem
+        # define assimulo problem:(has to be done here because of the starting value in Explicit_Problem
         solver = Explicit_Problem(self.rhs, self.y0)
         ''' *******DELETE LATER '''''''''
 #        problem.handle_event = handle_event
 #        problem.state_events = state_events
 #        problem.init_mode = init_mode
 
-        solver.handle_result= self.handle_result
+        solver.handle_result = self.handle_result
 
 
         solver.name = 'Simple Explicit Example'
-        simulation = CVode(solver) #Create a RungeKutta34 solver
-        #simulation.inith = 0.1 #Sets the initial step, default = 0.01
+        simulation = CVode(solver)  # Create a RungeKutta34 solver
+        # simulation.inith = 0.1 #Sets the initial step, default = 0.01
 
-        #Change multistep method: 'adams' or 'VDF'
+        # Change multistep method: 'adams' or 'VDF'
         if self.discr == 'Adams':
             simulation.discr = 'Adams'
             simulation.maxord = 12
@@ -325,24 +325,24 @@ class AssimuloRK():
             simulation.discr = 'BDF'
             simulation.maxord = 5
 
-        #Change iteration algorithm: functional(FixedPoint) or newton
+        # Change iteration algorithm: functional(FixedPoint) or newton
         if self.iter == 'FixedPoint':
             simulation.iter = 'FixedPoint'
         else:
             simulation.iter = 'Newton'
 
-        #Sets additional parameters
-        simulation.atol=self.atol
-        simulation.rtol=self.rtol
+        # Sets additional parameters
+        simulation.atol = self.atol
+        simulation.rtol = self.rtol
         simulation.verbosity = 0
-        simulation.continuous_output = False #default 0, if one step approach should be used
+        simulation.continuous_output = False  # default 0, if one step approach should be used
 
         # Create Solver and set settings
-        noRootFunctions = np.size(self.state_events(self.t0, np.array(self.y0) ))
+        noRootFunctions = np.size(self.state_events(self.t0, np.array(self.y0)))
 
 #        solver = CVodeSolver(RHS = self.f, ROOT = self.rootf, SW = [False]*noRootFunctions,
 #                       abstol = self.atol, reltol = self.rtol)
-        #solver.settings.JAC = None   #Add user-dependent jacobian here
+        # solver.settings.JAC = None   #Add user-dependent jacobian here
 
         '''Initialize problem '''
 #        solver.init(self.t0, self.y0)
@@ -354,12 +354,12 @@ class AssimuloRK():
 #
 #
         if gridWidth <> None:
-            nOutputIntervals = int((Tend - self.t0)/gridWidth)
+            nOutputIntervals = int((Tend - self.t0) / gridWidth)
         else:
             nOutputIntervals = nIntervals
-        #Define step length depending on if gridWidth or nIntervals has been chosen
+        # Define step length depending on if gridWidth or nIntervals has been chosen
         if nOutputIntervals > 0:
-            #Last point on grid (does not have to be Tend:)
+            # Last point on grid (does not have to be Tend:)
             if(gridWidth <> None):
                 dOutput = gridWidth
             else:
@@ -372,7 +372,7 @@ class AssimuloRK():
 
         while self.t_cur < Tend:
 
-            #Time-Event detection and step time adjustment
+            # Time-Event detection and step time adjustment
             if nextTimeEvent is None or nextOutputPoint < nextTimeEvent:
                 time_event = False
                 self.t_cur = nextOutputPoint
@@ -387,20 +387,20 @@ class AssimuloRK():
 #                self.y_cur = solver.step(self.t_cur)
 #                self.y_cur = np.array(self.y_cur)
 #                state_event = False
-                #Simulate
+                # Simulate
 
 
 
 
-                #take a step to next output point:
-                t_new, y_new = simulation.simulate(self.t_cur)#5, 10) #5, 10  self.t_cur self.t_cur  2. argument nsteps Simulate 5 seconds
-                #t_new, y_new are both vectors of the time and states at t_cur and all intermediate
-                #points before it! So take last values:
+                # take a step to next output point:
+                t_new, y_new = simulation.simulate(self.t_cur)  # 5, 10) #5, 10  self.t_cur self.t_cur  2. argument nsteps Simulate 5 seconds
+                # t_new, y_new are both vectors of the time and states at t_cur and all intermediate
+                # points before it! So take last values:
                 self.t_cur = t_new[-1]
                 self.y_cur = y_new[-1]
                 state_event = False
 
-                a=2;
+                a = 2;
 
             except:
                 import sys
@@ -421,12 +421,12 @@ class AssimuloRK():
                 solver.init(self.t_cur, self.y_cur)
 
                 nextTimeEvent = self.time_events(self.t_cur, self.y_cur)
-                #If no timeEvent happens:
-                if nextTimeEvent<=self.t_cur:
+                # If no timeEvent happens:
+                if nextTimeEvent <= self.t_cur:
                     nextTimeEvent = None
 
             if self.t_cur == nextOutputPoint:
-                #Write output if not happened before:
+                # Write output if not happened before:
                 if not time_event and not state_event:
                     self.handle_result(nextOutputPoint, self.y_cur)
                 outputStepCounter += 1
@@ -439,7 +439,7 @@ class SundialsIDA():
 
     def __init__(self):
 
-        #Have to be set from outside:
+        # Have to be set from outside:
         self.iter = 'FixedPoint'
         self.discr = 'Adams'
         self.atol = 1e-6
@@ -452,7 +452,7 @@ class SundialsIDA():
         self.handle_event = None
         self.time_events = None
         self.finalize = None
-        self.completed_step = None # NOT supported
+        self.completed_step = None  # NOT supported
         self.t0 = 0
         self.y0 = None
         self.yd0 = None
@@ -461,7 +461,7 @@ class SundialsIDA():
     def f(self, t, y, yd, sw):
         yarray = np.array(y)
         ydarray = np.array(yd)
-        return self.rhs(t,yarray, ydarray)
+        return self.rhs(t, yarray, ydarray)
 
     def rootf(self, t, y, yd, sw):
         yarray = np.array(y)
@@ -472,17 +472,17 @@ class SundialsIDA():
     def simulate(self, Tend, nIntervals, gridWidth):
 
         ''' Create Solver and set settings '''
-        noRootFunctions = np.size(self.state_events(self.t0, np.array(self.y0) ))
-        solver = IDASolver(RES = self.f, ROOT = self.rootf, SW = [False]*noRootFunctions,
-                       abstol = self.atol, reltol = self.rtol)
+        noRootFunctions = np.size(self.state_events(self.t0, np.array(self.y0)))
+        solver = IDASolver(RES=self.f, ROOT=self.rootf, SW=[False] * noRootFunctions,
+                       abstol=self.atol, reltol=self.rtol)
 
-        solver.settings.maxord = 5          #default 5, Maximum order
-        solver.settings.mxsteps = 5000      #default 500, Maximum steps allowed to reach next output time
-        solver.settings.hmax = 1e37         #default inf, Maximum step size allowed
-        solver.settings.suppressalg = False #default False, indicates if algebraic var. should be suppressed in error testing
-        solver.settings.lsoff = False       #default False, flag to turn off(True) or keep(False) linesearch algorithm
+        solver.settings.maxord = 5  # default 5, Maximum order
+        solver.settings.mxsteps = 5000  # default 500, Maximum steps allowed to reach next output time
+        solver.settings.hmax = 1e37  # default inf, Maximum step size allowed
+        solver.settings.suppressalg = False  # default False, indicates if algebraic var. should be suppressed in error testing
+        solver.settings.lsoff = False  # default False, flag to turn off(True) or keep(False) linesearch algorithm
 
-        solver.settings.JAC = None          #Add user-dependent jacobian here
+        solver.settings.JAC = None  # Add user-dependent jacobian here
 
 
 
@@ -497,12 +497,12 @@ class SundialsIDA():
 
 
         if gridWidth <> None:
-            nOutputIntervals = int((Tend - self.t0)/gridWidth)
+            nOutputIntervals = int((Tend - self.t0) / gridWidth)
         else:
             nOutputIntervals = nIntervals
-        #Define step length depending on if gridWidth or nIntervals has been chosen
+        # Define step length depending on if gridWidth or nIntervals has been chosen
         if nOutputIntervals > 0:
-            #Last point on grid does not have to be Tend:
+            # Last point on grid does not have to be Tend:
             if(gridWidth <> None):
                 dOutput = gridWidth
             else:
@@ -521,7 +521,7 @@ class SundialsIDA():
 
 
 
-            #Time-Event detection and step time adjustment
+            # Time-Event detection and step time adjustment
             if nextTimeEvent is None or nextOutputPoint < nextTimeEvent:
                 time_event = False
                 self.t_cur = nextOutputPoint
@@ -531,7 +531,7 @@ class SundialsIDA():
 
 
             try:
-                #Integrator step
+                # Integrator step
                 self.y_cur, self.yd_cur = solver.step(self.t_cur)
                 self.y_cur = np.array(self.y_cur)
                 self.yd_cur = np.array(self.yd_cur)
@@ -556,12 +556,12 @@ class SundialsIDA():
                 solver.init(self.t_cur, self.y_cur, self.yd_cur)
 
                 nextTimeEvent = self.time_events(self.t_cur, self.y_cur)
-                #If no timeEvent happens:
-                if nextTimeEvent<=self.t_cur:
+                # If no timeEvent happens:
+                if nextTimeEvent <= self.t_cur:
                     nextTimeEvent = None
 
             if self.t_cur == nextOutputPoint:
-                #Write output if not happened before:
+                # Write output if not happened before:
                 if not time_event and not state_event:
                     self.handle_result(nextOutputPoint, self.y_cur)
                 outputStepCounter += 1

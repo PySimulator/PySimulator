@@ -78,8 +78,8 @@ class VariablesBrowser(QtGui.QTreeWidget):
             return
         item = self.itemAt(point)
 
-        #Seperate by case:
-        #After right click on an item:
+        # Seperate by case:
+        # After right click on an item:
         if 'variable' in vars(item):
             menu = QtGui.QMenu(self)
             model = self.parent.models[item.modelName]
@@ -119,11 +119,11 @@ class VariablesBrowser(QtGui.QTreeWidget):
                 for name, func in pluginEntry:
                     menu.addAction(name, functools.partial(func, model, checkedModel))
 
-            #At the end, add additional result file information:
+            # At the end, add additional result file information:
             def fileSize2str(size):
                 if size is not None:
                     if size > 1024:
-                        return format(size/1024, '0.1f') + ' GB'
+                        return format(size / 1024, '0.1f') + ' GB'
                     else:
                         return format(size, '0.1f') + ' MB'
                 else:
@@ -188,8 +188,8 @@ class VariablesBrowser(QtGui.QTreeWidget):
         treeItem.setFlags(treeItem.flags() & ~QtCore.Qt.ItemIsEditable & ~QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsUserCheckable)
 
         variableText = v
-        #variableText = str(v[0])
-        #if len(variableText) > 6:
+        # variableText = str(v[0])
+        # if len(variableText) > 6:
         #    if variableText[-6:] == '_(der)':
         #        variableText = 'der(' + variableText[:-6] + ')'
         treeItem.setText(0, variableText)
@@ -268,7 +268,7 @@ class VariablesBrowser(QtGui.QTreeWidget):
                 tipText += '\n\n' + model.variableTree.rootAttribute
         treeRoot.setToolTip(0, tipText)
         # Generate a nice list of model variables
-        #variableNames = model.variableTree.variable.keys()
+        # variableNames = model.variableTree.variable.keys()
         variableNames = list()
         for name, variable in model.variableTree.variable.iteritems():
             variableNames.append([variable.browserName, name])
@@ -301,7 +301,7 @@ class VariablesBrowser(QtGui.QTreeWidget):
         ''' Remove model from tree
         '''
         for i in range(0, self.topLevelItemCount()):
-            #if self.topLevelItem(i).text(0) == modelName:
+            # if self.topLevelItem(i).text(0) == modelName:
             if self.topLevelItem(i).model == model:
                 deletedItem = self.takeTopLevelItem(i)
                 if deletedItem.numberedModelName == self.currentModelItem.numberedModelName:

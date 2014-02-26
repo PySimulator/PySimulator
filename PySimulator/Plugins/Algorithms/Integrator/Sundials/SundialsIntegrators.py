@@ -29,7 +29,7 @@ class SundialsCVode():
 
     def __init__(self):
 
-        #Have to be set from outside:
+        # Have to be set from outside:
         self.iter = 'FixedPoint'
         self.discr = 'Adams'
         self.atol = 1e-6
@@ -42,7 +42,7 @@ class SundialsCVode():
         self.handle_event = None
         self.time_events = None
         self.finalize = None
-        self.completed_step = None # NOT supported
+        self.completed_step = None  # NOT supported
         self.t0 = 0
         self.y0 = None
         self.yd0 = None
@@ -50,7 +50,7 @@ class SundialsCVode():
 
     def f(self, t, y, sw):
         yarray = np.array(y)
-        return self.rhs(t,yarray)
+        return self.rhs(t, yarray)
 
     def rootf(self, t, y, sw):
         yarray = np.array(y)
@@ -60,13 +60,13 @@ class SundialsCVode():
 
     def simulate(self, Tend, nIntervals, gridWidth):
         # Create Solver and set settings
-        noRootFunctions = np.size(self.state_events(self.t0, np.array(self.y0) ))
-        solver = CVodeSolver(RHS = self.f, ROOT = self.rootf, SW = [False]*noRootFunctions,
-                       abstol = self.atol, reltol = self.rtol)
+        noRootFunctions = np.size(self.state_events(self.t0, np.array(self.y0)))
+        solver = CVodeSolver(RHS=self.f, ROOT=self.rootf, SW=[False] * noRootFunctions,
+                       abstol=self.atol, reltol=self.rtol)
 
 
 
-        #Change multistep method: 'adams' or 'bdf'
+        # Change multistep method: 'adams' or 'bdf'
         if self.discr == 'Adams':
             solver.settings.lmm = "adams"
             solver.settings.maxord = 12
@@ -74,13 +74,13 @@ class SundialsCVode():
             solver.settings.lmm = "bdf"
             solver.settings.maxord = 5
         '''  '''
-        #Change iteration algorithm: functional(FixedPoint) or newton
+        # Change iteration algorithm: functional(FixedPoint) or newton
         if self.iter == 'FixedPoint':
             solver.settings.iter = 'functional'
         else:
             solver.settings.iter = 'newton'
 
-        solver.settings.JAC = None   #Add user-dependent jacobian here
+        solver.settings.JAC = None  # Add user-dependent jacobian here
 
         '''Initialize problem '''
         solver.init(self.t0, self.y0)
@@ -92,12 +92,12 @@ class SundialsCVode():
 
 
         if gridWidth <> None:
-            nOutputIntervals = int((Tend - self.t0)/gridWidth)
+            nOutputIntervals = int((Tend - self.t0) / gridWidth)
         else:
             nOutputIntervals = nIntervals
-        #Define step length depending on if gridWidth or nIntervals has been chosen
+        # Define step length depending on if gridWidth or nIntervals has been chosen
         if nOutputIntervals > 0:
-            #Last point on grid (does not have to be Tend:)
+            # Last point on grid (does not have to be Tend:)
             if(gridWidth <> None):
                 dOutput = gridWidth
             else:
@@ -111,7 +111,7 @@ class SundialsCVode():
         while self.t_cur < Tend:
 
 
-            #Time-Event detection and step time adjustment
+            # Time-Event detection and step time adjustment
             if nextTimeEvent is None or nextOutputPoint < nextTimeEvent:
                 time_event = False
                 self.t_cur = nextOutputPoint
@@ -121,7 +121,7 @@ class SundialsCVode():
 
 
             try:
-                #Integrator step
+                # Integrator step
                 self.y_cur = solver.step(self.t_cur)
                 self.y_cur = np.array(self.y_cur)
                 state_event = False
@@ -142,12 +142,12 @@ class SundialsCVode():
                 solver.init(self.t_cur, self.y_cur)
 
                 nextTimeEvent = self.time_events(self.t_cur, self.y_cur)
-                #If no timeEvent happens:
-                if nextTimeEvent<=self.t_cur:
+                # If no timeEvent happens:
+                if nextTimeEvent <= self.t_cur:
                     nextTimeEvent = None
 
             if self.t_cur == nextOutputPoint:
-                #Write output if not happened before:
+                # Write output if not happened before:
                 if not time_event and not state_event:
                     self.handle_result(nextOutputPoint, self.y_cur)
                 outputStepCounter += 1
@@ -160,7 +160,7 @@ class SundialsIDA():
 
     def __init__(self):
 
-        #Have to be set from outside:
+        # Have to be set from outside:
         self.iter = 'FixedPoint'
         self.discr = 'Adams'
         self.atol = 1e-6
@@ -173,7 +173,7 @@ class SundialsIDA():
         self.handle_event = None
         self.time_events = None
         self.finalize = None
-        self.completed_step = None # NOT supported
+        self.completed_step = None  # NOT supported
         self.t0 = 0
         self.y0 = None
         self.yd0 = None
@@ -182,7 +182,7 @@ class SundialsIDA():
     def f(self, t, y, yd, sw):
         yarray = np.array(y)
         ydarray = np.array(yd)
-        return self.rhs(t,yarray, ydarray)
+        return self.rhs(t, yarray, ydarray)
 
     def rootf(self, t, y, yd, sw):
         yarray = np.array(y)
@@ -193,17 +193,17 @@ class SundialsIDA():
     def simulate(self, Tend, nIntervals, gridWidth):
 
         ''' Create Solver and set settings '''
-        noRootFunctions = np.size(self.state_events(self.t0, np.array(self.y0) ))
-        solver = IDASolver(RES = self.f, ROOT = self.rootf, SW = [False]*noRootFunctions,
-                       abstol = self.atol, reltol = self.rtol)
+        noRootFunctions = np.size(self.state_events(self.t0, np.array(self.y0)))
+        solver = IDASolver(RES=self.f, ROOT=self.rootf, SW=[False] * noRootFunctions,
+                       abstol=self.atol, reltol=self.rtol)
 
-        solver.settings.maxord = 5          #default 5, Maximum order
-        solver.settings.mxsteps = 5000      #default 500, Maximum steps allowed to reach next output time
-        solver.settings.hmax = 1e37         #default inf, Maximum step size allowed
-        solver.settings.suppressalg = False #default False, indicates if algebraic var. should be suppressed in error testing
-        solver.settings.lsoff = False       #default False, flag to turn off(True) or keep(False) linesearch algorithm
+        solver.settings.maxord = 5  # default 5, Maximum order
+        solver.settings.mxsteps = 5000  # default 500, Maximum steps allowed to reach next output time
+        solver.settings.hmax = 1e37  # default inf, Maximum step size allowed
+        solver.settings.suppressalg = False  # default False, indicates if algebraic var. should be suppressed in error testing
+        solver.settings.lsoff = False  # default False, flag to turn off(True) or keep(False) linesearch algorithm
 
-        solver.settings.JAC = None          #Add user-dependent jacobian here
+        solver.settings.JAC = None  # Add user-dependent jacobian here
 
 
 
@@ -218,12 +218,12 @@ class SundialsIDA():
 
 
         if gridWidth <> None:
-            nOutputIntervals = int((Tend - self.t0)/gridWidth)
+            nOutputIntervals = int((Tend - self.t0) / gridWidth)
         else:
             nOutputIntervals = nIntervals
-        #Define step length depending on if gridWidth or nIntervals has been chosen
+        # Define step length depending on if gridWidth or nIntervals has been chosen
         if nOutputIntervals > 0:
-            #Last point on grid does not have to be Tend:
+            # Last point on grid does not have to be Tend:
             if(gridWidth <> None):
                 dOutput = gridWidth
             else:
@@ -237,7 +237,7 @@ class SundialsIDA():
 
         while self.t_cur < Tend:
 
-            #Time-Event detection and step time adjustment
+            # Time-Event detection and step time adjustment
             if nextTimeEvent is None or nextOutputPoint < nextTimeEvent:
                 time_event = False
                 self.t_cur = nextOutputPoint
@@ -247,7 +247,7 @@ class SundialsIDA():
 
 
             try:
-                #Integrator step
+                # Integrator step
                 self.y_cur, self.yd_cur = solver.step(self.t_cur)
                 self.y_cur = np.array(self.y_cur)
                 self.yd_cur = np.array(self.yd_cur)
@@ -272,12 +272,12 @@ class SundialsIDA():
                 solver.init(self.t_cur, self.y_cur, self.yd_cur)
 
                 nextTimeEvent = self.time_events(self.t_cur, self.y_cur)
-                #If no timeEvent happens:
-                if nextTimeEvent<=self.t_cur:
+                # If no timeEvent happens:
+                if nextTimeEvent <= self.t_cur:
                     nextTimeEvent = None
 
             if self.t_cur == nextOutputPoint:
-                #Write output if not happened before:
+                # Write output if not happened before:
                 if not time_event and not state_event:
                     self.handle_result(nextOutputPoint, self.y_cur)
                 outputStepCounter += 1

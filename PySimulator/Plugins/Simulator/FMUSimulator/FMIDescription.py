@@ -278,7 +278,7 @@ if __name__ == '__main__':
 
     ''' Read FMI description file (directly from zip-file)'''
     import zipfile
-    fmuFile = zipfile.ZipFile('Modelica_Electrical_Analog_Examples_Rectifier.fmu',  'r')
+    fmuFile = zipfile.ZipFile('Modelica_Electrical_Analog_Examples_Rectifier.fmu', 'r')
     fmi = FMIDescription(fmuFile.open('modelDescription.xml'))
 
     print "Attributes"

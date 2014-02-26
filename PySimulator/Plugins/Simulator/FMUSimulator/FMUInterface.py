@@ -46,21 +46,21 @@ from FMIDescription import FMIDescription
 ''' Declaration of file-type correspondents between Modelica/C and Python
     The mapping is done according to file: fmiModelTypes.h
 '''
-fmiFalse                 = '\x00'
-fmiTrue                  = '\x01'
-fmiReal                  = ctypes.c_double
-fmiInteger               = ctypes.c_int
-fmiBoolean               = ctypes.c_char
-fmiString                = ctypes.c_char_p
-fmiRealVector            = ctypes.POINTER(fmiReal)
-fmiIntegerVector         = ctypes.POINTER(fmiInteger)
-fmiBooleanVector         = ctypes.POINTER(fmiBoolean)
-fmiStringVector          = ctypes.POINTER(fmiString)
-fmiBooleanPtr            = ctypes.c_char_p
-fmiComponent             = ctypes.c_void_p
-fmiStatus                = ctypes.c_int
-fmiValueReference        = ctypes.c_uint
-fmiValueReferenceVector  = ctypes.POINTER(fmiValueReference)
+fmiFalse = '\x00'
+fmiTrue = '\x01'
+fmiReal = ctypes.c_double
+fmiInteger = ctypes.c_int
+fmiBoolean = ctypes.c_char
+fmiString = ctypes.c_char_p
+fmiRealVector = ctypes.POINTER(fmiReal)
+fmiIntegerVector = ctypes.POINTER(fmiInteger)
+fmiBooleanVector = ctypes.POINTER(fmiBoolean)
+fmiStringVector = ctypes.POINTER(fmiString)
+fmiBooleanPtr = ctypes.c_char_p
+fmiComponent = ctypes.c_void_p
+fmiStatus = ctypes.c_int
+fmiValueReference = ctypes.c_uint
+fmiValueReferenceVector = ctypes.POINTER(fmiValueReference)
 
 
 def createfmiRealVector(n):
@@ -93,9 +93,9 @@ class fmiEventInfo(ctypes.Structure):
 ''' end of file-type correspondents '''
 
 ''' C-interface for system functions '''
-Logger         = ctypes.CFUNCTYPE(None, fmiComponent, fmiString, fmiStatus, fmiString, fmiString)
+Logger = ctypes.CFUNCTYPE(None, fmiComponent, fmiString, fmiStatus, fmiString, fmiString)
 AllocateMemory = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_uint, ctypes.c_uint)
-FreeMemory     = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
+FreeMemory = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
 class _fmiCallbackFunctions(ctypes.Structure):
     _fields_ = [('logger', Logger), ('allocateMemory', AllocateMemory), ('freeMemory', FreeMemory)]
 
@@ -115,7 +115,7 @@ class FMUInterface:
 
         ''' Open the given fmu-file (read only)'''
         try:
-            self._file = zipfile.ZipFile(fileName,  'r')
+            self._file = zipfile.ZipFile(fileName, 'r')
         except BaseException as e:
             raise FMUError.FMUError('Error when reading zip-file.\n' + str(e) + '\n')
 
@@ -185,7 +185,7 @@ class FMUInterface:
         def _Logger(c, instanceName, status, category, message):
             if self._loggingOn:
                 print(message)
-            #self.log.append( (c, instanceName, status, category, message) )
+            # self.log.append( (c, instanceName, status, category, message) )
 
         ''' mapping of memory management functions for FMU to operating system functions, depending on OS.
             For Linux it refers to the std-C library - this should always be present

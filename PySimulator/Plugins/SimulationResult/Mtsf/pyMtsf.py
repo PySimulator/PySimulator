@@ -199,19 +199,19 @@ class Category:
     ''' Class to handle a category. A category is a dataset of a time series group.
     '''
     def __init__(self, name, series=None):
-        #Create the dataset in the HDF5 file
+        # Create the dataset in the HDF5 file
         self.nColumn = 0
         self.currentRow = 0
         self.name = name
         self.series = series
 
     def writeInitial(self, host, initialRows):
-        #compression = None
+        # compression = None
         compression = "gzip"
         if self.name != 'H5T_C_S1':
             if self.nColumn >= 8:
                 compression = "gzip"
-                #compression = None
+                # compression = None
         self.dataset = host.create_dataset(self.name, shape=(initialRows, self.nColumn), dtype=eval('h5py.h5t.' + self.name[4:]), maxshape=(None, None), compression=compression)  # chunks=(c1,c2))
         self._data = numpy.zeros((max(min(10000000 / self.nColumn, initialRows), 1), self.nColumn))
         self._currentRow = 0
@@ -247,7 +247,7 @@ class Category:
         if dataMatrix.ndim == 1:
             if 1 + self.currentRow > self.dataset.shape[0]:
                 # Increase space about 30%
-                #print "Increasing space"
+                # print "Increasing space"
                 newSize = self.dataset.shape[0] + max(self.dataset.shape[0] * 3 / 10, 1)
                 self.dataset.resize(newSize, axis=0)
             # Write data
@@ -260,7 +260,7 @@ class Category:
         else:
             if dataMatrix.shape[0] + self.currentRow > self.dataset.shape[0]:
                 # Increase space about 30%
-                #print "Increasing space"
+                # print "Increasing space"
                 newSize = self.dataset.shape[0] + max(self.dataset.shape[0] * 3 / 10, dataMatrix.shape[0])
                 self.dataset.resize(newSize, axis=0)
             # Write data
@@ -408,7 +408,7 @@ class MTSF:
             self.readable = True
             return
 
-        #Get model description
+        # Get model description
         self.modelDescription = modelDescription
         self.modelVariable = modelVariables.variable
         self.allSeries = modelVariables.allSeries
@@ -452,7 +452,7 @@ class MTSF:
                                'formats': ['S' + str(max(maxLenName, 1)),
                                           'int32',
                                           'S' + str(max(maxLenDescription, 1)),
-                                           h5py.special_dtype(enum=(numpy.uint8, {'false':0, 'true':1}))]}) #'uint8']})
+                                           h5py.special_dtype(enum=(numpy.uint8, {'false':0, 'true':1}))]})  # 'uint8']})
         dataset = self.description.create_dataset('Enumerations', (len(self.enumerations), 1), dtype=numpyDataType, maxshape=(len(self.enumerations), 1), compression='gzip')
         allData = []
         for enum in self.enumerations:
@@ -469,7 +469,7 @@ class MTSF:
                                'formats': ['S' + str(max(maxLenTypeName, 1)),
                                           'double',
                                           'double',
-                                          h5py.special_dtype(enum=(numpy.uint8, {'BaseUnit':0, 'Unit':1, 'DefaultDisplayUnit':2}))]})  #'uint8']})
+                                          h5py.special_dtype(enum=(numpy.uint8, {'BaseUnit':0, 'Unit':1, 'DefaultDisplayUnit':2}))]})  # 'uint8']})
 
         dataset = self.description.create_dataset('Units', (len(self.units), 1), dtype=numpyDataType, maxshape=(len(self.units), 1), compression='gzip')
         allData = []
@@ -483,7 +483,7 @@ class MTSF:
 
         maxLenTypeName = self._getMaxLength([x.name for x in self.simpleTypes])
         maxLenQuantity = self._getMaxLength([x.quantity for x in self.simpleTypes])
-        #maxLenUnit = self._getMaxLength([x.unit for x in self.simpleTypes])
+        # maxLenUnit = self._getMaxLength([x.unit for x in self.simpleTypes])
         numpyDataType = numpy.dtype({'names': ['name', 'dataType',
                                               'quantity',
                                               'relativeQuantity',
@@ -491,9 +491,9 @@ class MTSF:
                                               'unitOrEnumerationRow',
                                               ],
                                'formats': ['S' + str(max(maxLenTypeName, 1)),
-                                           h5py.special_dtype(enum=(numpy.uint8, DataType)), #'uint8',
+                                           h5py.special_dtype(enum=(numpy.uint8, DataType)),  # 'uint8',
                                           'S' + str(max(maxLenQuantity, 1)),
-                                          h5py.special_dtype(enum=(numpy.uint8, {'false':0, 'true':1})), # 'uint8',
+                                          h5py.special_dtype(enum=(numpy.uint8, {'false':0, 'true':1})),  # 'uint8',
                                           'S1',
                                           'int32']})
         dataset = self.description.create_dataset('SimpleTypes', (len(self.simpleTypes), 1), dtype=numpyDataType, maxshape=(len(self.simpleTypes), 1), compression='gzip')
@@ -518,20 +518,20 @@ class MTSF:
         # Get maximum length of string vectors
         maxLenName = self._getMaxLength(scalarVariables.keys())
         maxLenDescription = self._getMaxLength([x.description for x in scalarVariables.values()])
-        #Create dtype object
+        # Create dtype object
         numpyDataType = numpy.dtype({'names': ['name', 'simpleTypeRow',
                                               'causality', 'variability',
                                               'description', 'objectId', 'column', 'negated'],
                                'formats': ['S' + str(max(maxLenName, 1)),
                                           'uint32',
-                                          h5py.special_dtype(enum=(numpy.uint8, CausalityType)), #'uint8',
-                                          h5py.special_dtype(enum=(numpy.uint8, VariabilityType)), #'uint8',
+                                          h5py.special_dtype(enum=(numpy.uint8, CausalityType)),  # 'uint8',
+                                          h5py.special_dtype(enum=(numpy.uint8, VariabilityType)),  # 'uint8',
                                           'S' + str(max(maxLenDescription, 1)),
                                           h5py.special_dtype(ref=h5py.Reference),
                                           'uint32',
-                                          h5py.special_dtype(enum=(numpy.uint8, {'false':0, 'true':1}))]})  #'uint8']})
+                                          h5py.special_dtype(enum=(numpy.uint8, {'false':0, 'true':1}))]})  # 'uint8']})
         self.description = self.file.create_group("ModelDescription")
-        #Write information on Simulation group
+        # Write information on Simulation group
         description = self.modelDescription
         self.description.attrs['modelName'] = description.modelName
         self.description.attrs['description'] = description.description

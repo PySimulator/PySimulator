@@ -71,7 +71,7 @@ def convertFromFmi(fmuFilename, fmi=None):
 
     # Load FMIDescription if necessary
     if fmi is None:
-        fmuFile = zipfile.ZipFile(os.getcwd() + '\\' + fmuFilename + '.fmu',  'r')
+        fmuFile = zipfile.ZipFile(os.getcwd() + '\\' + fmuFilename + '.fmu', 'r')
         fmi = FMIDescription(fmuFile.open('modelDescription.xml'))
 
     # Prepare some variables
@@ -86,7 +86,7 @@ def convertFromFmi(fmuFilename, fmi=None):
     # Alias
     for var in fmi.scalarVariables.values():
         if var.alias is None or var.alias.lower() == "noalias":
-            var.alias = 'NOAlias'   # To guarantee that this variable is the first
+            var.alias = 'NOAlias'  # To guarantee that this variable is the first
                                     # one in sorted order
     referenceList = [(x, y.valueReference, y.alias) for x, y in fmi.scalarVariables.iteritems()]
     referenceList.sort(key=itemgetter(2))
@@ -116,7 +116,7 @@ def convertFromFmi(fmuFilename, fmi=None):
             for displayUnitName, displayUnit in fmi.units[type.unit].iteritems():
                 if displayUnitName != type.unit:
                     unitList.append(displayUnitName + '{:.16e}'.format(displayUnit.gain) + '{:.16e}'.format(displayUnit.offset))
-            #unitList.sort()
+            # unitList.sort()
         dataType = type.type
         enumerations = ''
         if dataType == 'Enumeration':
@@ -245,7 +245,7 @@ def convertFromFmi(fmuFilename, fmi=None):
     units.append(pyMtsf.Unit('h', 3600.0, 0.0, 1))
     units.append(pyMtsf.Unit('d', 86400.0, 0.0, 1))
 
-    simpleTypes.append(pyMtsf.SimpleType('Time', pyMtsf.DataType["Real"], 'Time',  False, startRow, ''))
+    simpleTypes.append(pyMtsf.SimpleType('Time', pyMtsf.DataType["Real"], 'Time', False, startRow, ''))
     variable['Time'].simpleTypeRow = len(simpleTypes) - 1
     variable['TimeDiscrete'].simpleTypeRow = len(simpleTypes) - 1
 
@@ -278,38 +278,38 @@ if __name__ == '__main__':
                         cpuTime="")
 
     startTime = time.clock()
-    #Create result object
+    # Create result object
     mtsf = pyMtsf.MTSF(resultFileName, modelDescription, modelVariables, experimentSetup, simpleTypes, units, enumerations)
 
     # Some aliases
     realParameter = mtsf.results.series['Fixed'].category[pyMtsf.CategoryMapping['Real']]
-    #integerParameter = mtsf.results.series['Fixed'].category[CategoryMapping['Integer']]
+    # integerParameter = mtsf.results.series['Fixed'].category[CategoryMapping['Integer']]
     booleanParameter = mtsf.results.series['Fixed'].category[pyMtsf.CategoryMapping['Boolean']]
     realContinuous = mtsf.results.series['Continuous'].category[pyMtsf.CategoryMapping['Real']]
     realDiscrete = mtsf.results.series['Discrete'].category[pyMtsf.CategoryMapping['Real']]
-    #integerDiscrete = mtsf.results.series['Discrete'].category[CategoryMapping['Integer']]
+    # integerDiscrete = mtsf.results.series['Discrete'].category[CategoryMapping['Integer']]
     booleanDiscrete = mtsf.results.series['Discrete'].category[pyMtsf.CategoryMapping['Boolean']]
 
     # *************************************
     # Phase 2 of result file generation
     print "Write Data ..."
     realParameter.writeData(numpy.random.rand(1, realParameter.nColumn) * 2e5 - 1e5)
-    #integerParameter.writeData(numpy.floor(0.5+numpy.random.rand(1,integerParameter.nColumn)*2e5-1e5).astype(int))
+    # integerParameter.writeData(numpy.floor(0.5+numpy.random.rand(1,integerParameter.nColumn)*2e5-1e5).astype(int))
     booleanParameter.writeData(numpy.floor(0.5 + numpy.random.rand(1, booleanParameter.nColumn)).astype(int))
 
     for i in range(nPoints):
-        #write continuous
+        # write continuous
         realContinuous.writeData(numpy.random.rand(BlockSize, realContinuous.nColumn) * 2e5 - 1e5)
-        #write discrete
-        #booleanDiscrete.writeData(numpy.floor(0.5+numpy.random.rand(2, booleanDiscrete.nColumn)).astype(int))
-        #realDiscrete.writeData(numpy.random.rand(2, realDiscrete.nColumn)*2e5 - 1e5)
-        #integerDiscrete.writeData(numpy.floor(0.5+numpy.random.rand(2, integerDiscrete.nColumn)*2e5-1e5).astype(int))
-        #write String
-        #mtsf.series['Continuous'].categories['H5T_C_S1'].writeData(numpy.ones((1,k_str),dtype=numpy.str_))
+        # write discrete
+        # booleanDiscrete.writeData(numpy.floor(0.5+numpy.random.rand(2, booleanDiscrete.nColumn)).astype(int))
+        # realDiscrete.writeData(numpy.random.rand(2, realDiscrete.nColumn)*2e5 - 1e5)
+        # integerDiscrete.writeData(numpy.floor(0.5+numpy.random.rand(2, integerDiscrete.nColumn)*2e5-1e5).astype(int))
+        # write String
+        # mtsf.series['Continuous'].categories['H5T_C_S1'].writeData(numpy.ones((1,k_str),dtype=numpy.str_))
 
     # Write times:
-    #realContinuous.member[0].dataset[:,0] = numpy.linspace(0,1,realContinuous.member[0].dataset.shape[0])
-    #realDiscrete.member[0].dataset[:,0] = numpy.linspace(0,1,realDiscrete.member[0].dataset.shape[0])
+    # realContinuous.member[0].dataset[:,0] = numpy.linspace(0,1,realContinuous.member[0].dataset.shape[0])
+    # realDiscrete.member[0].dataset[:,0] = numpy.linspace(0,1,realDiscrete.member[0].dataset.shape[0])
     print "Data written."
 
     # ****************************************

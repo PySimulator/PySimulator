@@ -100,7 +100,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         # Dummy object to get properties
         self.integrationResults = Mtsf.Results('')
         self.integrationSettings.resultFileExtension = 'mtsf'
-        #Default values
+        # Default values
         updateSettingsByFMI(self.description)
         self._availableIntegrationAlgorithms = ["BDF (IDA, Dassl like)", "BDF (CVode)", "Adams (CVode)", "Explicit Euler (fixed step size)"]
         self._IntegrationAlgorithmHasFixedStepSize = [False, False, False, True]
@@ -373,7 +373,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
                 if variable.aliasName is None:
                     variable.category.iReferences += 1
                     if name in fmi.scalarVariables:
-                        #print variable.seriesIndex, variable.category.name, name, variable.category.iReferences, len(variable.category.references)
+                        # print variable.seriesIndex, variable.category.name, name, variable.category.iReferences, len(variable.category.references)
                         variable.category.references[variable.category.iReferences] = fmi.scalarVariables[name].valueReference
                     else:
                         # e.g. for time variables, that do not exist in fmi-world
@@ -476,10 +476,10 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
             if event_info[1]:
                 self.integrationStatistics.nTimeEvents += 1
-                #print "Handle time event at   ", solver.t_cur
+                # print "Handle time event at   ", solver.t_cur
             else:
                 self.integrationStatistics.nStateEvents += 1
-                #print "Handle state event at  ", solver.t_cur
+                # print "Handle state event at  ", solver.t_cur
 
             # To ensure that the current values are set in the model
             self.interface.fmiSetTime(solver.t_cur)
@@ -503,7 +503,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             if eventInfo.terminateSimulation == fmiTrue:
                 print("terminated by model ... ")
                 return False
-                #raise(Exception)
+                # raise(Exception)
 
             # Results at events are not handled by the Integrator,
             # so we handle it here after the event updates
@@ -581,9 +581,9 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             x0 = numpy.ndarray([1, ])
         else:
             x0 = self.interface.fmiGetContinuousStates()
-        #x_nominal = numpy.array(self.interface.fmiGetNominalContinuousStates())
+        # x_nominal = numpy.array(self.interface.fmiGetNominalContinuousStates())
 
-        #Prepare the solver
+        # Prepare the solver
         implicitSolver = False
         if "IDA" in IntegrationMethod:
             implicitSolver = True
@@ -601,7 +601,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             simulator.atol = ErrorTolerance  # Default 1e-6
             simulator.rtol = ErrorTolerance  # Default 1e-6
             simulator.verbosity = 0
-        elif not "Euler" in IntegrationMethod:   # Use CVode
+        elif not "Euler" in IntegrationMethod:  # Use CVode
             # Define the solver object
             simulator = SundialsCVode()
 
@@ -623,7 +623,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         simulator.handle_event = handle_event
         simulator.time_events = time_events
         simulator.finalize = finalize
-        simulator.completed_step = completed_step # is not supported by python-sundials
+        simulator.completed_step = completed_step  # is not supported by python-sundials
 
 
         # Store information about next time event in solver

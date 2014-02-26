@@ -88,20 +88,20 @@ class IntegrationStatistics():
 
     def reset(self):
         #                         Types:
-        self.reachedTime = None   # Real
-        self.nTimeEvents = None   # Integer
+        self.reachedTime = None  # Real
+        self.nTimeEvents = None  # Integer
         self.nStateEvents = None  # Integer
-        self.nGridPoints = None   # Integer
-        self.cpuTime = None       # Real
-        self.finished = None      # Boolean
+        self.nGridPoints = None  # Integer
+        self.cpuTime = None  # Real
+        self.finished = None  # Boolean
 
 
 class VariableTree():
     ''' Holds the information for the variable tree of a model in the variables browser
     '''
     def __init__(self):
-        self.rootAttribute = '' # Tip text for the root of the tree
-        self.variable = {}      # dictionary of TreeVariable instances; key is name of variable
+        self.rootAttribute = ''  # Tip text for the root of the tree
+        self.variable = {}  # dictionary of TreeVariable instances; key is name of variable
 
 
 
@@ -110,12 +110,12 @@ class TreeVariable():
     '''
     def __init__(self, browserName, value, valueEdit, unit, variability, attribute):
         #                                Types:
-        self.browserName = browserName   # String
-        self.value = value               # Different types, e.g. Real, Integer, Boolean, String
-        self.valueEdit = valueEdit       # Boolean
-        self.unit = unit                 # String
-        self.variability = variability   # String
-        self.attribute = attribute       # String
+        self.browserName = browserName  # String
+        self.value = value  # Different types, e.g. Real, Integer, Boolean, String
+        self.valueEdit = valueEdit  # Boolean
+        self.unit = unit  # String
+        self.variability = variability  # String
+        self.attribute = attribute  # String
 
 
 
@@ -137,13 +137,13 @@ class Model():
         '''  Function is called when duplicating a model in the Variables Browser
         '''
         theCopy = copy.copy(self)
-        theCopy.integrationSettings = copy.copy(self.integrationSettings) # new instance of integration settings
-        theCopy.integrationStatistics = copy.copy(self.integrationStatistics) # new instance of integrationStatistics
+        theCopy.integrationSettings = copy.copy(self.integrationSettings)  # new instance of integration settings
+        theCopy.integrationStatistics = copy.copy(self.integrationStatistics)  # new instance of integrationStatistics
         theCopy.integrationStatistics.reset()
-        theCopy.integrationResults = IntegrationResults.Results() # new instance of integration results (empty)
-        theCopy.variableTree = VariableTree() # new instance of variable tree (empty)
-        theCopy.changedStartValue = copy.copy(self.changedStartValue) # new instance of changedStartValue dictionary
-        theCopy.pluginData = dict() # new instance of pluginData dictionary
+        theCopy.integrationResults = IntegrationResults.Results()  # new instance of integration results (empty)
+        theCopy.variableTree = VariableTree()  # new instance of variable tree (empty)
+        theCopy.changedStartValue = copy.copy(self.changedStartValue)  # new instance of changedStartValue dictionary
+        theCopy.pluginData = dict()  # new instance of pluginData dictionary
         return theCopy
 
     def __init__(self, modelName, modelFileName, modelType, config):
@@ -219,7 +219,7 @@ class Model():
         # Generate variable tree from result file information
         variables = self.integrationResults.getVariables()
         fileInfos = self.integrationResults.getFileInfos()
-        fileInfosList = [(x,y) for x,y in fileInfos.iteritems()]
+        fileInfosList = [(x, y) for x, y in fileInfos.iteritems()]
         fileInfosList.sort()
         lenList = [len(x) for x in fileInfos.keys()]
         if len(lenList) > 0:
@@ -254,7 +254,7 @@ class Model():
         if nDer > 0:
             a = []
 
-            c = name2.rsplit(',', 1) # Check for der(a.b.c.d, 3) or a.b.c.der(d, 3)
+            c = name2.rsplit(',', 1)  # Check for der(a.b.c.d, 3) or a.b.c.der(d, 3)
             if len(c) > 1:
                 d = c[1].replace(' ', '')
                 if len(d) > 1:
@@ -272,15 +272,15 @@ class Model():
                                 else:
                                     a = []
 
-            if len(a) == 0 and name2[-nDer:] == ')'*nDer:  # Plausibility check for der(der(der(Variablename))) or a.b.c.der(der(der(d)))
-                i = name2.find('der('*nDer)
+            if len(a) == 0 and name2[-nDer:] == ')' * nDer:  # Plausibility check for der(der(der(Variablename))) or a.b.c.der(der(der(d)))
+                i = name2.find('der(' * nDer)
                 if i > -1:
-                    p1 = 'der('*nDer
-                    p2 = ')'*nDer
-                    if i == 0: # der(der(der(...)))
-                        a = name2[4*nDer:-nDer].rsplit('.', 1)
-                    else: # a.b.c.der(der(der(...)))
-                        a = name2[:-nDer].split('der('*nDer)
+                    p1 = 'der(' * nDer
+                    p2 = ')' * nDer
+                    if i == 0:  # der(der(der(...)))
+                        a = name2[4 * nDer:-nDer].rsplit('.', 1)
+                    else:  # a.b.c.der(der(der(...)))
+                        a = name2[:-nDer].split('der(' * nDer)
                         if a[0][-1] == '.':
                             a[0] = a[0][:-1]
                         else:
@@ -293,10 +293,10 @@ class Model():
                 else:
                     p0 = a[0] + '.'
                     p12 = a[1]
-                if '[' in p12: # p12 = d[4,6,8,9]
+                if '[' in p12:  # p12 = d[4,6,8,9]
                     b = p12.split('[', 1)
                     name2 = p0 + p1 + b[0] + p2 + '[' + b[1]
-                else: # p12 = d
+                else:  # p12 = d
                     name2 = p0 + p1 + p12 + p2
 
 
@@ -309,10 +309,10 @@ class Model():
             if i1 > -1:
                 i2 = b.rfind(']')
                 if i2 > i1:
-                    c = b[i1:i2+1]
+                    c = b[i1:i2 + 1]
                     c = c.replace(' ', '')
                     c = c.replace(',', '][')
-                    part = b[:i1] + c + b[i2+1:]
+                    part = b[:i1] + c + b[i2 + 1:]
             if k > 0:
                 name2 = name2 + '.'
             name2 = name2 + part
@@ -326,7 +326,7 @@ class Model():
         ''' Results are available up to the returned time
         '''
         raise NameError('Not implemented.')
-        #return simulationTime
+        # return simulationTime
 
 
     ''' **************************************************************************************
@@ -343,33 +343,33 @@ class Model():
             given time t and state vector x.
         '''
         raise NameError('Not implemented.')
-        #return derivativeValues
+        # return derivativeValues
 
     def getEventIndicators(self, t, x):
         ''' Returns the event indicator functions for
             given time t and state vector x.
         '''
         raise NameError('Not implemented.')
-        #return indicatorValues
+        # return indicatorValues
 
     def getStates(self):
         ''' Returns a vector with the values of the states.
         '''
         raise NameError('Not implemented.')
-        #return stateValues
+        # return stateValues
 
     def getStateNames(self):
         ''' Returns a list of Strings: the names of all states in the model.
         '''
         raise NameError('Not implemented.')
-        #return listOfNames
+        # return listOfNames
 
     def getValue(self, name):
         ''' Returns the values of the variables given in name;
             name is either a String or a list of Strings.
         '''
         raise NameError('Not implemented.')
-        #return value
+        # return value
 
     def setValue(self, name, value):
         ''' Set the variable name (a String) to value in the model
@@ -383,7 +383,7 @@ class Model():
             The function returns a status flag and the next time event.
         '''
         raise NameError('Not implemented.')
-        #return status, nextTimeEvent
+        # return status, nextTimeEvent
 
 
 def prepareSimulationList(fileName, name, config):

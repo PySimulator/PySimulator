@@ -87,7 +87,7 @@ class Results(IntegrationResults.Results):
                     independentVariable, trash, trash = self.readData(self._mtsf.fileData.nameList[row])
                 for category in series.itervalues():
                     if category.size > 5000000:
-                        data = None # Memory problem for huge files
+                        data = None  # Memory problem for huge files
                     else:
                         data = numpy.array(category)
                     self.timeSeries.append(IntegrationResults.TimeSeries(independentVariable, data, interpolationMethod))
@@ -220,7 +220,7 @@ def convertFromDymolaMatFile(matFilename, mtsfFilename=None):
     simpleTypes = []
     units = []
     enumerations = []
-    simpleTypes.append(pyMtsf.SimpleType('Real without unit', pyMtsf.DataType["Real"], '',  False, -1, ''))  # No unit
+    simpleTypes.append(pyMtsf.SimpleType('Real without unit', pyMtsf.DataType["Real"], '', False, -1, ''))  # No unit
 
     unitList = [(index, unit) for index, unit in enumerate(res._unit)]
     unitList.sort(key=itemgetter(1))
@@ -231,7 +231,7 @@ def convertFromDymolaMatFile(matFilename, mtsfFilename=None):
         if unit != '':
             if preUnit != unit:
                 units.append(pyMtsf.Unit(unit, 1.0, 0.0, 0))
-                simpleTypes.append(pyMtsf.SimpleType('Real, Unit = ' + unit, pyMtsf.DataType["Real"], '',  False, len(units) - 1, ''))
+                simpleTypes.append(pyMtsf.SimpleType('Real, Unit = ' + unit, pyMtsf.DataType["Real"], '', False, len(units) - 1, ''))
                 preUnit = unit
                 modelVariables.variable[res._name[index]].simpleTypeRow = len(simpleTypes) - 1
             else:
@@ -242,7 +242,7 @@ def convertFromDymolaMatFile(matFilename, mtsfFilename=None):
                         generationTool="Python", machine=os.getenv('COMPUTERNAME'),
                         cpuTime="")
     modelDescription = pyMtsf.ModelDescription(resultFileName[:-5], '', '', '', '', '', 'structured')
-    #Create result object
+    # Create result object
     mtsf = MTSF(resultFileName, modelDescription, modelVariables, experimentSetup, simpleTypes, units, enumerations)
     # Write numeric data
     fixedValues = numpy.ndarray((len(dataIndexFixed,)))

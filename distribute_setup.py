@@ -164,7 +164,7 @@ def use_setuptools(version=DEFAULT_VERSION, download_base=DEFAULT_URL,
                 "\n\n(Currently using %r)\n" % (version, e.args[0]))
                 sys.exit(2)
             else:
-                del pkg_resources, sys.modules['pkg_resources']    # reload ok
+                del pkg_resources, sys.modules['pkg_resources']  # reload ok
                 return _do_download(version, download_base, to_dir,
                                     download_delay)
         except pkg_resources.DistributionNotFound:

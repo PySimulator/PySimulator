@@ -33,7 +33,7 @@ from chaco.plot import Plot
 from chaco.tools.api import ZoomTool
 from chaco.tools.data_label_tool import DataLabelTool
 from chaco.tools.pan_tool import \
-    PanTool # there is some bug in in the default Pantools handling of the event "left_up"...
+    PanTool  # there is some bug in in the default Pantools handling of the event "left_up"...
 
 
 def printData2(widget):
@@ -79,10 +79,10 @@ def plotFFT(widget):
         # print "var:", var, "data: ", data
         minVal = (0, float("inf"))
         maxVal = (0, float("-inf"))
-        #for time, value in data:
+        # for time, value in data:
 
-    #Get data from data array:
-    time = numpy.array(list((x for x, _ in data))) #data[0]
+    # Get data from data array:
+    time = numpy.array(list((x for x, _ in data)))  # data[0]
     values = numpy.array(list((x for _ , x in data)))
 
     (Tmin, Tmax, N) = getFFTtimeRange(time)
@@ -90,10 +90,10 @@ def plotFFT(widget):
 
     # Compute fft: A=A(f)
     import Algorithms
-    (f,A) = Algorithms.fft(timeInRange, valuesInRange, N)
+    (f, A) = Algorithms.fft(timeInRange, valuesInRange, N)
 
 
-    #Open new plot tab:
+    # Open new plot tab:
     import plotWidget
     window = widget.createNewWindow()
     container = plotWidget.plotContainer(window)
@@ -101,16 +101,16 @@ def plotFFT(widget):
     container.setPlotWidget(plotWidget)
 
     # Create the plot
-    plotdata = ArrayPlotData(x = f, y = A, border_visible=True, overlay_border=True)
-    plot = Plot(plotdata, title="FFT")  #Plot(plotdata, title="FFT")
-    barPlot = plot.plot(("x", "y"), type="bar",bar_width=0.1, color="blue")[0]
-    #scatterPlot = plot.plot(("x", "y"), type="scatter", color="blue")[0]
+    plotdata = ArrayPlotData(x=f, y=A, border_visible=True, overlay_border=True)
+    plot = Plot(plotdata, title="FFT")  # Plot(plotdata, title="FFT")
+    barPlot = plot.plot(("x", "y"), type="bar", bar_width=0.1, color="blue")[0]
+    # scatterPlot = plot.plot(("x", "y"), type="scatter", color="blue")[0]
 
     # Attach some tools to the plot
     plot.tools.append(PanTool(plot))
     plot.overlays.append(ZoomTool(plot))
 
-    #Activate Plot:
+    # Activate Plot:
     plotWidget.setPlot(plot)
     container.setPlotWidget(plotWidget)
 
@@ -129,10 +129,10 @@ def plotFFTPlusTHD(widget):
         # print "var:", var, "data: ", data
         minVal = (0, float("inf"))
         maxVal = (0, float("-inf"))
-        #for time, value in data:
+        # for time, value in data:
 
-    #Get data from data array:
-    time = numpy.array(list((x for x, _ in data))) #data[0]
+    # Get data from data array:
+    time = numpy.array(list((x for x, _ in data)))  # data[0]
     values = numpy.array(list((x for _ , x in data)))
     unit = ""
 
@@ -141,14 +141,14 @@ def plotFFTPlusTHD(widget):
 
     # Compute fft: A=A(f)
     import Algorithms
-    (f,A) = Algorithms.fft(timeInRange, valuesInRange, N)
+    (f, A) = Algorithms.fft(timeInRange, valuesInRange, N)
 
 
 
 
 
     #******* START THD CALCULATION    *************
-    #Estimate fundamental frequency:
+    # Estimate fundamental frequency:
     maxindex = A.argmax()
     estimation = f[maxindex]
 
@@ -175,45 +175,45 @@ def plotFFTPlusTHD(widget):
         else:  # Cancel button pressed
             return estimation
         '''
-    #Ask for a better fundamental frequency
+    # Ask for a better fundamental frequency
     exFreq = max(0, min(f.max(), getExFreq(estimation)))
 
-    #Check if we have at least one harmonic:
-    if exFreq>0.5*f.max():
+    # Check if we have at least one harmonic:
+    if exFreq > 0.5 * f.max():
         print "THD calculation not possible, extend frequency window to at least 2*fundamental frequency"
         THD = 999
     else:
-        #Get 5% window around fundamental frequency and calculate power:
-        mask = (f>exFreq*0.975) & (f<exFreq*1.025)
-        print "Calculating fundamental energy from points: frequency=%s, Amplitude=%s" %(f[mask], A[mask])
-        P1 = numpy.vdot(A[mask],A[mask]) #squared amplitude
+        # Get 5% window around fundamental frequency and calculate power:
+        mask = (f > exFreq * 0.975) & (f < exFreq * 1.025)
+        print "Calculating fundamental energy from points: frequency=%s, Amplitude=%s" % (f[mask], A[mask])
+        P1 = numpy.vdot(A[mask], A[mask])  # squared amplitude
         PH = 0
-        #Sum up the Power of all harmonic frequencies in spectrum:
-        noHarmonics = numpy.int(numpy.floor(f.max()/exFreq))
-        for i in range(noHarmonics-1):
-            mask = (f>(i+2)*exFreq*0.975) & (f<(i+2)*exFreq*1.025)
-            PH = PH + (numpy.vdot(A[mask],A[mask]))  #squared amplitude
-        THD = PH / P1 *100
+        # Sum up the Power of all harmonic frequencies in spectrum:
+        noHarmonics = numpy.int(numpy.floor(f.max() / exFreq))
+        for i in range(noHarmonics - 1):
+            mask = (f > (i + 2) * exFreq * 0.975) & (f < (i + 2) * exFreq * 1.025)
+            PH = PH + (numpy.vdot(A[mask], A[mask]))  # squared amplitude
+        THD = PH / P1 * 100
 
     #******* END THD CALCULATION    *************
 
-    #Open new plot tab:
+    # Open new plot tab:
     import plotWidget
     window = widget.createNewWindow()
     container = plotWidget.plotContainer(window)
     plotWidget = plotWidget.PlotWidget(container)
     container.setPlotWidget(plotWidget)
 
-    #Plot data
-    plotdata = ArrayPlotData(x = f, y = A, border_visible=True, overlay_border=True)
-    plot = Plot(plotdata, title="FFT")  #Plot(plotdata, title="FFT")
-    barPlot = plot.plot(("x", "y"), type="bar",bar_width=0.3, color="blue")[0]
+    # Plot data
+    plotdata = ArrayPlotData(x=f, y=A, border_visible=True, overlay_border=True)
+    plot = Plot(plotdata, title="FFT")  # Plot(plotdata, title="FFT")
+    barPlot = plot.plot(("x", "y"), type="bar", bar_width=0.3, color="blue")[0]
 
     # Attach some tools to the plot
     plot.tools.append(PanTool(plot))
     plot.overlays.append(ZoomTool(plot))
 
-    #Activate Plot:
+    # Activate Plot:
     plotWidget.setPlot(plot)
     if THD != 999:
         thdLabel = DataLabel(component=plotWidget.plot, data_point=(f[A.argmax()], A.max()),
@@ -222,7 +222,7 @@ def plotFFTPlusTHD(widget):
                            marker_size=8,
                            marker="circle",
                            arrow_visible=False,
-                           label_format= str('THD = %.4g percent based on %d harmonics of the %.4g Hz frequency' %(THD, noHarmonics,exFreq)))
+                           label_format=str('THD = %.4g percent based on %d harmonics of the %.4g Hz frequency' % (THD, noHarmonics, exFreq)))
         plotWidget.plot.overlays.append(thdLabel)
     container.setPlotWidget(plotWidget)
 
@@ -236,7 +236,7 @@ def getPlotCallbacks():
     ''' Return callbacks for plot plugins
     '''
 
-    #Add here functionality as soon as it is implemented with chaco:
+    # Add here functionality as soon as it is implemented with chaco:
     '''
     return [["Minimum"         , plotMin           ],
             ["Maximum"         , plotMax           ],
@@ -290,7 +290,7 @@ def init(QMainWindow, subMenu):
     The init function is the entry point for every Plug-In.
     It should add at least some menu entries and return the created object.
     '''
-    #Change Toolbar:
+    # Change Toolbar:
     subMenu.setTitle("Signal Processing")
     return BrowserContextMenu(QMainWindow, subMenu)
 
@@ -334,8 +334,8 @@ def getFFTtimeRange(time):
     """
     Inquire time range for FFT and the number of FFT points
     """
-    Tmin_default    = time[0]
-    Tmax_default    = time[-1]
+    Tmin_default = time[0]
+    Tmax_default = time[-1]
     nPoints_default = 512
 
     Tmin = Tmin_default
@@ -420,15 +420,15 @@ def plotSignalAndFeature(variable, time, values, unit,
     width = 0.5 * line[0].get_linewidth()
 
     # determine coordinates where to store featureValue
-    distText      = 13   # Distance between line and featureValue in [points]
-    distInvisible = 20   # Distance between line and invisible point in [points]
+    distText = 13  # Distance between line and featureValue in [points]
+    distInvisible = 20  # Distance between line and invisible point in [points]
     #                      (y-axis limits are forced to contain featureValue)
     if not aboveLine:
-        distText      = -distText
+        distText = -distText
         distInvisible = -distInvisible
-    textTransform      = matplotlib.transforms.offset_copy(axes.transData, fig=fig, y=distText     , units="points" )
-    invisibleTransform = matplotlib.transforms.offset_copy(axes.transData, fig=fig, y=distInvisible, units="points" )
-    invisibleOffset    = axes.transData.inverted().transform( invisibleTransform.transform((0,0)) )[1]
+    textTransform = matplotlib.transforms.offset_copy(axes.transData, fig=fig, y=distText     , units="points")
+    invisibleTransform = matplotlib.transforms.offset_copy(axes.transData, fig=fig, y=distInvisible, units="points")
+    invisibleOffset = axes.transData.inverted().transform(invisibleTransform.transform((0, 0)))[1]
 
     # determine alignment of featureValue
     dT = time[-1] - time[0]
@@ -440,7 +440,7 @@ def plotSignalAndFeature(variable, time, values, unit,
         align = "right"
 
     # plot featureName and featureValue
-    t = [Tmin, Tmax]           # first and last value of time
+    t = [Tmin, Tmax]  # first and last value of time
     v = [featureValue, featureValue]
 
     # plot horizontal line with vertical bars at the two ends
@@ -462,7 +462,7 @@ def plotSignalAndFeature(variable, time, values, unit,
     plt.show()
     if markFeature:
         print(featureName + "(" + variable + ") = " + str(featureValue) + " " + unit + " at "
-                                                    + str(featureTime)  + " s "
+                                                    + str(featureTime) + " s "
                                                     + "(first occurrence in " + str(Tmin) + " ... "
                                                                               + str(Tmax) + " s)\n")
     else:
@@ -561,7 +561,7 @@ class BrowserContextMenu:
         (timeInRange, valuesInRange) = getValuesInRange(time, values, Tmin, Tmax)
 
         # Compute fft: A=A(f)
-        (f,A) = Algorithms.fft(timeInRange, valuesInRange, N)
+        (f, A) = Algorithms.fft(timeInRange, valuesInRange, N)
 
         # Plot A=A(f)
         plt.figure()

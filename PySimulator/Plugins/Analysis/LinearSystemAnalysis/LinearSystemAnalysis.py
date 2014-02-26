@@ -40,11 +40,11 @@ def linearizeToMAT(model, gui):
         print("Error: Selected model must be an FMU !\n")
         return
     try:
-        matFileName=model.fileName[-1][:-4]+'_lin.mat'
-        linSys=LinearizeFMU(FMUModel=model)
+        matFileName = model.fileName[-1][:-4] + '_lin.mat'
+        linSys = LinearizeFMU(FMUModel=model)
         linSys.writeDataToMat(matFileName)
         print("Writing A,B,C,D matrices to:")
-        print(matFileName+"\n")
+        print(matFileName + "\n")
         model.pluginData["LinearSystemAnalysis"] = linSys
     except:
         print("Error: Could not linearize model.\n")
@@ -58,8 +58,8 @@ def linearizeAndShowABCD(model, gui):
     if model.modelType != 'FMU1.0':
         print("Error: Selected model must be an FMU 1.0!\n")
         return
-    #try:
-    linSys=LinearizeFMU(FMUModel=model)
+    # try:
+    linSys = LinearizeFMU(FMUModel=model)
     print "Linearizing system with %i states, %i inputs and %i outputs" % (linSys.nx, linSys.nu, linSys.ny)
     print("A = ")
     print linSys.A
@@ -70,7 +70,7 @@ def linearizeAndShowABCD(model, gui):
     print("D = ")
     print linSys.D
     model.pluginData["LinearSystemAnalysis"] = linSys
-    #except:
+    # except:
     #    print("Error: Could not linearize model.\n")
 
 def fun1(model, gui):
@@ -82,7 +82,7 @@ def getModelCallbacks():
         return a list of lists, one list for each callback, each sublist
         containing a name for the function and a function pointer
     '''
-    return [["Save to .mat", linearizeToMAT],["Display A,B,C,D", linearizeAndShowABCD],['Frequency Response', fun1]]
+    return [["Save to .mat", linearizeToMAT], ["Display A,B,C,D", linearizeAndShowABCD], ['Frequency Response', fun1]]
 
 
 def getPlotCallbacks():

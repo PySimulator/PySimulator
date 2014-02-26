@@ -61,25 +61,25 @@ def transformRootsToPoly2(roots):
       c[:,2]: Matrix of second order polynomial coefficients.
     """
     nroots = len(roots)
-    np     = nroots // 2
+    np = nroots // 2
 
     # Check that all roots are conjugate complex pairs
     if (nroots % 2) <> 0:
         raise ValueError("Number of roots must be even.")
-    r1 = numpy.array( roots[0:nroots:2] )
-    r2 = numpy.array( roots[1:nroots:2] )
-    eps = 100.0*sys.float_info.epsilon
-    isConj = numpy.abs(r1.conj() - r2) < eps*numpy.max(
-                                            numpy.vstack( (numpy.ones(np), numpy.abs(r1.real) )
+    r1 = numpy.array(roots[0:nroots:2])
+    r2 = numpy.array(roots[1:nroots:2])
+    eps = 100.0 * sys.float_info.epsilon
+    isConj = numpy.abs(r1.conj() - r2) < eps * numpy.max(
+                                            numpy.vstack((numpy.ones(np), numpy.abs(r1.real))
                                          ), 0)
     if not numpy.alltrue(isConj):
-        raise ValueError("Vector of roots are not all conjugate complex numbers:\n"+
+        raise ValueError("Vector of roots are not all conjugate complex numbers:\n" + 
                          "roots = " + str(roots))
 
     # Compute polynomial coefficients
-    c = numpy.zeros((np,2))
-    c[:,0] = (r1*r2).real
-    c[:,1] = (-(r1+r2)).real
+    c = numpy.zeros((np, 2))
+    c[:, 0] = (r1 * r2).real
+    c[:, 1] = (-(r1 + r2)).real
     return c
 
 
@@ -148,18 +148,18 @@ class ZerosAndPolesSISO:
           zpk: (gain, zeros, poles) of object as tuple (for details see ZerosAndPolesSISO.__docu__)
         """
         # Define defaults for internal object variables
-        self.k  = 0
+        self.k = 0
         self.n1 = None  # [a]    : a + s
         self.n2 = None  # [a,b,1]: a + b*s + 1*s**2
         self.d1 = None  # [a]    : a + s
         self.d2 = None  # [a,b,1]: a + b*s + 1*s**2
-        self.z  = None  # vector of complex zeros
-        self.p  = None  # vector of complex poles
+        self.z = None  # vector of complex zeros
+        self.p = None  # vector of complex poles
 
         # Store input data
         if len(zpk) == 5:
             # form (2): Store internally and transform to numpy arrays if necessary
-            self.k  = float(zpk[0])
+            self.k = float(zpk[0])
             self.n1 = numpy.array(zpk[1], dtype=numpy.float, ndmin=1)
             self.n2 = numpy.array(zpk[2], dtype=numpy.float, ndmin=2)
             self.d1 = numpy.array(zpk[3], dtype=numpy.float, ndmin=1)
@@ -185,16 +185,16 @@ class ZerosAndPolesSISO:
                 Output arguments
                    The roots of r1 and of r2 in one numpy vector
                 """
-                nr1  = len(r1)
-                nr2  = len(r2)
-                nr2c = 2*nr2
-                r = numpy.zeros(nr1+nr2c, dtype=complex)
+                nr1 = len(r1)
+                nr2 = len(r2)
+                nr2c = 2 * nr2
+                r = numpy.zeros(nr1 + nr2c, dtype=complex)
                 if nr1 > 0:
                     r[0:nr1] = -r1
                 if nr2 > 0:
-                    for i in xrange(0,nr2):
-                        r[nr1+2*i:nr1+2*i+2] = numpy.polynomial.polynomial.polyroots(
-                                                    [r2[i,0], r2[i,1], 1.0] )
+                    for i in xrange(0, nr2):
+                        r[nr1 + 2 * i:nr1 + 2 * i + 2] = numpy.polynomial.polynomial.polyroots(
+                                                    [r2[i, 0], r2[i, 1], 1.0])
                 return r
 
             self.z = getRoots(self.n1, self.n2)
@@ -213,8 +213,8 @@ class ZerosAndPolesSISO:
             self.d1 = -numpy.array ((p[p.imag == 0]).real, dtype=numpy.float)
 
             # Transform conjugate complex zeros and poles to coefficients of 2nd order polynomials
-            self.n2 = transformRootsToPoly2( z[z.imag <> 0.0] )
-            self.d2 = transformRootsToPoly2( p[p.imag <> 0.0] )
+            self.n2 = transformRootsToPoly2(z[z.imag <> 0.0])
+            self.d2 = transformRootsToPoly2(p[p.imag <> 0.0])
 
         else:
             # error
@@ -259,29 +259,29 @@ class ZerosAndPolesSISO:
            y: Value(s) of transfer function at s (same size as s)
         """
         # Determine whether s is a scalar or an array
-        if isinstance(s,(int,float,complex)):
-            ss  = complex(s)
+        if isinstance(s, (int, float, complex)):
+            ss = complex(s)
             num = complex(self.k)
-            den = 1.0+0.0j
+            den = 1.0 + 0.0j
             scalar = True
         else:
             # Assume it is array like and copy to a numpy array
-            ss  = numpy.array(s, dtype=numpy.complex, copy=False)
-            num = self.k*numpy.ones(ss.shape, dtype=numpy.complex)
-            den =        numpy.ones(ss.shape, dtype=numpy.complex)
+            ss = numpy.array(s, dtype=numpy.complex, copy=False)
+            num = self.k * numpy.ones(ss.shape, dtype=numpy.complex)
+            den = numpy.ones(ss.shape, dtype=numpy.complex)
             scalar = False
 
         # Compute numerator
         for zj in self.n1:
             num *= ss + zj
-        for (aj,bj) in self.n2:
-            num *= aj + (bj+ss)*ss
+        for (aj, bj) in self.n2:
+            num *= aj + (bj + ss) * ss
 
         # Compute denominator
         for pj in self.d1:
             den *= ss + pj
-        for (aj,bj) in self.d2:
-            den *= aj + (bj+ss)*ss
+        for (aj, bj) in self.d2:
+            den *= aj + (bj + ss) * ss
 
         # Compute num/den
         abs_den = numpy.abs(den)
@@ -291,8 +291,8 @@ class ZerosAndPolesSISO:
             else:
                 den2 = den_min
         else:
-            den2 = numpy.select( [abs_den >= den_min*numpy.ones(den.shape)], [den], den_min )
-        return num/den2
+            den2 = numpy.select([abs_den >= den_min * numpy.ones(den.shape)], [den], den_min)
+        return num / den2
 
 
     def frequencyRange(self, f_range=None):
@@ -329,19 +329,19 @@ class ZerosAndPolesSISO:
                   "y" is the complex numpy vector of response values y(s) with s=0+f*1j
         """
         # Determine frequency range
-        (f_min,f_max) = self.frequencyRange(f_range)
+        (f_min, f_max) = self.frequencyRange(f_range)
 
         # Compute vector of frequency points
         if f_logspace:
-            f = numpy.logspace( math.log10(f_min), math.log10(f_max), n+1 )
+            f = numpy.logspace(math.log10(f_min), math.log10(f_max), n + 1)
         else:
-            f = numpy.linspace( f_min, f_max, n+1 )
+            f = numpy.linspace(f_min, f_max, n + 1)
 
         # Compute frequency response
-        w      = numpy.zeros(len(f), dtype=complex)
+        w = numpy.zeros(len(f), dtype=complex)
         w.imag = Misc.from_Hz(f)
         y = self.evaluate_at_s(w, 1e-10)
-        return (f,y)
+        return (f, y)
 
 
 class ZerosAndPoles:
@@ -357,27 +357,27 @@ class ZerosAndPoles:
                or matrix of (gain, zeros, poles) tuples
         """
         # Handle ZerosAndPolesSISO object
-        if isinstance(zpk,ZerosAndPolesSISO):
+        if isinstance(zpk, ZerosAndPolesSISO):
             self.zpk = [[zpk]]
-            self.nu  = 1
-            self.ny  = 1
+            self.nu = 1
+            self.ny = 1
             return
 
         # Otherwise argument must be a list or a tuple
-        if not isinstance(zpk, (list,tuple)):
+        if not isinstance(zpk, (list, tuple)):
             raise ValueError("Argument zpk must be a list or a tuple")
 
         # Distinguish whether a zpk object or a tuple of (k,z,p) is given
-        self.nu  = len(zpk[0])
-        self.ny  = len(zpk)
+        self.nu = len(zpk[0])
+        self.ny = len(zpk)
         self.zpk = zpk
-        for i in xrange(0,self.ny):
-            for j in xrange(0,self.nu):
+        for i in xrange(0, self.ny):
+            for j in xrange(0, self.nu):
                 if not isinstance(self.zpk[i][j], ZerosAndPolesSISO):
                     self.zpk[i][j] = ZerosAndPolesSISO(self.zpk[i][j])
 
 
-    def __getitem__(self,key):
+    def __getitem__(self, key):
         """
         Access an item as zpk[1,2]
         """
@@ -398,8 +398,8 @@ class ZerosAndPoles:
             s = str(self.zpk[0][0])
         else:
             s = "\n"
-            for i in xrange(0,self.ny):
-                for j in xrange(0,self.nu):
+            for i in xrange(0, self.ny):
+                for j in xrange(0, self.nu):
                     s += " [{},{}] = {}\n".format(i, j, self.zpk[i][j])
         return s
 
@@ -429,15 +429,15 @@ class ZerosAndPoles:
               value(s) of the transfer function (i,j) at s (same size as s)
         """
         if u_indices == None:
-            ui = range(0,self.nu)
+            ui = range(0, self.nu)
         else:
             ui = u_indices
         if y_indices == None:
-            yi = range(0,self.ny)
+            yi = range(0, self.ny)
         else:
             yi = y_indices
 
-        Y = [[ (self.zpk[i][j]).evaluate_at_s(s,den_min=den_min)
+        Y = [[ (self.zpk[i][j]).evaluate_at_s(s, den_min=den_min)
                   for i in yi]
                   for j in ui]
         return Y
@@ -475,11 +475,11 @@ class ZerosAndPoles:
             (f_min, f_max) = f_range
         else:
             if u_indices == None:
-                ui = range(0,self.nu)
+                ui = range(0, self.nu)
             else:
                 ui = u_indices
             if y_indices == None:
-                yi = range(0,self.ny)
+                yi = range(0, self.ny)
             else:
                 yi = y_indices
 
@@ -492,43 +492,43 @@ class ZerosAndPoles:
 
         # Compute vector of frequency points
         if f_logspace:
-            f = numpy.logspace( math.log10(f_min), math.log10(f_max), n+1 )
+            f = numpy.logspace(math.log10(f_min), math.log10(f_max), n + 1)
         else:
-            f = numpy.linspace( f_min, f_max, n+1 )
+            f = numpy.linspace(f_min, f_max, n + 1)
 
         # Compute frequency response
-        w      = numpy.zeros(len(f), dtype=complex)
+        w = numpy.zeros(len(f), dtype=complex)
         w.imag = Misc.from_Hz(f)
         Y = self.evaluate_at_s(w, 1e-10, ui, yi)
-        return (f,Y)
+        return (f, Y)
 
 
 if __name__ == "__main__":
     # Test "form(2)" to zpk
-    zpk1 = ZerosAndPolesSISO((2.0, [2], [[1,2],[2,3]], [3,4], [[3,4],[5,6]]))
-    print("zpk1 = " + str(zpk1) )
+    zpk1 = ZerosAndPolesSISO((2.0, [2], [[1, 2], [2, 3]], [3, 4], [[3, 4], [5, 6]]))
+    print("zpk1 = " + str(zpk1))
 
     # Test transformation of roots to polynomials
-    roots = [1+2j,1-2j,4-3j,4+3j]
+    roots = [1 + 2j, 1 - 2j, 4 - 3j, 4 + 3j]
     poly2 = transformRootsToPoly2(roots)
-    r1 = numpy.polynomial.polynomial.polyroots( [poly2[0,0], poly2[0,1], 1.0] )
-    r2 = numpy.polynomial.polynomial.polyroots( [poly2[1,0], poly2[1,1], 1.0])
+    r1 = numpy.polynomial.polynomial.polyroots([poly2[0, 0], poly2[0, 1], 1.0])
+    r2 = numpy.polynomial.polynomial.polyroots([poly2[1, 0], poly2[1, 1], 1.0])
     print("poly2 = " + str(poly2))
     print("roots = " + str(roots))
     print("roots(poly2) = " + str(r1) + ", " + str(r2))
 
     # Test "form(1) to zpk
-    zeros = [4.0, 2-3j, 2+3j]
-    poles = [1+2j, 1-2j, 5.0, 6.0, 4.0-3j, 4.0+3j, 7]
+    zeros = [4.0, 2 - 3j, 2 + 3j]
+    poles = [1 + 2j, 1 - 2j, 5.0, 6.0, 4.0 - 3j, 4.0 + 3j, 7]
     zpk2 = ZerosAndPolesSISO((3.1, zeros, poles))
     print("zpk2 = " + str(zpk2))
 
     # Test evaluate
-    r1a = zpk2.evaluate_at_s(1+2j, 1e-15)
+    r1a = zpk2.evaluate_at_s(1 + 2j, 1e-15)
     r1b = zpk2.evaluate_at_s(2, 1e-15)
     r1c = zpk2.evaluate_at_s(3, 1e-15)
     print("r1 = " + str(r1a) + ", " + str(r1b) + "," + str(r1c))
-    r2 = zpk2.evaluate_at_s([1+2j,2,3], 1e-15)
+    r2 = zpk2.evaluate_at_s([1 + 2j, 2, 3], 1e-15)
     print("r2 = " + str(r2))
 
     # Test zeros and poles
@@ -540,10 +540,10 @@ if __name__ == "__main__":
     print("poles = " + str(poles2))
 
     # Test frequency response
-    (f,y) = zpk2.frequencyResponse(n=10)
+    (f, y) = zpk2.frequencyResponse(n=10)
     print("f = " + str(f))
     print("y = " + str(y))
-    (f,y) = zpk2.frequencyResponse(n=10,f_logspace=False)
+    (f, y) = zpk2.frequencyResponse(n=10, f_logspace=False)
     print("f = " + str(f))
     print("y = " + str(y))
 
@@ -556,8 +556,8 @@ if __name__ == "__main__":
     # Test MIMO ZerosAndPoles
     zpk3 = ZerosAndPoles([[zpk2]])
     print("zpk3 = {}".format(zpk3))
-    (f1,y1) = zpk2.frequencyResponse(n=10)
-    (f2,y2) = zpk3.frequencyResponse(n=10)
+    (f1, y1) = zpk2.frequencyResponse(n=10)
+    (f2, y2) = zpk3.frequencyResponse(n=10)
     print("f1 = {}".format(f1))
     print("f2 = {}".format(f2))
     print("y1 = {}".format(y1))
@@ -565,7 +565,7 @@ if __name__ == "__main__":
 
     zpk4 = ZerosAndPoles([[zpk2, zpk2]])
     print("zpk4 = {}".format(zpk4))
-    (f3,y3) = zpk4.frequencyResponse(n=10)
+    (f3, y3) = zpk4.frequencyResponse(n=10)
     print("f3 = {}".format(f3))
     print("y3 = {}".format(y3))
 

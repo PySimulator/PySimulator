@@ -17,7 +17,7 @@ setuptools.setup(
         },
 
     install_requires=[
-        #"setuptools>=0.6",
+        # "setuptools>=0.6",
         "PySide>=1.1",
         "Traits>=4.2",
         "Enable>=4.2",
