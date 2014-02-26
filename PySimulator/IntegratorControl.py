@@ -252,7 +252,7 @@ class IntegratorControl(QtGui.QDialog):
         pass
 
     def closeEvent(self, event):
-        #print "Close event"
+        # print "Close event"
         if not self.closebutton.isEnabled():
             # Prevent closing the GUI when a simulation is running
             event.ignore()
@@ -261,7 +261,7 @@ class IntegratorControl(QtGui.QDialog):
             self.reallyFinished.emit()
 
     def changeCurrentModel(self):
-        #print "Change current model in IntegratorControl"
+        # print "Change current model in IntegratorControl"
         # Only change the current model if it is not being simulated
         if self.currentNumberedModelName is not None:
             if not self.models[self.currentNumberedModelName].integrationStatistics.finished:
@@ -359,7 +359,7 @@ class IntegratorControl(QtGui.QDialog):
     def fileSize2str(self, size):
         if size is not None:
             if size > 1024:
-                return format(size/1024, '0.1f') + ' GB'
+                return format(size / 1024, '0.1f') + ' GB'
             else:
                 return format(size, '0.1f') + ' MB'
         else:
@@ -387,7 +387,7 @@ class IntegratorControl(QtGui.QDialog):
                 else:
                     nDigits = 14
                     formatString = '0.' + str(nDigits) + 'g'
-                currentTimeText = format(math.floor(math.pow(10,nDigits)*statistics.reachedTime)/math.pow(10,nDigits), formatString)
+                currentTimeText = format(math.floor(math.pow(10, nDigits) * statistics.reachedTime) / math.pow(10, nDigits), formatString)
 
             if len(currentTimeText) > 0:
                 currentTimeText += ' s'
@@ -558,9 +558,9 @@ class simulationThread(QtCore.QThread):
                 pydevd.connected = True
                 pydevd.settrace(suspend=False)
             except:
-                #do nothing, since error message only indicates we are not in debug mode
+                # do nothing, since error message only indicates we are not in debug mode
                 pass
-            pythoncom.CoInitialize() # Initialize the COM library on the current thread
+            pythoncom.CoInitialize()  # Initialize the COM library on the current thread
             self.model.simulate()
         except Plugins.Simulator.SimulatorBase.Stopping:
             print("solver canceled ... ")
@@ -568,7 +568,7 @@ class simulationThread(QtCore.QThread):
             print("unexpected error ... ")
             print e
         finally:
-            pythoncom.CoUninitialize() # Close the COM library on the current thread
+            pythoncom.CoUninitialize()  # Close the COM library on the current thread
 
 
         # Define simulation completed to stop updating plots and come back to the GUI
