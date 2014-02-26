@@ -210,8 +210,8 @@ class Category:
         compression = "gzip"
         if self.name != 'H5T_C_S1':
             if self.nColumn >= 8:
-                compression = "gzip"
-                #compression = None
+                #compression = "gzip"
+                compression = None
         self.dataset = host.create_dataset(self.name, shape=(initialRows, self.nColumn), dtype=eval('h5py.h5t.' + self.name[4:]), maxshape=(None, None), compression=compression)  # chunks=(c1,c2))
         self._data = numpy.zeros((max(min(10000000 / self.nColumn, initialRows), 1), self.nColumn))
         self._currentRow = 0

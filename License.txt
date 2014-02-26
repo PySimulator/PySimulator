@@ -1,7 +1,7 @@
 ''' 
 Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.), 
-Institute of System Dynamics and Control
+Institute of System Dynamics and Control 
 
 PySimulator is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as published by
