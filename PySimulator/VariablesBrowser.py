@@ -215,8 +215,10 @@ class VariablesBrowser(QtGui.QTreeWidget):
                     treeItem.setText(1, str(model.variableTree.variable[qualifiedName].value))
                     treeItem.setTextAlignment(1, QtCore.Qt.Alignment(2))
 
-        # Set the showed unit
+        # Set the showed unit               
         if model.variableTree.variable[qualifiedName].unit is not None:
+            treeItem.setText(2, unicode(model.variableTree.variable[qualifiedName].unit))
+            '''
             if isinstance(model.variableTree.variable[qualifiedName].unit, str):
                 treeItem.setText(2, model.variableTree.variable[qualifiedName].unit)
             else:
@@ -224,6 +226,7 @@ class VariablesBrowser(QtGui.QTreeWidget):
                     treeItem.setText(2, str(model.variableTree.variable[qualifiedName].unit))
                 except:
                     pass
+            '''
 
         # Define deepest treeitem: Additional attribute for each variable
         if model.variableTree.variable[qualifiedName].attribute is not None:
