@@ -36,7 +36,7 @@ version = '0.6+'
 def loadPlugins(type):
     def get_immediate_subdirectories(directory):
         return [name for name in os.listdir(directory) if os.path.isdir(os.path.join(directory, name)) and name[0] != '.']
-    
+
     PlugInNames = get_immediate_subdirectories(os.path.abspath(os.path.dirname(inspect.getfile(inspect.currentframe()))) + "/./Plugins/" + type)
     ret = dict()
     for i in range(len(PlugInNames)):
@@ -44,8 +44,16 @@ def loadPlugins(type):
                 print PlugInNames[i] + " plug-in loading"
                 mod = __import__('Plugins.' + type + '.' + PlugInNames[i] + "." + PlugInNames[i], locals(), globals(), ['Plugins.' + type + '.' + PlugInNames[i] + "." + PlugInNames[i]])
                 ret[PlugInNames[i]] = mod
-            except Exception, info:
-                print PlugInNames[i] + " plug-in could not be loaded. Error message: '" + info.message + "'"
+            except ImportError as e:
+                print PlugInNames[i] + " plug-in could not be loaded. Error message: '" + e.message + "'"
+            except SyntaxError as e:
+                print PlugInNames[i] + " plug-in could not be loaded. Error message: '" + str(e) + "'"
+            except Exception as e:
+                info = str(e)
+                if info == '' or info is None:
+                    print PlugInNames[i] + " plug-in could not be loaded."
+                else:
+                    print PlugInNames[i] + " plug-in could not be loaded. Error message: '" + info + "'"
     return ret
 
 
@@ -72,7 +80,7 @@ class SimulatorGui(QtGui.QMainWindow):
         self.createConsoleWindow()
 
         self.simulatorPlugins = loadPlugins("Simulator")
-        self.simulationResultPlugins = loadPlugins("SimulationResult")            
+        self.simulationResultPlugins = loadPlugins("SimulationResult")
         self.analysisPlugins = loadPlugins("Analysis")
 
         '''  Defining the menu bar  '''
@@ -171,15 +179,15 @@ class SimulatorGui(QtGui.QMainWindow):
         helpMenu.addAction("Documentation", self.showHelp)
         helpMenu.addAction(QtGui.QIcon(self.rootDir + "/Icons/pysimulator.ico"), "About PySimulator", self.showAbout)
         self.setMenuBar(menu)
-        
-        # Load config file and adapt it to a minimum structure according to loaded plugins        
+
+        # Load config file and adapt it to a minimum structure according to loaded plugins
         self.config = configobj.ConfigObj(self.rootDir + '/PySimulator.ini')
         if not self.config.has_key('PySimulator'):
             self.config['PySimulator'] = {}
             self.config['PySimulator']['workingDirectory'] = os.getcwd()
         else:
             if not os.path.exists(self.config['PySimulator']['workingDirectory']):
-                self.config['PySimulator']['workingDirectory'] = os.getcwd()             
+                self.config['PySimulator']['workingDirectory'] = os.getcwd()
         if not self.config.has_key('Plugins'):
             self.config['Plugins'] = {}
         for plugin in self.simulatorPlugins.keys():
@@ -192,12 +200,12 @@ class SimulatorGui(QtGui.QMainWindow):
             if not self.config['Plugins'].has_key(plugin):
                 self.config['Plugins'][plugin] = {}
         self.config.write()
-        
+
         os.chdir(self.config['PySimulator']['workingDirectory'])
 
     def createConsoleWindow(self):
         '''  The information output shall replace the outputs from the python shell '''
-        
+
         self.textOutput = windowConsole.WindowConsole(self)
         self.dockTextOutput = QtGui.QDockWidget('Information output', self)
         self.dockTextOutput.setWidget(self.textOutput)
@@ -322,22 +330,22 @@ class SimulatorGui(QtGui.QMainWindow):
             self._currentPlotChanged(None)
 
     def _chDir(self, pathName):
-        self.config['PySimulator']['workingDirectory'] = pathName                    
-        self.config.write()  
+        self.config['PySimulator']['workingDirectory'] = pathName
+        self.config.write()
         os.chdir(self.config['PySimulator']['workingDirectory'])
-    
-    
+
+
     def openModelFile(self, loaderplugin, fileName, modelName=None):
         if fileName == '':
             return
         if modelName is None:
             sp = string.rsplit(fileName, '.', 1)
             modelName = string.rsplit(sp[0], '/', 1)[1]
-            
-        self._chDir(os.path.dirname(fileName))        
-        model = loaderplugin.Model(modelName, [str(fileName)], self.config)        
+
+        self._chDir(os.path.dirname(fileName))
+        model = loaderplugin.Model(modelName, [str(fileName)], self.config)
         self._newModel(model)
-        
+
 
     def _openFileMenu(self, loaderplugin):
         extensionStr = ''
@@ -354,7 +362,7 @@ class SimulatorGui(QtGui.QMainWindow):
         if len(split) > 1:
             suffix = split[1]
         else:
-            suffix = ''        
+            suffix = ''
         modelName = None
         if suffix in ['mo', 'moe']:
             if len(split[0]) > 0:
@@ -374,8 +382,8 @@ class SimulatorGui(QtGui.QMainWindow):
 
     def openResultFile(self, fileName):
         ''' Load a result file and display variables in variable browser '''
-        
-        import Plugins.Simulator.SimulatorBase        
+
+        import Plugins.Simulator.SimulatorBase
         if fileName == '':
             return
 
@@ -388,19 +396,19 @@ class SimulatorGui(QtGui.QMainWindow):
         model.integrationResultFileSemaphore = threading.Semaphore()
         self._newModel(model)
         self.setEnabled(True)
-        
+
         self._chDir(os.path.dirname(fileName))
 
     def _openResultFileMenu(self):
         ''' Load a Result file '''
         formats = 'All formats ('
-        formats2 = ''       
-        for i, ext in enumerate(Plugins.SimulationResult.fileExtension):       
-            formats += ' *.' + ext            
+        formats2 = ''
+        for i, ext in enumerate(Plugins.SimulationResult.fileExtension):
+            formats += ' *.' + ext
             formats2 += Plugins.SimulationResult.description[i] + ' (*.' + ext + ')'
             if i+1 < len(Plugins.SimulationResult.fileExtension):
-                formats2 += ';;'            
-        formats += ');;' + formats2       
+                formats2 += ';;'
+        formats += ');;' + formats2
         (fileNames, trash) = QtGui.QFileDialog().getOpenFileNames(self, 'Open Result File', os.getcwd(), formats)
         for fileName in fileNames:
             self.openResultFile(str(fileName).replace('\\','/'))
@@ -437,7 +445,7 @@ class SimulatorGui(QtGui.QMainWindow):
         dirName = str(dirName)
         if dirName == '':
             return
-        self._chDir(dirName)                  
+        self._chDir(dirName)
 
     def _showIntegratorControl(self):
         ''' Show the Integrator Control window and connect its signals.  '''
@@ -505,21 +513,21 @@ class SimulatorGui(QtGui.QMainWindow):
     def _removeLinesByModel(self, model):
         varList = []
         # Do NOT delete the lines in the following first loop, because plotw is changed by plotw.removeVariable -> undefined behaviour
-        # First, search for all variables of the model plotted in widgets 
+        # First, search for all variables of the model plotted in widgets
         for container in self.plotContainers:
-            for plotw in container.findChildren(plotWidget.PlotWidget):               
-                for var in (x[1] for x in plotw.variables if x[0].numberedModelName == model.numberedModelName):                        
+            for plotw in container.findChildren(plotWidget.PlotWidget):
+                for var in (x[1] for x in plotw.variables if x[0].numberedModelName == model.numberedModelName):
                     varList.append([plotw, var])
         # Now delete the lines
         for v in varList:
             v[0].removeVariable(model, v[1])
 
     def setNumberedStuff(self, model):
-        ''' Set the numbered model name and the corresponding result file name '''        
+        ''' Set the numbered model name and the corresponding result file name '''
         currentNumber = 0
         for m in self.models.values():
             currentNumber = max(currentNumber, int(m.numberedModelName.split(':', 1)[0]))
-        number = currentNumber + 1       
+        number = currentNumber + 1
         model.numberedModelName = '%01i:' % number + model.name
         model.integrationSettings.resultFileName = str(model.name) + '_%01i' % number + '.' + model.integrationSettings.resultFileExtension
 
@@ -530,7 +538,7 @@ class SimulatorGui(QtGui.QMainWindow):
         # Set default values for GUI realted topics
         model.integrationSettings.plotOnline_isChecked = True
         model.integrationSettings.duplicateModel_isChecked = False
-        model.integrationStatistics.finished = True        
+        model.integrationStatistics.finished = True
         # Include the model in the model dictionary
         self.models[model.numberedModelName] = model
         # Add the model to the variables browser
@@ -555,7 +563,7 @@ class SimulatorGui(QtGui.QMainWindow):
         # Delete the corresponding tree in the variable browser
         self.nvb.removeModel(self.models[numberedModelName])
         # Delete the corresponding lines and information in the plot windows
-        self._removeLinesByModel(self.models[numberedModelName])        
+        self._removeLinesByModel(self.models[numberedModelName])
         # Delete the model itself:
         self.models[numberedModelName].close()
         del self.models[numberedModelName]
@@ -575,8 +583,8 @@ class SimulatorGui(QtGui.QMainWindow):
                 print "Closed Simulator Plugin " + pluginName
             except:
                 print "Closing of Simulator Plugin " + pluginName + " failed."
-        sys.stdout = self._origStdout     
-        
+        sys.stdout = self._origStdout
+
 
 
 
