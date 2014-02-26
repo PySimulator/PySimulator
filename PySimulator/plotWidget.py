@@ -705,7 +705,7 @@ class DefaultPlotWidget(PlotWidget):
         if model.variableTree.variable[variable].unit is not None:
             if len(model.variableTree.variable[variable].unit) > 0:
                 #os_encoding = locale.getpreferredencoding()
-                unit = ' [' + unicode(model.variableTree.variable[variable].unit) + ']'
+                unit = ' [' + model.variableTree.variable[variable].unit.decode('Windows-1252') + ']'
         return markDownSampling + model.numberedModelName.split(':', 1)[0] + ':' + variable + unit
 
     def addVariable(self, model, variable):

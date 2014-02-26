@@ -217,7 +217,7 @@ class VariablesBrowser(QtGui.QTreeWidget):
 
         # Set the showed unit               
         if model.variableTree.variable[qualifiedName].unit is not None:
-            treeItem.setText(2, unicode(model.variableTree.variable[qualifiedName].unit))
+            treeItem.setText(2, model.variableTree.variable[qualifiedName].unit.decode('Windows-1252'))
             '''
             if isinstance(model.variableTree.variable[qualifiedName].unit, str):
                 treeItem.setText(2, model.variableTree.variable[qualifiedName].unit)
