@@ -567,7 +567,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 				childIsOuter = pChild.GetProperty(simIsOuter)
 				if not childIsOuter or (childIsOuter and pChild.GetProperty(simIsInner)):
 					childEntityClass = pChild.Class
-					if childEntityClass == simSimObject or childEntityClass == simSimBlock or childEntityClass == simConservConnection or childEntityClass == simFluidConnection:
+					if childEntityClass == simSimObject or childEntityClass == simSimBlock or childEntityClass == simConservConnection or childEntityClass == simFluidConnection or childEntityClass == simModelicaPin:
 						self._fillTree(pChild, doc)
 
 	def getReachedSimulationTime(self):
