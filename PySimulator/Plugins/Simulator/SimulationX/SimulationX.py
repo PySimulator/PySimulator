@@ -329,7 +329,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			# Show SimulationX window
 			sim.Visible = True
 
-			# Wait till SimulationX starts and loads Modelica
+			# Wait till SimulationX starts and loads libraries
 			if sim.InitState == simUninitialized:
 				while sim.InitState != simInitBase:
 					time.sleep(0.1)
