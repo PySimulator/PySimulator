@@ -98,7 +98,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			# Show SimulationX window
 			sim.Visible = True
 
-			# Wait till SimulationX starts and loads libraries
+			# Wait till SimulationX is initialized
 			if sim.InitState == simUninitialized:
 				while sim.InitState != simInitBase:
 					time.sleep(0.1)
@@ -106,8 +106,9 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			# SimulationX in non-interactive mode
 			sim.Interactive = False
 
+			# Load libraries
 			if sim.InitState == simInitBase:
-				sim.InitSimEnvironment()  # Necessary when a script is used to start SimulationX
+				sim.InitSimEnvironment()
 
 			if len(modelFileName) == 1:
 				strMsg = 'PySimulator: Load model'
