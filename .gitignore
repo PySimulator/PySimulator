@@ -1,0 +1,7 @@
+*~
+build/*
+dist/*
+PySimulator/PySimulator.ini
+PySimulator.egg-info/*
+*.pyc
+PySimulator.psproj
