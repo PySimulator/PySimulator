@@ -75,8 +75,8 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         self.onlyResultFile=False
         self.integrationSettings.resultFileExtension = 'mat'
 
-        self._avilableIntegrationAlgorithms = ['Dassl', 'Euler','Rungekutta','Dopri5','Inline-Euler','Inline-Rungekutta']
-        self.integrationSettings.algorithmName = self._avilableIntegrationAlgorithms[0]
+        self._availableIntegrationAlgorithms = ['Dassl', 'Euler','Rungekutta','Dopri5','Inline-Euler','Inline-Rungekutta']
+        self.integrationSettings.algorithmName = self._availableIntegrationAlgorithms[0]
 
         self._IntegrationAlgorithmHasFixedStepSize = [False,True,False,False,True,False]
         self._IntegrationAlgorithmCanProvideStepSizeResults = [False,True,False,False,True,False]
@@ -314,13 +314,13 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             self.variableTree.variable[self._initialResult.name[i].replace('[', '.[')] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(self._initialResult.name[i].replace('[', '.[')), value, valueEdit, unit, variability, variableAttribute)
 
     def getAvailableIntegrationAlgorithms(self):
-        return self._avilableIntegrationAlgorithms
+        return self._availableIntegrationAlgorithms
 
     def getIntegrationAlgorithmHasFixedStepSize(self, algorithmName):
-        return self._IntegrationAlgorithmHasFixedStepSize[self._avilableIntegrationAlgorithms.index(algorithmName)]
+        return self._IntegrationAlgorithmHasFixedStepSize[self._availableIntegrationAlgorithms.index(algorithmName)]
 
     def getIntegrationAlgorithmCanProvideStepSizeResults(self, algorithmName):
-        return self._IntegrationAlgorithmCanProvideStepSizeResults[self._avilableIntegrationAlgorithms.index(algorithmName)]
+        return self._IntegrationAlgorithmCanProvideStepSizeResults[self._availableIntegrationAlgorithms.index(algorithmName)]
 
 
 # Adapted from DymolaMat/DymolaMat.py for OpenModelica #
