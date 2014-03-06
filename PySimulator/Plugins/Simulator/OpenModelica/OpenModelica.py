@@ -126,6 +126,10 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             messages = OMPython.get(simResult,"SimulationResults.messages")
             if messages !='""':
                 print messages
+            # call getErrorString() to get complete error.
+            errorString = OMPython.execute("getErrorString()")
+            if errorString !='""':
+                print errorString
             # read the result file
             self.resFile = OMPython.get(simResult,"SimulationResults.resultFile")
 
@@ -166,6 +170,15 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
             #simulate the model
             sim_results = OMPython.execute(simulate_string)
+
+            # always print the messages if there are any
+            messages = OMPython.get(sim_results,"SimulationResults.messages")
+            if messages !='""':
+                print messages
+            # call getErrorString() to get complete error.
+            errorString = OMPython.execute("getErrorString()")
+            if errorString !='""':
+                print errorString
 
             #rename the OpenModelica result file
             result_file = OMPython.get(sim_results, 'SimulationResults.resultFile')
