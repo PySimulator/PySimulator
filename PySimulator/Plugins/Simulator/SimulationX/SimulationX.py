@@ -73,7 +73,10 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			else:
 				ver = '3.5'
 			# Make sure Modelica models can be simulated
-			key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\ITI GmbH\SimulationX ' + ver + r'\Modelica', 0, winreg.KEY_ALL_ACCESS)
+			try:
+				key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\ITI GmbH\SimulationX ' + ver + r'\Modelica', 0, winreg.KEY_ALL_ACCESS)
+			except WindowsError:
+				key = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, r'Software\ITI GmbH\SimulationX ' + ver + r'\Modelica', 0, winreg.KEY_ALL_ACCESS)
 			winreg.SetValueEx(key, 'AutoCreateSimModel', 0, winreg.REG_DWORD, 1)
 			winreg.CloseKey(key)
 
