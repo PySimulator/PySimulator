@@ -200,8 +200,8 @@ class IntegratorControl(QtGui.QDialog):
         def _plotOnlineChanged():
             self.models[self.currentNumberedModelName].integrationSettings.plotOnline_isChecked = self.plot.isChecked()
 
-        def _browseSaveFileDo():
-            (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, 'Save results', os.getcwd(), 'MA Time Series Result File (*.mtsf)')
+        def _browseSaveFileDo():            
+            (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, 'Save results', os.getcwd(), '*.' + self.models[self.currentNumberedModelName].integrationSettings.resultFileExtension)
             fileName = str(fileName)
             if fileName != '':
                 self.saveFilePath.setText(fileName)
