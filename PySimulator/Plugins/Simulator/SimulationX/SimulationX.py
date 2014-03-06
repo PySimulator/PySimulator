@@ -334,11 +334,11 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 								childVariableAttr += 'Variability:' + chr(9) + childVariability  # + '\n'
 								for i in range(1, dim + 1):
 									self.variableTree.variable[childRelIdent + '[' + str(i) + ']'] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent + '[' + str(i) + ']'), childValue, childValueEdit, childUnit, childVariability, childVariableAttr)
-				childIsOuter = pChild.GetProperty(simIsOuter)
-				if not childIsOuter or (childIsOuter and pChild.GetProperty(simIsInner)):
-					childEntityClass = pChild.Class
-					if childEntityClass == simSimObject or childEntityClass == simSimBlock or childEntityClass == simConservConnection or childEntityClass == simFluidConnection or childEntityClass == simModelicaPin:
-						self._fillTree(pChild, doc)
+					childIsOuter = pChild.GetProperty(simIsOuter)
+					if not childIsOuter or (childIsOuter and pChild.GetProperty(simIsInner)):
+						childEntityClass = pChild.Class
+						if childEntityClass == simSimObject or childEntityClass == simSimBlock or childEntityClass == simConservConnection or childEntityClass == simFluidConnection or childEntityClass == simModelicaPin:
+							self._fillTree(pChild, doc)
 
 	def getReachedSimulationTime(self):
 		''' Read the current simulation time during a simulation
