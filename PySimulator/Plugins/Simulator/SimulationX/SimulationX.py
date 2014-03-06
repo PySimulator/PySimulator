@@ -90,7 +90,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			self._solverByName = dict([('BDF', 'MultiStepMethod2'), ('MEBDF', 'MEBDFDAE'), ('CVODE', 'CVODE'), ('FixedStep', 'FixStep')])
 
 			self._IntegrationAlgorithmHasFixedStepSize = [False, False, False, True]
-			self._IntegrationAlgorithmCanProvideStepSizeResults = [False, False, False, False]
+			self._IntegrationAlgorithmCanProvideStepSizeResults = [True, True, False, False]
 
 			self.integrationSettings.algorithmName = self._availableIntegrationAlgorithms[0]
 			self.simulationStopRequest = False
@@ -409,13 +409,19 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			doc.Lookup('dtMin').Value = dtMin
 		if simulation.gridPointsMode == 'NumberOf':
 			if simulation.gridPoints > 1:
-				gridWidth = (simulation.stopTime - simulation.startTime) / (simulation.gridPoints - 1)
+				dtProtMin = (simulation.stopTime - simulation.startTime) / (simulation.gridPoints - 1)
+				protKind = 0  # = 'BaseModel.ProtKind.EquidistantTimeSteps'
 			else:
-				gridWidth = (simulation.stopTime - simulation.startTime) / 500
+				dtProtMin = (simulation.stopTime - simulation.startTime) / 500
+				protKind = 0  # = 'BaseModel.ProtKind.EquidistantTimeSteps'
 		elif simulation.gridPointsMode == 'Width':
-			gridWidth = simulation.gridWidth
-		doc.Lookup('dtProtMin').Value = gridWidth
-		doc.Lookup('protKind').Value = 0  # = 'BaseModel.ProtKind.EquidistantTimeSteps'
+			dtProtMin = simulation.gridWidth
+			protKind = 0  # = 'BaseModel.ProtKind.EquidistantTimeSteps'
+		elif simulation.gridPointsMode == 'Integrator':
+			dtProtMin = 'dtDetect'
+			protKind = 3  # = 'BaseModel.ProtKind.MinTimeStepsPrePostEvents'
+		doc.Lookup('dtProtMin').Value = dtProtMin
+		doc.Lookup('protKind').Value = protKind
 		try:
 			doc.SolverByName = self._solverByName[simulation.algorithmName]
 		except KeyError:
