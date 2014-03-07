@@ -9,6 +9,11 @@ analysis are provided that can be applied to the automatically linearized models
 The modular concept of the software enables easy development of further plugins
 for both simulation and analysis.
 
+Further information:
+ * www.ep.liu.se/ecp/076/053/ecp12076053.pdf
+ * www.ep.liu.se/ecp/076/054/ecp12076054.pdf
+ * www.modprod.liu.se/modprod2013-program/1.456422/modprod2013-day2-talk05a-AndreasPfeiffer.pdf
+
 Supported Platforms: Windows
 
 Installation:
