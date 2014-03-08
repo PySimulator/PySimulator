@@ -17,7 +17,7 @@ setuptools.setup(
         },
 
     install_requires=[
-        # "setuptools>=0.6",
+        "pywin32",
         "PySide>=1.1",
         "Traits>=4.2",
         "Enable>=4.2",
@@ -27,9 +27,11 @@ setuptools.setup(
         # strange dependencies by assimulo, it requires the following package according to the documentation of its setup.py
         # but they are not mentioned in the code - weird! ; Hopefully these dependencies are dropped in future
         #    "Assimulo>=2.1",
-            "matplotlib>=1.0",
+        "matplotlib>=1.0",
         "numpy>=1.6",
         #    "Cython>=0.15",
+        "scipy",
+        "H5py"
         ],
 
     author="Deutsches Zentrum fuer Luft- und Raumfahrt e.V. - DLR (German Aerospace Center); Institute for System Dynamics and Control",
