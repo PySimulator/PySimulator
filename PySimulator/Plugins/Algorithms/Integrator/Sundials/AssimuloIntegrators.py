@@ -81,7 +81,10 @@ class AssimuloRK34():
         simulation.atol = self.atol
         simulation.rtol = self.rtol
         simulation.verbosity = self.verbosity
-        simulation.continuous_output = False  # default 0, if one step approach should be used
+        if hasattr(simulation, 'continuous_output'):
+            simulation.continuous_output = False  # default 0, if one step approach should be used
+        elif hasattr(simulation, 'report_continuously'):
+            simulation.report_continuously = False  # default 0, if one step approach should be used
         simulation.inith = self.inith
 
         # Calculate nOutputIntervals:
@@ -166,7 +169,10 @@ class AssimuloCVode():
         simulation.atol = self.atol
         simulation.rtol = self.rtol
         simulation.verbosity = self.verbosity
-        simulation.continuous_output = False  # default 0, if one step approach should be used
+        if hasattr(simulation, 'continuous_output'):
+            simulation.continuous_output = False  # default 0, if one step approach should be used
+        elif hasattr(simulation, 'report_continuously'):
+            simulation.report_continuously = False  # default 0, if one step approach should be used
 
         # '''Initialize problem '''
         # self.t_cur = self.t0
@@ -241,7 +247,10 @@ class AssimuloIda():
         simulation.atol = self.atol
         simulation.rtol = self.rtol
         simulation.verbosity = self.verbosity
-        simulation.continuous_output = False  # default 0, if one step approach should be used
+        if hasattr(simulation, 'continuous_output'):
+            simulation.continuous_output = False  # default 0, if one step approach should be used
+        elif hasattr(simulation, 'report_continuously'):
+            simulation.report_continuously = False  # default 0, if one step approach should be used
         simulation.tout1 = self.tout1
         simulation.lsoff = self.lsoff
 
@@ -335,7 +344,10 @@ class AssimuloRK():
         simulation.atol = self.atol
         simulation.rtol = self.rtol
         simulation.verbosity = 0
-        simulation.continuous_output = False  # default 0, if one step approach should be used
+        if hasattr(simulation, 'continuous_output'):
+            simulation.continuous_output = False  # default 0, if one step approach should be used
+        elif hasattr(simulation, 'report_continuously'):
+            simulation.report_continuously = False  # default 0, if one step approach should be used
 
         # Create Solver and set settings
         noRootFunctions = np.size(self.state_events(self.t0, np.array(self.y0)))
