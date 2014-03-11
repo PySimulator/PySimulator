@@ -347,7 +347,10 @@ class SimulatorGui(QtGui.QMainWindow):
             model = loaderplugin.Model(modelName, [str(fileName)], self.config)
             self._newModel(model)
         except Exception as e:
-            print e.msg        
+            if hasattr(e, 'msg'):
+                print e.msg
+            else:
+                print e         
 
 
     def _openFileMenu(self, loaderplugin):
