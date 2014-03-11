@@ -1,0 +1,8 @@
+03-02-2014:
+
+Version 0.6 of PySimulator:
+ - New plugin for comparing result files (Testing plugin)
+ - Simulation of lists of models (Testing plugin)
+ - Improved simulator plugin interfaces
+ - FMUSimulator including JModelica.org's Assimulo
+ - Introduction of a working directory
