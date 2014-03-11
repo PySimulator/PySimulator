@@ -1,0 +1,4 @@
+03-09-2012:
+
+Version 0.5 of PySimulator:
+ - Initial version including plugins for Dymola and FMU simulator
