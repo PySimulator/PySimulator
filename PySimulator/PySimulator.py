@@ -343,8 +343,11 @@ class SimulatorGui(QtGui.QMainWindow):
             modelName = string.rsplit(sp[0], '/', 1)[1]
 
         self._chDir(os.path.dirname(fileName))
-        model = loaderplugin.Model(modelName, [str(fileName)], self.config)
-        self._newModel(model)
+        try:
+            model = loaderplugin.Model(modelName, [str(fileName)], self.config)
+            self._newModel(model)
+        except Exception as e:
+            print e.msg        
 
 
     def _openFileMenu(self, loaderplugin):
@@ -391,12 +394,18 @@ class SimulatorGui(QtGui.QMainWindow):
         self._loadingFileInfo()
         sp = string.rsplit(fileName, '.', 1)
         modelName = string.rsplit(sp[0], '/', 1)[1]
-        model = Plugins.Simulator.SimulatorBase.Model(modelName, None, 'None', self.config)
-        model.loadResultFile(fileName)
-        model.integrationResultFileSemaphore = threading.Semaphore()
-        self._newModel(model)
+        try:
+            model = Plugins.Simulator.SimulatorBase.Model(modelName, None, 'None', self.config)
+            model.loadResultFile(fileName)
+            model.integrationResultFileSemaphore = threading.Semaphore()
+            self._newModel(model)
+        except Exception as e:
+            if hasattr(e, 'msg'):
+                print e.msg
+            else:
+                print e 
+        
         self.setEnabled(True)
-
         self._chDir(os.path.dirname(fileName))
 
     def _openResultFileMenu(self):
