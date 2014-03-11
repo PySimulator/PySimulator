@@ -1,0 +1,6 @@
+07-03-2014:
+
+Version 0.61 of PySimulator:
+ - Added Simulator plugin SimulationX
+ - Added Simulator plugin OpenModelica
+ - Bug fixes
