@@ -71,8 +71,10 @@ class WindowConsole(QtGui.QWidget):
         self.input.commandEntered.connect(self.commandEntered)
         self.consoleAccessMutex = QtCore.QMutex()
 
+    '''
     def addCommand(self, name, function):
         self.env_global[name] = function
+    '''
 
     def scrollDown(self):
         sb = self.out.verticalScrollBar()
@@ -81,14 +83,14 @@ class WindowConsole(QtGui.QWidget):
     def commandEntered(self, command):
         if len(command) == 0:
             return
-        if self.echo:
-            print(">> " + command)
-        if command[0] == '.':
-            bcode = compile(command[1:], '<string>', 'exec')
-            exec(bcode, self.env_local, self.env_global)
-        else:
-            pass
-
+        if self.echo:            
+            print(">> " + command)        
+        try:
+            bcode = compile(command, '<string>', 'exec')
+            exec(bcode, self.env_local) #, self.env_global)            
+        except Exception as e:
+            print e
+        
     def write(self, text):
         self.buffer.put(text)
         self.update()
