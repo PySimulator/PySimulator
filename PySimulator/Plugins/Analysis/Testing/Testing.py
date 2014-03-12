@@ -221,14 +221,13 @@ def simulateListMenu(model, gui):
 
 
             def _browseSetupFileDo():
-                (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open Simulation Setup File', os.getcwd(), '(*.txt);;All Files(*.*)')
-                fileName = str(fileName)
+                (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open Simulation Setup File', os.getcwd(), '(*.txt);;All Files(*.*)')                
                 if fileName != '':
                     self.setupFileEdit.setText(fileName)
 
             def _browseDirResultsDo():
                 dirName = QtGui.QFileDialog().getExistingDirectory(self, 'Select Directory of Results', os.getcwd())
-                dirName = str(dirName).replace('\\', '/')
+                dirName = dirName.replace('\\', '/')
                 if dirName != '':
                     self.dirResultsEdit.setText(dirName)
 
@@ -326,19 +325,18 @@ def compareListMenu(model, gui):
 
             def _browseDir1Do():
                 dirName = QtGui.QFileDialog().getExistingDirectory(self, 'Open Directory of Results', os.getcwd())
-                dirName = str(dirName).replace('\\', '/')
+                dirName = dirName.replace('\\', '/')
                 if dirName != '':
                     self.dir1Edit.setText(dirName)
 
             def _browseDir2Do():
                 dirName = QtGui.QFileDialog().getExistingDirectory(self, 'Open Directory of Results', os.getcwd())
-                dirName = str(dirName).replace('\\', '/')
+                dirName = dirName.replace('\\', '/')
                 if dirName != '':
                     self.dir2Edit.setText(dirName)
 
             def _browseResultDo():
-                (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, 'Define Analysis Result File', os.getcwd(), '(*.log);;All Files(*.*)')
-                fileName = str(fileName)
+                (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, 'Define Analysis Result File', os.getcwd(), '(*.log);;All Files(*.*)')               
                 if fileName != '':
                     self.resultEdit.setText(fileName)
 
@@ -440,7 +438,7 @@ def runListSimulation(PySimulatorPath, setupFile, resultDir, allSimulators, dele
                     line.append(a[:7])
     f.close()
 
-    modelList = numpy.zeros((len(line),), dtype=[('fileName', 'S2000'), ('modelName', 'S2000'), ('tStart', 'f8'), ('tStop', 'f8'), ('tol', 'f8'), ('nInterval', 'i4'), ('includeEvents', 'b1')])
+    modelList = numpy.zeros((len(line),), dtype=[('fileName', 'U2000'), ('modelName', 'U2000'), ('tStart', 'f8'), ('tStop', 'f8'), ('tol', 'f8'), ('nInterval', 'i4'), ('includeEvents', 'b1')])
     for i, x in enumerate(line):
         absPath = x[0].replace('\\', '/')
         if not os.path.isabs(absPath):
@@ -629,8 +627,8 @@ class CompareThread(QtCore.QThread):
 
         fileOut = open(self.logFile, 'w')
         fileOut.write('Output file from comparison of list of simulation results within PySimulator\n')
-        fileOut.write('  directory 1 (reference) : ' + dir1 + '\n')
-        fileOut.write('  directory 2 (comparison): ' + dir2 + '\n')
+        fileOut.write('  directory 1 (reference) : ' + dir1.encode(sys.getfilesystemencoding()) + '\n')
+        fileOut.write('  directory 2 (comparison): ' + dir2.encode(sys.getfilesystemencoding()) + '\n')
 
 
         for index, name in enumerate(modelName1):

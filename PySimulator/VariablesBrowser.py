@@ -24,6 +24,7 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 import types
 from PySide import QtGui, QtCore
 import functools
+import sys
 
 
 class VariablesBrowser(QtGui.QTreeWidget):
@@ -221,7 +222,7 @@ class VariablesBrowser(QtGui.QTreeWidget):
                 if isinstance(model.variableTree.variable[qualifiedName].unit, unicode):
                     treeItem.setText(2, model.variableTree.variable[qualifiedName].unit)
                 elif isinstance(model.variableTree.variable[qualifiedName].unit, str):
-                    treeItem.setText(2, model.variableTree.variable[qualifiedName].unit.decode('cp1252'))
+                    treeItem.setText(2, model.variableTree.variable[qualifiedName].unit.decode(sys.getdefaultencoding()))
                 else:
                     treeItem.setText(2, '')
             except:

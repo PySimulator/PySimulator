@@ -181,7 +181,7 @@ class SimulatorGui(QtGui.QMainWindow):
         self.setMenuBar(menu)
 
         # Load config file and adapt it to a minimum structure according to loaded plugins
-        self.config = configobj.ConfigObj(self.rootDir + '/PySimulator.ini')
+        self.config = configobj.ConfigObj(self.rootDir + '/PySimulator.ini', encoding='utf8')
         if not self.config.has_key('PySimulator'):
             self.config['PySimulator'] = {}
             self.config['PySimulator']['workingDirectory'] = os.getcwd()
@@ -344,7 +344,7 @@ class SimulatorGui(QtGui.QMainWindow):
 
         self._chDir(os.path.dirname(fileName))
         try:
-            model = loaderplugin.Model(modelName, [str(fileName)], self.config)
+            model = loaderplugin.Model(modelName, [fileName], self.config)
             self._newModel(model)
         except Exception as e:
             if hasattr(e, 'msg'):
@@ -361,7 +361,7 @@ class SimulatorGui(QtGui.QMainWindow):
             extensionStr = extensionStr[:-1]
         ''' Load a model '''
         (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open Model', os.getcwd(), extensionStr)
-        fileName = str(fileName)
+        #fileName = str(fileName)
         if fileName == '':
             return
         split = string.rsplit(fileName, '.', 1)
@@ -454,7 +454,7 @@ class SimulatorGui(QtGui.QMainWindow):
     def _changeDirectoryMenu(self):
         ''' Select a working directory '''
         dirName = QtGui.QFileDialog().getExistingDirectory(self, 'Select Working Directory', os.getcwd())
-        dirName = str(dirName)
+        #dirName = str(dirName)
         if dirName == '':
             return
         self._chDir(dirName)

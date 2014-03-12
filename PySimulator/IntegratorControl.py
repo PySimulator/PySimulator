@@ -203,7 +203,7 @@ class IntegratorControl(QtGui.QDialog):
 
         def _browseSaveFileDo():            
             (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, 'Save results', os.getcwd(), '*.' + self.models[self.currentNumberedModelName].integrationSettings.resultFileExtension)
-            fileName = str(fileName)
+            #fileName = str(fileName)
             if fileName != '':
                 self.saveFilePath.setText(fileName)
 
@@ -311,7 +311,7 @@ class IntegratorControl(QtGui.QDialog):
             model.integrationSettings.gridPointsMode = 'Width'
         else:
             model.integrationSettings.gridPointsMode = 'Integrator'
-        model.integrationSettings.resultFileName = str(self.saveFilePath.text())
+        model.integrationSettings.resultFileName = self.saveFilePath.text()
         model.integrationSettings.plotOnline_isChecked = self.plot.isChecked()
         model.integrationSettings.duplicateModel_isChecked = self._duplicateModelCheck.isChecked()
 

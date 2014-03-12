@@ -37,6 +37,7 @@ from chaco.tools.pan_tool import PanTool  # there is some bug in in the default 
 from functools import partial
 from numpy import array
 import math
+import sys
 
 
 class plotContainer_test(QtGui.QWidget):
@@ -707,7 +708,7 @@ class DefaultPlotWidget(PlotWidget):
                     if isinstance(model.variableTree.variable[variable].unit, unicode):
                         unit = ' [' + model.variableTree.variable[variable].unit + ']'
                     elif isinstance(model.variableTree.variable[variable].unit, str):
-                        unit = ' [' + model.variableTree.variable[variable].unit.decode('cp1252') + ']'
+                        unit = ' [' + model.variableTree.variable[variable].unit.decode(sys.getdefaultencoding()) + ']'
                 except:
                     pass
 

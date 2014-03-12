@@ -61,8 +61,8 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         self.integrationSettings.algorithmName = self._availableIntegrationAlgorithms[0]
 
         # Compile model, generate initialization file (including all variable names) and read this file
-        self._compileModel()
-        subprocess.call(self.fileNameExec + ' -ib dsin.mat')
+        self._compileModel()        
+        subprocess.call((self.fileNameExec + ' -ib dsin.mat').encode(sys.getfilesystemencoding()))
         self._initialResult = DymolaMat.loadDymolaInit(os.path.abspath('.') + '/dsin.mat')
 
 
@@ -337,9 +337,9 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         self._compileModel()
 
         # Write input file and start simulation
-        writeDsin(self.changedStartValue)
-        subprocess.call(self.fileNameExec + ' -s dsin.txt ' + self.integrationSettings.resultFileName)
-
+        writeDsin(self.changedStartValue)      
+        subprocess.call((self.fileNameExec + ' -s dsin.txt ' + self.integrationSettings.resultFileName).encode(sys.getfilesystemencoding()))
+        
         # Simulation statistics from dslog.txt
         readStatistics()
 
@@ -387,8 +387,8 @@ def prepareSimulationList(fileName, name, config):
     timeStampModel = 0
     translateModel = []
     for x in name:
-        translateModel.append(True)
-        fileNameExec.append(pwd + '/' + x + suffix)
+        translateModel.append(True)         
+        fileNameExec.append(pwd.decode(sys.getfilesystemencoding()) + '/' + x + suffix)
         if os.path.exists(fileNameExec[-1]):
             if timeStampModel == 0:
                 for x in fileName:
@@ -414,7 +414,7 @@ def prepareSimulationList(fileName, name, config):
         ''' Ask for Dymola executable '''
         print "No Dymola executable (Dymola.exe) found to run Dymola. Please select one ..."
         (dymolaPath, trash) = QtGui.QFileDialog().getOpenFileName(None, 'Select Dymola executable file', os.getcwd(), 'Executation file (*.exe)')
-        dymolaPath = str(dymolaPath)
+        #dymolaPath = str(dymolaPath)
         if dymolaPath == '':
             print "failed. No Dymola executable (Dymola.exe) specified."
             return None
@@ -432,7 +432,7 @@ def prepareSimulationList(fileName, name, config):
     mosFile = open(mosFileName, "w")
     for x in fileName:
         if x != '':
-            mosFile.write("openModel(\"" + x + "\");\n")
+            mosFile.write("openModel(\"" + x.encode(sys.getfilesystemencoding()) + "\");\n")
     mosFile.write("cd(\"" + pwd + "\");\n")
     mosFile.write("Modelica.Utilities.Files.remove(\"dymosim.exe\");\n")
     for x in name:        
@@ -443,7 +443,7 @@ def prepareSimulationList(fileName, name, config):
     mosFile.write("exit();\n")
     mosFile.close()
 
-    subprocess.call(dymolaPath + ' /nowindow ' + pwd + '/' + mosFileName)
+    subprocess.call((dymolaPath + ' /nowindow ' + pwd.decode(sys.getfilesystemencoding()) + '/' + mosFileName).encode(sys.getfilesystemencoding()))
 
     for i, x in enumerate(fileNameExec):
         if os.path.exists(x):
