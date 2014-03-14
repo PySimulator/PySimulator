@@ -24,3 +24,20 @@ Installation:
 * Start "Install PySimulator.bat".
 * Run PySimulator by clicking on the desktop icon after the installation.
 * Further information about the installation can be found in the [wiki](../../wiki/Installation).
+
+##Release notes:
+
+* [Version 0.61](https://github.com/PySimulator/PySimulator/archive/0.61.zip) (07-03-2014) for Modelica Conference:
+ - Added Simulator plugin SimulationX
+ - Added Simulator plugin OpenModelica
+ - Bug fixes
+
+* [Version 0.6](https://github.com/PySimulator/PySimulator/archive/0.6.zip) (03-02-2014):
+ - New plugin for comparing result files (Testing plugin)
+ - Simulation of lists of models (Testing plugin)
+ - Improved simulator plugin interfaces
+ - FMUSimulator including JModelica.org's Assimulo
+ - Introduction of a working directory
+
+* [Version 0.5](https://github.com/PySimulator/PySimulator/archive/0.5.zip) (03-09-2012):
+ - Initial version including plugins for Dymola and FMU simulator
