@@ -1,4 +1,0 @@
-xx-xx-2014:
-
-Version 0.xx of PySimulator:
- - 
