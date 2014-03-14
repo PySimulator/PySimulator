@@ -16,7 +16,7 @@ for both simulation and analysis.
 with PySimulator](http:www.modprod.liu.se/modprod2013-program/1.456422/modprod2013-day2-talk05a-AndreasPfeiffer.pdf). Invited talk at 7th MODPROD Workshop on Model-Based Product Development, Linköping, Sweden, Feb. 2013.
 
 ####Supported Platforms:
-* Windows
+* Windows (Other platforms have not been tested.)
 
 ####Installation:
 * To install PySimulator one of the following requirements has to be fulfilled:
