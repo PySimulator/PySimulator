@@ -27,17 +27,17 @@ Installation:
 
 ##Release notes:
 
-* [Version 0.61](https://github.com/PySimulator/PySimulator/archive/0.61.zip) (07-03-2014) for Modelica Conference:
+* [Version 0.61](https://github.com/PySimulator/PySimulator/archive/0.61.zip) (2014-03-07) for Modelica Conference:
  - Added Simulator plugin SimulationX
  - Added Simulator plugin OpenModelica
  - Bug fixes
 
-* [Version 0.6](https://github.com/PySimulator/PySimulator/archive/0.6.zip) (03-02-2014):
+* [Version 0.6](https://github.com/PySimulator/PySimulator/archive/0.6.zip) (2014-02-03):
  - New plugin for comparing result files (Testing plugin)
  - Simulation of lists of models (Testing plugin)
  - Improved simulator plugin interfaces
  - FMUSimulator including JModelica.org's Assimulo
  - Introduction of a working directory
 
-* [Version 0.5](https://github.com/PySimulator/PySimulator/archive/0.5.zip) (03-09-2012):
+* [Version 0.5](https://github.com/PySimulator/PySimulator/archive/0.5.zip) (2012-09-03):
  - Initial version including plugins for Dymola and FMU simulator
