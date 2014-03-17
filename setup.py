@@ -17,7 +17,6 @@ setuptools.setup(
         },
 
     install_requires=[
-        "pywin32",
         "PySide>=1.1",
         "Traits>=4.2",
         "Enable>=4.2",
