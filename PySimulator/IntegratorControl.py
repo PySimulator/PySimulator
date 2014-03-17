@@ -23,7 +23,6 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 from PySide import QtGui, QtCore
 import threading
 import types
-import pythoncom
 
 import os
 import math
@@ -201,7 +200,7 @@ class IntegratorControl(QtGui.QDialog):
         def _plotOnlineChanged():
             self.models[self.currentNumberedModelName].integrationSettings.plotOnline_isChecked = self.plot.isChecked()
 
-        def _browseSaveFileDo():            
+        def _browseSaveFileDo():
             (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, 'Save results', os.getcwd(), '*.' + self.models[self.currentNumberedModelName].integrationSettings.resultFileExtension)
             #fileName = str(fileName)
             if fileName != '':
@@ -548,6 +547,7 @@ class simulationThread(QtCore.QThread):
         super(simulationThread, self).__init__(parent)
 
     def run(self):
+        haveCOM = False
         try:
             '''
             Do the numerical integration in a try branch
@@ -560,7 +560,12 @@ class simulationThread(QtCore.QThread):
             except:
                 # do nothing, since error message only indicates we are not in debug mode
                 pass
-            pythoncom.CoInitialize()  # Initialize the COM library on the current thread
+            try:
+                import pythoncom
+                pythoncom.CoInitialize()  # Initialize the COM library on the current thread
+                haveCOM = True
+            except:
+                pass
             self.model.simulate()
         except Plugins.Simulator.SimulatorBase.Stopping:
             print("solver canceled ... ")
@@ -568,7 +573,11 @@ class simulationThread(QtCore.QThread):
             print("unexpected error ... ")
             print e
         finally:
-            pythoncom.CoUninitialize()  # Close the COM library on the current thread
+            if haveCOM:
+                try:
+                    pythoncom.CoUninitialize() # Close the COM library on the current thread
+                except:
+                    pass
 
 
         # Define simulation completed to stop updating plots and come back to the GUI

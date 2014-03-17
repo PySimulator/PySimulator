@@ -123,6 +123,21 @@ class Model():
     ''' This is the base class for a model of a Simulator plugin
     '''
 
+    def __init__(self, modelName, modelFileName, modelType, config):
+        ''' Constructor initializes some class variables.
+            Type of modelName, modelType:  String;     modelFileName: List of Strings
+        '''
+        self.fileName = modelFileName
+        self.name = modelName
+        self.modelType = modelType  # e.g. 'None', 'FMI1.0', 'FMI2.0', 'Dymola', 'OpenModelica'
+        self.integrationSettings = IntegrationSettings()
+        self.integrationStatistics = IntegrationStatistics()
+        self.integrationResults = IntegrationResults.Results()
+        self.variableTree = VariableTree()
+        self.changedStartValue = dict()
+        self.pluginData = dict()
+        self.config = config
+
     def close(self):
         ''' Function is called when closing the model.
             Resources used by the model instance should be released.
@@ -145,22 +160,6 @@ class Model():
         theCopy.changedStartValue = copy.copy(self.changedStartValue)  # new instance of changedStartValue dictionary
         theCopy.pluginData = dict()  # new instance of pluginData dictionary
         return theCopy
-
-    def __init__(self, modelName, modelFileName, modelType, config):
-        ''' Constructor initializes some class variables.
-            Type of modelName, modelType:  String;     modelFileName: List of Strings
-        '''
-        self.fileName = modelFileName
-        self.name = modelName
-        self.modelType = modelType  # e.g. 'None', 'FMI1.0', 'FMI2.0', 'Dymola', 'OpenModelica'
-        self.integrationSettings = IntegrationSettings()
-        self.integrationStatistics = IntegrationStatistics()
-        self.integrationResults = IntegrationResults.Results()
-        self.variableTree = VariableTree()
-        self.changedStartValue = dict()
-        self.pluginData = dict()
-        self.config = config
-
 
     def loadResultFile(self, fileName):
         ''' Loads a result file (format must be known by a SimulationResult plugin) with file name fileName
@@ -388,6 +387,3 @@ class Model():
 
 def prepareSimulationList(fileName, name, config):
     pass
-
-
-
