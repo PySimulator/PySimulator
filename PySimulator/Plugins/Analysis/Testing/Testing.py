@@ -25,7 +25,6 @@ import Compare
 import numpy
 import os
 import sys
-import pythoncom
 import shutil
 from PySide import QtGui, QtCore
 import Plugins.Simulator
@@ -221,7 +220,7 @@ def simulateListMenu(model, gui):
 
 
             def _browseSetupFileDo():
-                (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open Simulation Setup File', os.getcwd(), '(*.txt);;All Files(*.*)')                
+                (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open Simulation Setup File', os.getcwd(), '(*.txt);;All Files(*.*)')
                 if fileName != '':
                     self.setupFileEdit.setText(fileName)
 
@@ -336,7 +335,7 @@ def compareListMenu(model, gui):
                     self.dir2Edit.setText(dirName)
 
             def _browseResultDo():
-                (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, 'Define Analysis Result File', os.getcwd(), '(*.log);;All Files(*.*)')               
+                (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, 'Define Analysis Result File', os.getcwd(), '(*.log);;All Files(*.*)')
                 if fileName != '':
                     self.resultEdit.setText(fileName)
 
@@ -515,8 +514,14 @@ class simulationThread(QtCore.QThread):
             simulator.prepareSimulationList(globalPackageList, globalModelList, self.config)
 
 
+            haveCOM = False
             try:
-                pythoncom.CoInitialize() # Initialize the COM library on the current thread
+                try:
+                    import pythoncom
+                    pythoncom.CoInitialize()  # Initialize the COM library on the current thread
+                    haveCOM = True
+                except:
+                    pass
                 for i in xrange(len(self.modelList['fileName'])):
                     if self.stopRequest:
                         print "... Simulations canceled."
@@ -569,7 +574,11 @@ class simulationThread(QtCore.QThread):
             except:
                 pass
             finally:
-                pythoncom.CoUninitialize() # Close the COM library on the current thread
+                if haveCOM:
+                    try:
+                        pythoncom.CoUninitialize() # Close the COM library on the current thread
+                    except:
+                        pass
 
         print "... running the list of simulations done."
         self.running = False
@@ -669,5 +678,3 @@ class CompareThread(QtCore.QThread):
 
         print "... running the analysis done."
         self.running = False
-
-
