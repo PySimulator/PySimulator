@@ -350,7 +350,7 @@ class SimulatorGui(QtGui.QMainWindow):
             if hasattr(e, 'msg'):
                 print e.msg
             else:
-                print e         
+                print e
 
 
     def _openFileMenu(self, loaderplugin):
@@ -361,7 +361,7 @@ class SimulatorGui(QtGui.QMainWindow):
             extensionStr = extensionStr[:-1]
         ''' Load a model '''
         (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open Model', os.getcwd(), extensionStr)
-        #fileName = str(fileName)
+        # fileName = str(fileName)
         if fileName == '':
             return
         split = string.rsplit(fileName, '.', 1)
@@ -406,8 +406,8 @@ class SimulatorGui(QtGui.QMainWindow):
             if hasattr(e, 'msg'):
                 print e.msg
             else:
-                print e 
-        
+                print e
+
         self.setEnabled(True)
         self._chDir(os.path.dirname(fileName))
 
@@ -454,7 +454,7 @@ class SimulatorGui(QtGui.QMainWindow):
     def _changeDirectoryMenu(self):
         ''' Select a working directory '''
         dirName = QtGui.QFileDialog().getExistingDirectory(self, 'Select Working Directory', os.getcwd())
-        #dirName = str(dirName)
+        # dirName = str(dirName)
         if dirName == '':
             return
         self._chDir(dirName)

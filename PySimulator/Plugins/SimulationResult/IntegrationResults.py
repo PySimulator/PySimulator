@@ -36,13 +36,13 @@ class ResultVariable():
     '''
     def __init__(self, value, unit, variability, infos, seriesIndex, column, sign):
         #                                  Types
-        self.value = value               # E.g. Float, Integer, Boolean
-        self.unit = unit                 # String
-        self.variability = variability   # String
-        self.infos = infos               # Dictionary of Strings
-        self.seriesIndex = seriesIndex   # Integer
-        self.column = column             # Integer
-        self.sign = sign                 # Integer (-1 / +1)
+        self.value = value  # E.g. Float, Integer, Boolean
+        self.unit = unit  # String
+        self.variability = variability  # String
+        self.infos = infos  # Dictionary of Strings
+        self.seriesIndex = seriesIndex  # Integer
+        self.column = column  # Integer
+        self.sign = sign  # Integer (-1 / +1)
 
 
 class Results():
@@ -51,8 +51,8 @@ class Results():
     def __init__(self):
         ''' Set important variables to default values
         '''
-        self.fileName = ''               # File name of result file
-        self.isAvailable = False         # Shows, if there is a file available to be read
+        self.fileName = ''  # File name of result file
+        self.isAvailable = False  # Shows, if there is a file available to be read
         self.canLoadPartialData = False  # True, if data can be loaded from
         #                                  result file although simulation is not finished
         self.nTimeSeries = 0
@@ -69,7 +69,7 @@ class Results():
             and 'clocked' for discrete values only at the time instances.
         '''
         pass
-        #return t, y, method  # Types  numpy-array, numpy-array, String
+        # return t, y, method  # Types  numpy-array, numpy-array, String
 
     def getVariables(self):
         ''' Returns a dictionary with names of variables as keys

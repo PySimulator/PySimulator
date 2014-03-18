@@ -83,14 +83,14 @@ class WindowConsole(QtGui.QWidget):
     def commandEntered(self, command):
         if len(command) == 0:
             return
-        if self.echo:            
-            print(">> " + command)        
+        if self.echo:
+            print(">> " + command)
         try:
             bcode = compile(command, '<string>', 'exec')
-            exec(bcode, self.env_local) #, self.env_global)            
+            exec(bcode, self.env_local)  # , self.env_global)
         except Exception as e:
             print e
-        
+
     def write(self, text):
         self.buffer.put(text)
         self.update()

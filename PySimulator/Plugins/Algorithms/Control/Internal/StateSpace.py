@@ -195,7 +195,7 @@ class StateSpace:
            If s_k is complex, a linear system with complex coefficients is solved.
         """
         if self.nu == 0 or self.ny == 0:
-            raise ValueError("evaluate_at_s requires at least one input and one output of the StateSpace system\n" + 
+            raise ValueError("evaluate_at_s requires at least one input and one output of the StateSpace system\n" +
                              "but nu = %s, ny = %d" % (self.nu, self.ny))
         elif self.nx == 0:
             return self.D

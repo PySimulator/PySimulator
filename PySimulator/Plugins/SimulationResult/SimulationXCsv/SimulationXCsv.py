@@ -43,7 +43,7 @@ class Results(IntegrationResults.Results):
     def __init__(self, fileName):
         IntegrationResults.Results.__init__(self)
 
-        self.fileName = fileName         # File name of result file
+        self.fileName = fileName  # File name of result file
         ''' Load file
         '''
 
@@ -60,18 +60,18 @@ class Results(IntegrationResults.Results):
         # Load main data
         csvfile = open(self.fileName, 'rb')
         reader = csv.reader(csvfile, delimiter=';')
-        self._name = reader.next() # first row contains the variable names
-        self._unit = reader.next() # second row contains the units
-        data  = numpy.loadtxt(csvfile, delimiter=';')
+        self._name = reader.next()  # first row contains the variable names
+        self._unit = reader.next()  # second row contains the units
+        data = numpy.loadtxt(csvfile, delimiter=';')
         csvfile.close()
 
-        self._isParameter = len(self._name)*[False]
+        self._isParameter = len(self._name) * [False]
         if numpy.ndim(data) > 1:
-            self.timeSeries.append(IntegrationResults.TimeSeries(data[:,0], data[:,1:], "linear"))
+            self.timeSeries.append(IntegrationResults.TimeSeries(data[:, 0], data[:, 1:], "linear"))
 
-            self._name = self._name[1:] # delete 'Time'
-            self._unit = self._unit[1:] # delete unit of 'Time'
-            self._isParameter = self._isParameter[1:] # delete isParameter of 'Time'
+            self._name = self._name[1:]  # delete 'Time'
+            self._unit = self._unit[1:]  # delete unit of 'Time'
+            self._isParameter = self._isParameter[1:]  # delete isParameter of 'Time'
         else:
             data = numpy.reshape(data, (len(data), 1))
             self.timeSeries.append(IntegrationResults.TimeSeries(data, data, "linear"))
@@ -79,7 +79,7 @@ class Results(IntegrationResults.Results):
 
         # Load parameters
         try:
-            csvfile = open(self.fileName+'p', 'rb')
+            csvfile = open(self.fileName + 'p', 'rb')
             parameterFileExists = True
         except IOError:
             parameterFileExists = False
@@ -87,8 +87,8 @@ class Results(IntegrationResults.Results):
 
         if parameterFileExists:
             reader = csv.reader(csvfile, delimiter=';')
-            name2 = reader.next() # first row contains the variable names
-            unit2 = reader.next() # second row contains the units
+            name2 = reader.next()  # first row contains the variable names
+            unit2 = reader.next()  # second row contains the units
             data = numpy.loadtxt(csvfile, delimiter=';')
             csvfile.close()
 
@@ -96,12 +96,12 @@ class Results(IntegrationResults.Results):
                 data = numpy.array([data])
             data = numpy.reshape(data, (1, len(data)))
             self.timeSeries.append(IntegrationResults.TimeSeries(None, data, "constant"))
-            self._isParameter.extend(len(name2)*[True])
+            self._isParameter.extend(len(name2) * [True])
             self._name.extend(name2)
             self._unit.extend(unit2)
 
 
-        self._info = len(self._name)*['']
+        self._info = len(self._name) * ['']
         self._filterName()
         self._filterUnit()
 
@@ -114,12 +114,12 @@ class Results(IntegrationResults.Results):
                 if self._unit[i] == 'deg':
                     self._unit[i] = 'rad'
                     if self._isParameter[i]:
-                        self.timeSeries[1].data[0,i-self.timeSeries[0].data.shape[1]] *= math.pi/180.0
+                        self.timeSeries[1].data[0, i - self.timeSeries[0].data.shape[1]] *= math.pi / 180.0
                     else:
-                        self.timeSeries[0].data[:,i] *= math.pi/180.0
+                        self.timeSeries[0].data[:, i] *= math.pi / 180.0
 
 
-        self.isAvailable = True         # Shows, if there is a file available to be read
+        self.isAvailable = True  # Shows, if there is a file available to be read
 
     def _filterUnit(self):
 
@@ -137,7 +137,7 @@ class Results(IntegrationResults.Results):
                 self._info[i] = x[k:]
                 x = x[:k]
 
-            #if len(x)>5:  # Convert der(a.b.c.d) to a.b.c.der(d)
+            # if len(x)>5:  # Convert der(a.b.c.d) to a.b.c.der(d)
             #    if x[:4] == 'der(':
             #        k = x.rfind('.')
             #        if k > -1:
@@ -150,10 +150,10 @@ class Results(IntegrationResults.Results):
         if nameIndex < 0:
             return None, None, None
         if self._isParameter[nameIndex]:
-            y = numpy.array([self.timeSeries[1].data[0,nameIndex-self.timeSeries[0].data.shape[1]]])
+            y = numpy.array([self.timeSeries[1].data[0, nameIndex - self.timeSeries[0].data.shape[1]]])
             i = 1
         else:
-            y = self.timeSeries[0].data[:,nameIndex]
+            y = self.timeSeries[0].data[:, nameIndex]
             i = 0
 
         t = self.timeSeries[i].independentVariable
@@ -172,7 +172,7 @@ class Results(IntegrationResults.Results):
 
             if self._isParameter[i]:
                 variability = 'fixed'
-                value = self.timeSeries[1].data[0,i-self.timeSeries[0].data.shape[1]]
+                value = self.timeSeries[1].data[0, i - self.timeSeries[0].data.shape[1]]
                 seriesIndex = 1
                 column = i - self.timeSeries[0].data.shape[1]
             else:
@@ -192,7 +192,7 @@ class Results(IntegrationResults.Results):
             else:
                 variables[name] = IntegrationResults.ResultVariable(value, unit, variability, infos, seriesIndex, column, sign)
 
-        #print self._name
+        # print self._name
 
         return variables
 

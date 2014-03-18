@@ -39,7 +39,7 @@ def to_Hz(w):
     Return arguments:
        f: [Hz] (scalar or numpy array)
     """
-    return w/(2*numpy.pi)
+    return w / (2 * numpy.pi)
 
 
 def from_Hz(f):
@@ -52,7 +52,7 @@ def from_Hz(f):
     Return arguments:
        w: [rad/s] (scalar or numpy array)
     """
-    return 2*numpy.pi*f
+    return 2 * numpy.pi * f
 
 
 def to_deg(angle_rad):
@@ -65,7 +65,7 @@ def to_deg(angle_rad):
     Return arguments:
        angle_deg: [deg] Angle in deg (scalar or numpy array)
     """
-    return (180.0/numpy.pi)*angle_rad
+    return (180.0 / numpy.pi) * angle_rad
 
 
 def from_deg(angle_deg):
@@ -78,7 +78,7 @@ def from_deg(angle_deg):
     Return arguments:
        angle_rad: [rad] Angle in rad (scalar or numpy array)
     """
-    return (numpy.pi/180.0)*angle_deg
+    return (numpy.pi / 180.0) * angle_deg
 
 
 def continuousAngle(c):
@@ -96,14 +96,14 @@ def continuousAngle(c):
     """
     c_phi = numpy.angle(c)
     c_old = 0.0
-    pi    = numpy.pi
-    pi2   = 2*numpy.pi
-    for (i,phi) in enumerate(c_phi):
-        aux = pi2*math.floor( (abs(phi-c_old)+pi) / pi2)
+    pi = numpy.pi
+    pi2 = 2 * numpy.pi
+    for (i, phi) in enumerate(c_phi):
+        aux = pi2 * math.floor((abs(phi - c_old) + pi) / pi2)
         if c_old > aux:
-            c_phi[i] = phi+aux
+            c_phi[i] = phi + aux
         else:
-            c_phi[i] = phi-aux
+            c_phi[i] = phi - aux
         c_old = c_phi[i]
     return c_phi
 
@@ -130,7 +130,7 @@ def frequencyRange(zeros, poles, f_range=None):
         return f_range
 
     # f_range == None: Determine frequency range from zeros and poles
-    eps   = 1.0e-6
+    eps = 1.0e-6
     z_abs = abs(zeros)
     z_abs = z_abs[ z_abs > eps ]
     p_abs = abs(poles)
@@ -150,8 +150,8 @@ def frequencyRange(zeros, poles, f_range=None):
             w_min = from_Hz(1.0)
             w_max = from_Hz(1.0)
 
-    f_min = to_Hz( w_min/10.0 )
-    f_max = to_Hz( w_max*10.0 )
+    f_min = to_Hz(w_min / 10.0)
+    f_max = to_Hz(w_max * 10.0)
 
     return (f_min, f_max)
 
@@ -161,12 +161,12 @@ def normalizeIndices(nu, ny, u_indices=None, y_indices=None):
     Normalize the indices
     """
     if u_indices == None:
-        ui = range(0,nu)
+        ui = range(0, nu)
     else:
         ui = u_indices
 
     if y_indices == None:
-        yi = range(0,ny)
+        yi = range(0, ny)
     else:
         yi = y_indices
 
@@ -189,13 +189,13 @@ def getFloatVector(A, Aname, copy=True):
           If A is vector like, A2 is a numpy array [:]
     """
     # Transform to float numpy array
-    A2 = numpy.array(A,dtype=numpy.float64, copy=copy)
+    A2 = numpy.array(A, dtype=numpy.float64, copy=copy)
 
     # Reshape array if necessary
     s = A2.shape
     if len(s) == 0:
         # scalar
-        A2 = numpy.array(A2,ndmin=1,copy=False)
+        A2 = numpy.array(A2, ndmin=1, copy=False)
     elif len(s) > 1:
         # more than 1 dimensions, error
         raise ValueError("Array {} has more than 1 dimension".format(Aname))
@@ -219,16 +219,16 @@ def getFloatMatrix(A, Aname, copy=True):
           If A is matrix like, A2 is a numpy array of the same shape
     """
     # Transform to float numpy array
-    A2 = numpy.array(A,dtype=numpy.float64, copy=copy)
+    A2 = numpy.array(A, dtype=numpy.float64, copy=copy)
 
     # Reshape array if necessary
     s = A2.shape
     if len(s) == 0:
         # scalar
-        A2 = numpy.array(A2,ndmin=2,copy=False)
+        A2 = numpy.array(A2, ndmin=2, copy=False)
     elif len(s) == 1:
         # vector
-        A2 = numpy.array(A2,ndmin=2,copy=False).T
+        A2 = numpy.array(A2, ndmin=2, copy=False).T
     elif len(s) > 2:
         # more than 2 dimensions, error
         raise ValueError("Array {} has more than 2 dimensions".format(Aname))
@@ -240,7 +240,7 @@ def getFloatMatrix(A, Aname, copy=True):
 if __name__ == "__main__":
     s = getFloatMatrix(2, "s")
     print("s = {}".format(s))
-    v = getFloatMatrix([1,2,3], "v")
+    v = getFloatMatrix([1, 2, 3], "v")
     print("v =\n{}".format(v))
-    m = getFloatMatrix([[2,3],[4,5],[6,7]], "m")
+    m = getFloatMatrix([[2, 3], [4, 5], [6, 7]], "m")
     print("m =\n{}".format(m))

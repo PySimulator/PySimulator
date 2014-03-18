@@ -63,15 +63,15 @@ class SignalInfo:
         nsig = len(names)
         if units != None and len(units) != nsig:
             raise ValueError("len(units) (= %d) is not identical to len(names) (= %d)."
-                            % (len(units), len(names)) )
+                            % (len(units), len(names)))
         if descriptions != None and len(descriptions) != nsig:
             raise ValueError("len(descriptions) (= %d) is not identical to len(names) (= %d)."
-                            % (len(descriptions), len(names)) )
+                            % (len(descriptions), len(names)))
 
         # Store input arguments
-        self.nsig         = nsig   # number of signals
-        self.names        = names
-        self.units        = units
+        self.nsig = nsig  # number of signals
+        self.names = names
+        self.units = units
         self.descriptions = descriptions
 
 
@@ -82,7 +82,7 @@ class SignalInfo:
         def getStringLengths(s):
             """ Get string lengths of all list elements """
             ns = numpy.zeros(len(s), dtype=int)
-            for (i,ss) in enumerate(s):
+            for (i, ss) in enumerate(s):
                 ns[i] = len(ss)
             return ns
 
@@ -90,8 +90,8 @@ class SignalInfo:
         nUnits = min(10, getStringLengths(self.units).max())
 
         s = "[\n"
-        for (i,name) in enumerate(self.names):
-            s += "   {:<{width}}".format(name,width=nNames)
+        for (i, name) in enumerate(self.names):
+            s += "   {:<{width}}".format(name, width=nNames)
             if self.units != None or self.descriptions != None:
                 s += " # "
                 if self.units != None:
@@ -238,11 +238,11 @@ class LTI:
         """
         # Normalize indices
         if u_indices == None:
-            ui = range(0,self.nu)
+            ui = range(0, self.nu)
         else:
             ui = u_indices
         if y_indices == None:
-            yi = range(0,self.ny)
+            yi = range(0, self.ny)
         else:
             yi = y_indices
 
@@ -270,7 +270,7 @@ class LTI:
         """
         Return the eigen values and optionally the left and/or right eigen vectors
         """
-        return self.ss.eig(left=left,right=right)
+        return self.ss.eig(left=left, right=right)
 
 
     def zeros_ij(self, ui=0, yj=0):
@@ -347,10 +347,10 @@ class LTI:
 
         # Create arrays for the result and for utility vectors
         nt = nint + 1  # Number of time steps
-        t  = numpy.linspace(tstart, tstop, nt)
-        Y  = numpy.zeros( (nt,self.ny) )
+        t = numpy.linspace(tstart, tstop, nt)
+        Y = numpy.zeros((nt, self.ny))
         if x0 == None:
-            xt = numpy.zeros( self.nx )
+            xt = numpy.zeros(self.nx)
         else:
             xt = x0
 
@@ -369,7 +369,7 @@ class LTI:
             Define differential equation to be simulated
                der(x) = A*x + B*u
             """
-            return dot(A,x) # + numpy.dot(B,u)
+            return dot(A, x)  # + numpy.dot(B,u)
 
         tout = []
         Yout = []
@@ -382,11 +382,11 @@ class LTI:
                 x : State vector
             """
             tout.append(t)
-            Yout.append(dot(C, x)) #[i,:]
+            Yout.append(dot(C, x))  # [i,:]
 
-            print "obtained result at t=",t," with y=", Yout[-1]
+            print "obtained result at t=", t, " with y=", Yout[-1]
 
-        #We have no state events, so add a constant switch function:
+        # We have no state events, so add a constant switch function:
         def state_events(t, x):
             return numpy.ones(1)
 
@@ -401,7 +401,7 @@ class LTI:
 
         def handle_event(solver, event_info=None):
 
-            #Get the next time event
+            # Get the next time event
             self.nextTimeEvent = next(x[1] for x in enumerate(self.timeEvents) if x[1] > solver.t_cur)
 
             # Results at events are not handled by Cvode,
@@ -426,7 +426,7 @@ class LTI:
         self.completed_step = completed_step
 
         if Ut <> None:
-            self.timeEvents = [Ut[x,0] for x in numpy.arange(Ut[:,0].shape[0]-1) if Ut[x,0] == Ut[x+1,0]]
+            self.timeEvents = [Ut[x, 0] for x in numpy.arange(Ut[:, 0].shape[0] - 1) if Ut[x, 0] == Ut[x + 1, 0]]
             if not self.timeEvents:
                 self.nextTimeEvent = 1e10
             else:
@@ -434,11 +434,11 @@ class LTI:
         else:
             self.nextTimeEvent = 1e10
 
-        simulator.simulate(tstop, nint, None)   #select gridWidth = None to work with number of intervals nint
+        simulator.simulate(tstop, nint, None)  # select gridWidth = None to work with number of intervals nint
 
-        #sim = ode(f).set_integrator("vode", method="bdf", rtol=tol)
-        #sim.set_initial_value(xt,tstart)
-        #for (i,tt) in enumerate(t):
+        # sim = ode(f).set_integrator("vode", method="bdf", rtol=tol)
+        # sim.set_initial_value(xt,tstart)
+        # for (i,tt) in enumerate(t):
         #    if i > 0: sim.integrate(tt)
         #    # Store y = C*x + B*u
         #    Y[i,:] = dot(C,sim.y)
@@ -461,25 +461,25 @@ if __name__ == "__main__":
     print("info =" + str(info))
 
     # Generate and print an LTI system without signal information
-    lti1 = LTI( ([[1,2],[3,4]], [1,3], [3,4], [4]) )
+    lti1 = LTI(([[1, 2], [3, 4]], [1, 3], [3, 4], [4]))
     print("lti1 =\n" + str(lti1))
 
     # Generate and print an LTI system with signal information
-    lti2 = LTI( ([[1,2,3],[4,5,6],[7,8,9]],
-                 [[11,12],[21,22],[31,32]],
-                 [[11,12,13],[21,22,23]],
+    lti2 = LTI(([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                 [[11, 12], [21, 22], [31, 32]],
+                 [[11, 12, 13], [21, 22, 23]],
                  ),
-                 info = "Linearized system of a drive train",
-                 info_u = (["u1", "u2"], ["N", "Nm"] , ["Force acting on flange_a", "Torque acting on flange_b"]),
-                 info_y = (["y1", "y2"], ["m", "rad"], ["Position of mass", "Angle of inertia"]),
-                 info_x = (["x1", "x2", "x3"], ["V", "A", "W"], ["Voltage of source", "Current of source", "Active power"])
+                 info="Linearized system of a drive train",
+                 info_u=(["u1", "u2"], ["N", "Nm"] , ["Force acting on flange_a", "Torque acting on flange_b"]),
+                 info_y=(["y1", "y2"], ["m", "rad"], ["Position of mass", "Angle of inertia"]),
+                 info_x=(["x1", "x2", "x3"], ["V", "A", "W"], ["Voltage of source", "Current of source", "Active power"])
               )
     print("lti2 =\n" + str(lti2))
 
     # Generate LTI SISO system
-    lti3 = LTI( ([[1, 2, 3],
-                  [4,-5,-6],
-                  [7, 8, 5]], numpy.ones((3,1)), numpy.ones((1,3)), [[0]]))
+    lti3 = LTI(([[1, 2, 3],
+                  [4, -5, -6],
+                  [7, 8, 5]], numpy.ones((3, 1)), numpy.ones((1, 3)), [[0]]))
 
     # Print eigen values
     poles = lti3.eig()
@@ -491,10 +491,10 @@ if __name__ == "__main__":
 
     # Perform a time response
     T = 0.1
-    lti4 = LTI( ([[-1/T]],None,[[1]],None) )
+    lti4 = LTI(([[-1 / T]], None, [[1]], None))
     print("lti4 = " + str(lti4))
-    (t,y) = lti4.timeResponse(nint=10,x0=[1])
-    print("t={}\ny={}\n".format(t,y))
+    (t, y) = lti4.timeResponse(nint=10, x0=[1])
+    print("t={}\ny={}\n".format(t, y))
 
 
 

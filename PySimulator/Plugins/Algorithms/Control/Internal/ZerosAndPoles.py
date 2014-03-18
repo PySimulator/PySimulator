@@ -73,7 +73,7 @@ def transformRootsToPoly2(roots):
                                             numpy.vstack((numpy.ones(np), numpy.abs(r1.real))
                                          ), 0)
     if not numpy.alltrue(isConj):
-        raise ValueError("Vector of roots are not all conjugate complex numbers:\n" + 
+        raise ValueError("Vector of roots are not all conjugate complex numbers:\n" +
                          "roots = " + str(roots))
 
     # Compute polynomial coefficients

@@ -188,8 +188,8 @@ class Results(IntegrationResults.Results):
         signalInfo = self._dataInfo[nameIndex, :]
         signalMatrix = signalInfo[0] if nameIndex > 0 else 2
         if signalMatrix < 1 or signalMatrix > 2:
-            raise WrongDymolaResultFile("dataInfo[" + str(nameIndex) + 
-                                        ",0] = " + str(signalMatrix) + 
+            raise WrongDymolaResultFile("dataInfo[" + str(nameIndex) +
+                                        ",0] = " + str(signalMatrix) +
                                         ", but must be 1 or 2")
         signalColumn = abs(signalInfo[1]) - 1
         signalSign = +1 if signalInfo[1] >= 0 else -1

@@ -43,17 +43,17 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout):
             print "prepareMatrix: Length of time vector and number of rows of y have to be identical."
             return None, None
 
-        yNew = numpy.ndarray((y.shape[0]*2,y.shape[1]))
-        tNew = numpy.ndarray((t.shape[0]*2,))
+        yNew = numpy.ndarray((y.shape[0] * 2, y.shape[1]))
+        tNew = numpy.ndarray((t.shape[0] * 2,))
 
-        yNew[0,:] = y[0,:]
+        yNew[0, :] = y[0, :]
         tNew[0] = t[0]
-        for i in xrange(y.shape[0]-1):
-            yNew[2*i+1,:] = y[i,:]
-            yNew[2*i+2,:] = y[i+1,:]
-            tNew[2*i+1] = t[i+1]
-            tNew[2*i+2] = t[i+1]
-        yNew[-1,:] = y[-1,:]
+        for i in xrange(y.shape[0] - 1):
+            yNew[2 * i + 1, :] = y[i, :]
+            yNew[2 * i + 2, :] = y[i + 1, :]
+            tNew[2 * i + 1] = t[i + 1]
+            tNew[2 * i + 2] = t[i + 1]
+        yNew[-1, :] = y[-1, :]
         tNew[-1] = t[-1] + 1
         return tNew, yNew
 
@@ -68,7 +68,7 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout):
     print "Start of comparing results ..."
 
     allIdentical = True
-    maxEstTol= 0.0
+    maxEstTol = 0.0
 
     allNamesBoth = set(var1Name) & set(var2Name)
     allNamesOnce1 = set(var1Name) - set(var2Name)
@@ -77,7 +77,7 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout):
     nPos = 0
     nNeg = 0
 
-    pMatrix2 = [None]*model2.integrationResults.nTimeSeries
+    pMatrix2 = [None] * model2.integrationResults.nTimeSeries
 
     timeSeries1Names = []
     timeSeries2Names = []
@@ -95,7 +95,7 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout):
             t1 = model1.integrationResults.timeSeries[i].independentVariable
             f1 = model1.integrationResults.timeSeries[i].data
             if model1.integrationResults.timeSeries[i].interpolationMethod == "constant" and t1 is not None:
-                t1,f1 = prepareMatrix(t1,f1)
+                t1, f1 = prepareMatrix(t1, f1)
 
             for j in xrange(model2.integrationResults.nTimeSeries):
                 if len(timeSeries2Names[j]) > 0:
@@ -103,10 +103,10 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout):
                     # These variable names are considered in the following:
                     if len(namesBothSub) > 0:
                         k = 0
-                        i1 = numpy.ones((len(namesBothSub),),dtype=int)*(-1)
-                        i2 = numpy.ones((len(namesBothSub),),dtype=int)*(-1)
-                        s1 = numpy.ones((len(namesBothSub),),dtype=int)
-                        s2 = numpy.ones((len(namesBothSub),),dtype=int)
+                        i1 = numpy.ones((len(namesBothSub),), dtype=int) * (-1)
+                        i2 = numpy.ones((len(namesBothSub),), dtype=int) * (-1)
+                        s1 = numpy.ones((len(namesBothSub),), dtype=int)
+                        s2 = numpy.ones((len(namesBothSub),), dtype=int)
                         for variableName in namesBothSub:
                             i1[k] = var1[variableName].column
                             i2[k] = var2[variableName].column
@@ -118,13 +118,13 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout):
                         f2 = model2.integrationResults.timeSeries[j].data
                         if model2.integrationResults.timeSeries[j].interpolationMethod == "constant" and t2 is not None:
                             if pMatrix2[j] is None:
-                                t2,f2 = prepareMatrix(t2,f2)
-                                pMatrix2[j] = (t2,f2)
+                                t2, f2 = prepareMatrix(t2, f2)
+                                pMatrix2[j] = (t2, f2)
                             else:
                                 t2 = pMatrix2[j][0]
                                 f2 = pMatrix2[j][1]
 
-                        identical, estTol = Compare.Compare(t1,f1,i1,s1, t2,f2,i2,s2, tol)
+                        identical, estTol = Compare.Compare(t1, f1, i1, s1, t2, f2, i2, s2, tol)
                         maxEstTol = max(maxEstTol, estTol.max())
                         allIdentical = allIdentical and all(identical)
                         s = sum(identical)
@@ -147,22 +147,22 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout):
 #    for variableName in allNamesOnce2:
 #        print variableName
 
-    lenNamesOnce = len(allNamesOnce1)+len(allNamesOnce2)
-    if lenNamesOnce>0:
+    lenNamesOnce = len(allNamesOnce1) + len(allNamesOnce2)
+    if lenNamesOnce > 0:
         messageOnce = "; " + str(lenNamesOnce) + " only in one of the two files."
     else:
         messageOnce = "."
-    message = "Compared results of " + str(nPos+nNeg) + " variables: " + str(nPos) + " identical, " + str(nNeg) + " differ" + messageOnce
-    #print message
-    fileOutput.write(message +"\n")
+    message = "Compared results of " + str(nPos + nNeg) + " variables: " + str(nPos) + " identical, " + str(nNeg) + " differ" + messageOnce
+    # print message
+    fileOutput.write(message + "\n")
 
     if allIdentical:
         message = "The results for all compared variables are identical up to the given tolerance = " + str(tol)
-        #print message
-        fileOutput.write(message +"\n")
+        # print message
+        fileOutput.write(message + "\n")
     message = "Maximum estimated tolerance = " + str(maxEstTol)
-    #print message
-    fileOutput.write(message +"\n")
+    # print message
+    fileOutput.write(message + "\n")
 
     print "... done."
 
@@ -232,7 +232,7 @@ def simulateListMenu(model, gui):
 
             browseSetupFile.clicked.connect(_browseSetupFileDo)
             browseDirResults.clicked.connect(_browseDirResultsDo)
-            self.dirResultsEdit.setText(os.getcwd().replace('\\','/'))
+            self.dirResultsEdit.setText(os.getcwd().replace('\\', '/'))
 
 
         def _close_(self):
@@ -254,7 +254,7 @@ def simulateListMenu(model, gui):
             deleteDir = self.deleteDir.isChecked()
 
             # Run the simulations
-            gui._simThreadTesting = runListSimulation(gui.rootDir,  setupFile, resultsDir, simulators, deleteDir)
+            gui._simThreadTesting = runListSimulation(gui.rootDir, setupFile, resultsDir, simulators, deleteDir)
 
 
 
@@ -344,9 +344,9 @@ def compareListMenu(model, gui):
             browseResult.clicked.connect(_browseResultDo)
 
             self.tolEdit.setText('1e-3')
-            self.resultEdit.setText(os.getcwd().replace('\\','/') + '/CompareAnalysis.log' )
-            self.dir1Edit.setText(os.getcwd().replace('\\','/'))
-            self.dir2Edit.setText(os.getcwd().replace('\\','/'))
+            self.resultEdit.setText(os.getcwd().replace('\\', '/') + '/CompareAnalysis.log')
+            self.dir1Edit.setText(os.getcwd().replace('\\', '/'))
+            self.dir2Edit.setText(os.getcwd().replace('\\', '/'))
 
         def _close_(self):
             self.close()
@@ -433,7 +433,7 @@ def runListSimulation(PySimulatorPath, setupFile, resultDir, allSimulators, dele
         if len(a) > 0:
             if len(a[0]) > 0:
                 if a[0][0] != '#':
-                    #if len(a) >= 7:
+                    # if len(a) >= 7:
                     line.append(a[:7])
     f.close()
 
@@ -443,16 +443,16 @@ def runListSimulation(PySimulatorPath, setupFile, resultDir, allSimulators, dele
         if not os.path.isabs(absPath):
             absPath = os.path.normpath(os.path.join(os.path.split(setupFile)[0], absPath)).replace('\\', '/')
         if len(x) == 7:
-            modelList[i] = (absPath, x[1], float(x[2]), float(x[3]), float(x[4]), int(x[5]), True if x[6]=='True' else False)
+            modelList[i] = (absPath, x[1], float(x[2]), float(x[3]), float(x[4]), int(x[5]), True if x[6] == 'True' else False)
         else:
             modelList['fileName'][i] = absPath
 
-    #packageName = general[0]
+    # packageName = general[0]
     config = configobj.ConfigObj(PySimulatorPath.replace('\\', '/') + '/PySimulator.ini')
 
     sim = simulationThread(None)
     sim.config = config
-    #sim.packageName = packageName
+    # sim.packageName = packageName
     sim.modelList = modelList
     sim.allSimulators = allSimulators
     sim.resultDir = resultDir
@@ -473,7 +473,7 @@ class simulationThread(QtCore.QThread):
         self.running = True
 
         for simulator in self.allSimulators:
-            simulatorName = simulator.__name__.rsplit('.',1)[-1]
+            simulatorName = simulator.__name__.rsplit('.', 1)[-1]
             fullSimulatorResultPath = self.resultDir + '/' + simulatorName
             if os.path.isdir(fullSimulatorResultPath) and self.deleteDir:
                 for file_object in os.listdir(fullSimulatorResultPath):
@@ -546,11 +546,11 @@ class simulationThread(QtCore.QThread):
                         if canLoadAllPackages:
                             model = simulator.Model(modelName, packageName, self.config)
 
-                            resultFileName = fullSimulatorResultPath  +  '/' + modelName + '.' + model.integrationSettings.resultFileExtension
+                            resultFileName = fullSimulatorResultPath + '/' + modelName + '.' + model.integrationSettings.resultFileExtension
                             model.integrationSettings.startTime = self.modelList['tStart'][i]
                             model.integrationSettings.stopTime = self.modelList['tStop'][i]
                             model.integrationSettings.errorToleranceRel = self.modelList['tol'][i]
-                            model.integrationSettings.gridPoints = self.modelList['nInterval'][i]+1
+                            model.integrationSettings.gridPoints = self.modelList['nInterval'][i] + 1
                             model.integrationSettings.gridPointsMode = 'NumberOf'
                             model.integrationSettings.resultFileIncludeEvents = self.modelList['includeEvents'][i]
                             model.integrationSettings.resultFileName = resultFileName
@@ -576,7 +576,7 @@ class simulationThread(QtCore.QThread):
             finally:
                 if haveCOM:
                     try:
-                        pythoncom.CoUninitialize() # Close the COM library on the current thread
+                        pythoncom.CoUninitialize()  # Close the COM library on the current thread
                     except:
                         pass
 
@@ -619,7 +619,7 @@ class CompareThread(QtCore.QThread):
         modelName1 = []
         fileName1 = []
         for fileName in files1:
-            splits = fileName.rsplit('.',1)
+            splits = fileName.rsplit('.', 1)
             if len(splits) > 1:
                 if splits[1] in SimulationResult.fileExtension:
                     modelName1.append(splits[0])
@@ -627,7 +627,7 @@ class CompareThread(QtCore.QThread):
         modelName2 = []
         fileName2 = []
         for fileName in files2:
-            splits = fileName.rsplit('.',1)
+            splits = fileName.rsplit('.', 1)
             if len(splits) > 1:
                 if splits[1] in SimulationResult.fileExtension:
                     modelName2.append(splits[0])
@@ -649,7 +649,7 @@ class CompareThread(QtCore.QThread):
                 return
 
             fileOut.write('\nCompare results from\n')
-            fileOut.write('  Directory 1: ' + fileName1[index] + '\n')    # Print name of file1
+            fileOut.write('  Directory 1: ' + fileName1[index] + '\n')  # Print name of file1
             print "\nCompare results from "
             print "  Directory 1: " + fileName1[index]
 
@@ -660,7 +660,7 @@ class CompareThread(QtCore.QThread):
                 print '  Directory 2: NO equivalent found'
                 i = -1
             if i >= 0:
-                fileOut.write('  Directory 2 ' + fileName2[i] + '\n')    # Print name of file2
+                fileOut.write('  Directory 2 ' + fileName2[i] + '\n')  # Print name of file2
                 print "  Directory 2 " + fileName2[i]
 
 

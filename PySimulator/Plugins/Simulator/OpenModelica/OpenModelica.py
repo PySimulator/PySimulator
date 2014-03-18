@@ -52,14 +52,14 @@ def closeSimulationPlugin():
 # Change the parameters of the model file
 def setNewParameters(cmd):
     OMPython.execute(cmd);
-    global parameters_changed   # Set this variable if the parameters are changed
+    global parameters_changed  # Set this variable if the parameters are changed
     parameters_changed = True
     return
 
 # Set the parameters in the model_init.xml file
-def setInitXmlValues(modelName,varName,value):
-    modelName = modelName+"_init.xml"
-    OMPython.execute("setInitXmlStartValue(\""+modelName+"\",variableName=\""+varName+"\",startValue=\""+value+"\",outputFile=\"temp.xml\")")
+def setInitXmlValues(modelName, varName, value):
+    modelName = modelName + "_init.xml"
+    OMPython.execute("setInitXmlStartValue(\"" + modelName + "\",variableName=\"" + varName + "\",startValue=\"" + value + "\",outputFile=\"temp.xml\")")
 
     if os.path.exists(modelName):
         os.remove(modelName)
@@ -72,37 +72,37 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
         Plugins.Simulator.SimulatorBase.Model.__init__(self, modelName, modelFileName, 'OpenModelica', config)
 
-        self.onlyResultFile=False
+        self.onlyResultFile = False
         self.integrationSettings.resultFileExtension = 'mat'
 
-        self._availableIntegrationAlgorithms = ['Dassl', 'Euler','Rungekutta','Dopri5','Inline-Euler','Inline-Rungekutta']
+        self._availableIntegrationAlgorithms = ['Dassl', 'Euler', 'Rungekutta', 'Dopri5', 'Inline-Euler', 'Inline-Rungekutta']
         self.integrationSettings.algorithmName = self._availableIntegrationAlgorithms[0]
 
-        self._IntegrationAlgorithmHasFixedStepSize = [False,True,False,False,True,False]
-        self._IntegrationAlgorithmCanProvideStepSizeResults = [False,True,False,False,True,False]
+        self._IntegrationAlgorithmHasFixedStepSize = [False, True, False, False, True, False]
+        self._IntegrationAlgorithmCanProvideStepSizeResults = [False, True, False, False, True, False]
 
         self.compileModel()
 
-        if self.resFile !='""':
-            self._initialResult = loadResultFileInit(os.path.abspath('.') + "/"+self.name+ "_res.mat")
+        if self.resFile != '""':
+            self._initialResult = loadResultFileInit(os.path.abspath('.') + "/" + self.name + "_res.mat")
         else:
             print "The selected model could not be instantiated, check for any dependencies that the model might have"
             return
 
-        #SocketServer setup to visualize the simulation progress bar
-        HOST, PORT = "localhost",0
+        # SocketServer setup to visualize the simulation progress bar
+        HOST, PORT = "localhost", 0
         self.server = SocketServer.TCPServer((HOST, PORT), ThreadedTCPRequestHandler)
         self.ip, self.port = self.server.server_address
         self.server_port = self.port
 
         self.server_thread = threading.Thread(target=self.server.serve_forever)
-        self.server_thread.daemon=True
+        self.server_thread.daemon = True
         self.server_thread.setDaemon(True)
 
         if self.server_thread.isAlive():
             self.server_thread._Thread__stop()
 
-        self.file_thread=None
+        self.file_thread = None
 
     def compileModel(self):
         """
@@ -115,30 +115,30 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
                 raise FileDoesNotExist("File '" + self.fileName[0] + "' does not exist")
 
             # load the OpenModelica Standard library
-            #OMPython.execute("loadModel(Modelica)")
-            OMPython.execute("loadFile(\""+self.fileName[0]+"\")")
+            # OMPython.execute("loadModel(Modelica)")
+            OMPython.execute("loadFile(\"" + self.fileName[0] + "\")")
             # set the working directory in OMC
-            pwd = os.path.abspath('.').replace('\\','/')
-            workdir = OMPython.execute("cd(\""+ pwd +"\")")
+            pwd = os.path.abspath('.').replace('\\', '/')
+            workdir = OMPython.execute("cd(\"" + pwd + "\")")
             # simulate the model
-            simResult = OMPython.execute("simulate("+self.name+")")
+            simResult = OMPython.execute("simulate(" + self.name + ")")
             # always print the messages if there are any
-            messages = OMPython.get(simResult,"SimulationResults.messages")
-            if messages !='""':
+            messages = OMPython.get(simResult, "SimulationResults.messages")
+            if messages != '""':
                 print messages
             # call getErrorString() to get complete error.
             errorString = OMPython.execute("getErrorString()")
-            if errorString !='""':
+            if errorString != '""':
                 print errorString
             # read the result file
-            self.resFile = OMPython.get(simResult,"SimulationResults.resultFile")
+            self.resFile = OMPython.get(simResult, "SimulationResults.resultFile")
 
     def getReachedSimulationTime(self):
         '''
         Read the current simulation time during a simulation
         from the Model.exe file generated during loadFile()
         '''
-        fName = os.path.abspath('.') + "/"+self.name+ ".exe"
+        fName = os.path.abspath('.') + "/" + self.name + ".exe"
 
         if self.file_thread is None:
             self.file_thread = threading.Thread(runExeFile(fName, self.server_port))
@@ -146,41 +146,41 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             self.file_thread.start()
             self.server.shutdown()
 
-        if simulationProgressData>=float(100.0):
+        if simulationProgressData >= float(100.0):
             self.server_thread._Thread__stop()
 
-        return ((simulationProgressData*self.integrationSettings.stopTime)/100.0)
+        return ((simulationProgressData * self.integrationSettings.stopTime) / 100.0)
 
     def simulate(self):
 
         def compile_model(simulate_options):
-            if self.fileName !=None:
-                OMPython.execute("loadFile(\""+self.fileName[0]+"\")")
+            if self.fileName != None:
+                OMPython.execute("loadFile(\"" + self.fileName[0] + "\")")
 
             s = self.integrationSettings
 
             # set the working directory in OMC
-            pwd = os.path.abspath('.').replace('\\','/')
-            workdir = OMPython.execute("cd(\""+ pwd +"\")")
+            pwd = os.path.abspath('.').replace('\\', '/')
+            workdir = OMPython.execute("cd(\"" + pwd + "\")")
             # prepare the simulate command string
             if simulate_options != '':
                 simulate_string = "simulate(" + self.name + simulate_options + ")"
             else:
                 simulate_string = "simulate(" + self.name + ")"
 
-            #simulate the model
+            # simulate the model
             sim_results = OMPython.execute(simulate_string)
 
             # always print the messages if there are any
-            messages = OMPython.get(sim_results,"SimulationResults.messages")
-            if messages !='""':
+            messages = OMPython.get(sim_results, "SimulationResults.messages")
+            if messages != '""':
                 print messages
             # call getErrorString() to get complete error.
             errorString = OMPython.execute("getErrorString()")
-            if errorString !='""':
+            if errorString != '""':
                 print errorString
 
-            #rename the OpenModelica result file
+            # rename the OpenModelica result file
             result_file = OMPython.get(sim_results, 'SimulationResults.resultFile')
             result_file = (result_file).strip('\"')
             result_file = os.path.join(result_file)
@@ -220,7 +220,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
         def precheck_for_model():
             sim_opts = precheck_for_set_sim_options()
-            if sim_opts!='':
+            if sim_opts != '':
                 compile_model(sim_opts)
             else:
                 compile_model('')
@@ -241,7 +241,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             while True:
                 if not os.path.isfile('LOG_STATS.txt'):
                     time.sleep(0.15)
-                    attempts +=1
+                    attempts += 1
                     if attempts == 10:
                         return
                 else:
@@ -257,11 +257,11 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
                 fact = [line.strip() for line in statistics]
                 for i in fact:
                     if "State Events" in i:
-                        nStateEvents = int(i.split(':',1)[1])
+                        nStateEvents = int(i.split(':', 1)[1])
                     if "Sample Events" in i:
-                        nTimeEvents = int(i.split(':',1)[1])
+                        nTimeEvents = int(i.split(':', 1)[1])
                     if "simulation time" in i:
-                        currentTime = float(i.split(':',1)[1])
+                        currentTime = float(i.split(':', 1)[1])
                 statistics.close()
 
             currentTime = self.integrationSettings.stopTime
@@ -278,44 +278,44 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         if self.resFile == '""':
             return
         for i in xrange(len(self._initialResult.name)):
-            if   self._initialResult.value[i,0] == 1:
+            if   self._initialResult.value[i, 0] == 1:
                 causality = 'parameter'
-            elif self._initialResult.value[i,1] == 2:
+            elif self._initialResult.value[i, 1] == 2:
                 causality = 'state'
-            elif self._initialResult.value[i,0] == 3:
+            elif self._initialResult.value[i, 0] == 3:
                 causality = 'stateDerivative'
-            elif self._initialResult.value[i,0] == 4:
+            elif self._initialResult.value[i, 0] == 4:
                 causality = 'output'
-            elif self._initialResult.value[i,0] == 5:
+            elif self._initialResult.value[i, 0] == 5:
                 causality = 'input'
             else:
                 causality = 'local'
-                #variability = 'fixed' if causality == 'parameter' else 'continuous'
+                # variability = 'fixed' if causality == 'parameter' else 'continuous'
             # The format of self._initialResult.value[i,5] is unclear. Try to include inital values for states
-            #valueEdit = True if int(self._initialResult.value[i,0]) == -1 and int(self._initialResult.value[i,5]) >= 280 else False
+            # valueEdit = True if int(self._initialResult.value[i,0]) == -1 and int(self._initialResult.value[i,5]) >= 280 else False
 
-            binStr = bin(int(self._initialResult.value[i,0]))[2:]
-            binStr = '0'*(15-len(binStr)) + binStr
+            binStr = bin(int(self._initialResult.value[i, 0]))[2:]
+            binStr = '0' * (15 - len(binStr)) + binStr
             variability = 'continuous'
             if causality == 'parameter':
                 variability = 'fixed'
-            elif binStr[-7] == '1': # 64
+            elif binStr[-7] == '1':  # 64
                 variability = 'discrete'
 
             valueEdit = False
-            if int(self._initialResult.value[i,0]) == -1:
-                if binStr[-4] == '1' or binStr[-6] == '1': # 8 or 32
+            if int(self._initialResult.value[i, 0]) == -1:
+                if binStr[-4] == '1' or binStr[-6] == '1':  # 8 or 32
                     valueEdit = True
 
             dataType = 'Real'
-            if binStr[-2:] == '01': # 1
+            if binStr[-2:] == '01':  # 1
                 dataType = 'Boolean'
-            elif binStr[-2:] == '10': # 2
+            elif binStr[-2:] == '10':  # 2
                 dataType = 'Real'
 
             value = None
             if variability == 'fixed' or valueEdit:
-                value = self._initialResult.value[i,1]
+                value = self._initialResult.value[i, 1]
 
             unit = self._initialResult.unit[i]
             variableAttribute = ''
@@ -350,7 +350,7 @@ def charArrayToStrList(charArray):
     """
     strList = [];
     for item in charArray:
-        strList.append(str(string.rstrip(string.join(item,""))))
+        strList.append(str(string.rstrip(string.join(item, ""))))
     return strList;
 
 
@@ -359,12 +359,12 @@ def loadResultFileInit(fileName):
 
     """
     # Correct file path if needed
-    fileName = fileName.replace("/","\\")
+    fileName = fileName.replace("/", "\\")
 
     # If no fileName given, inquire it interactively
     if fileName == None:
         return
-        #fileName = selectResultFile()
+        # fileName = selectResultFile()
 
 
     # Check if fileName exists
@@ -380,7 +380,7 @@ def loadResultFileInit(fileName):
     # Check Aclass array
     if not("Aclass" in fileData):
         raise WrongResultFile("Matrix 'Aclass' is missing in file " + fullFileName)
-    Aclass  = charArrayToStrList( fileData["Aclass"] )
+    Aclass = charArrayToStrList(fileData["Aclass"])
     if len(Aclass) < 3:
         raise WrongResultFile("Matrix 'Aclass' has not 3 or more rows in file " + fullFileName)
     if Aclass[1] != "1.1":
@@ -396,20 +396,20 @@ def loadResultFileInit(fileName):
 
 
     # Get the raw matrices
-    name        = fileData["name"]
+    name = fileData["name"]
     description = fileData["description"]
-    value    = fileData["dataInfo"]
+    value = fileData["dataInfo"]
 
 
     # Transpose the data, if necessary
     if len(Aclass) > 3 and Aclass[3] == "binTrans":
-        name        = name.T
+        name = name.T
         description = description.T
-        value       = value.T
+        value = value.T
 
 
     # Transform the charArrays in string lists
-    name        = charArrayToStrList(name)
+    name = charArrayToStrList(name)
     description = charArrayToStrList(description)
 
     # Extract units and update description
@@ -421,12 +421,12 @@ def loadResultFileInit(fileName):
                 if t[1][-1] == ']':
                     if '|' in t[1]:
                         if ':#' not in t[1]:
-                            unit[index] = t[1].split('|',1)[0]
+                            unit[index] = t[1].split('|', 1)[0]
                     elif ':#' not in t[1]:
                         unit[index] = t[1][:-1]
 
                     if len(t[0]) > 0:
-                        description[index] = t[0][:-1] # Delete space
+                        description[index] = t[0][:-1]  # Delete space
                     else:
                         description[index] = ''
 
@@ -449,7 +449,7 @@ def MyStrtod(s):
     for match in regex.finditer(s):
         return float (match.group())
 
-def runExeFile(exeFile,server_port):
+def runExeFile(exeFile, server_port):
     args = "-port"
     import subprocess
     p = subprocess.Popen([exeFile, args, str(server_port)], shell=True, stdout=None, stderr=None)
@@ -459,15 +459,15 @@ class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
         global simulationProgressData
-        while self.request.recv(1024).strip()!=None:
+        while self.request.recv(1024).strip() != None:
             self.data = self.request.recv(1024).strip()
             if self.data:
-                simulationProgressData=MyStrtod(self.data)/100.0
+                simulationProgressData = MyStrtod(self.data) / 100.0
                 if simulationProgressData >= 100.0:
                     break
             elif self.data == '':
-                if self.request.recv(1024).strip()== '':
-                    simulationProgressData=100.0
+                if self.request.recv(1024).strip() == '':
+                    simulationProgressData = 100.0
                     break
             else:
                 continue

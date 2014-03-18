@@ -29,20 +29,21 @@ simulate them by SimulationX and save the results.
 '''
 
 import csv
-import pythoncom
-import re
-import os
 import locale
+import os
+import re
 import string
 import time
 import types
-import _winreg as winreg
+
+import pythoncom
 import win32com.client
 
 import Plugins.SimulationResult.SimulationXCsv.SimulationXCsv as SimulationXCsv
 import Plugins.Simulator.SimulatorBase
-
+import _winreg as winreg
 from simx import *
+
 
 iconImage = 'simulatorSimulationX.ico'
 modelExtension = ['mo', 'ism', 'isx']

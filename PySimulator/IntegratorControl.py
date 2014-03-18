@@ -202,7 +202,7 @@ class IntegratorControl(QtGui.QDialog):
 
         def _browseSaveFileDo():
             (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, 'Save results', os.getcwd(), '*.' + self.models[self.currentNumberedModelName].integrationSettings.resultFileExtension)
-            #fileName = str(fileName)
+            # fileName = str(fileName)
             if fileName != '':
                 self.saveFilePath.setText(fileName)
 
@@ -575,7 +575,7 @@ class simulationThread(QtCore.QThread):
         finally:
             if haveCOM:
                 try:
-                    pythoncom.CoUninitialize() # Close the COM library on the current thread
+                    pythoncom.CoUninitialize()  # Close the COM library on the current thread
                 except:
                     pass
 
