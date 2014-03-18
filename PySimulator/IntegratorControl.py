@@ -358,9 +358,9 @@ class IntegratorControl(QtGui.QDialog):
     def fileSize2str(self, size):
         if size is not None:
             if size > 1024:
-                return format(size / 1024, '0.1f') + ' GB'
+                return format(size / 1024, '0.2f') + ' GB'
             else:
-                return format(size, '0.1f') + ' MB'
+                return format(size, '0.2f') + ' MB'
         else:
             return ''
 
