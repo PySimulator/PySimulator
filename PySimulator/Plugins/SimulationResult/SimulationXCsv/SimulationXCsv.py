@@ -21,7 +21,9 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 '''
 
 import csv, numpy, collections, math
+
 from Plugins.SimulationResult import IntegrationResults
+
 
 fileExtension = 'csvx'
 description = 'Comma Separated Values for SimulationX'

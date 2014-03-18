@@ -27,6 +27,7 @@ import numpy
 
 import struct as pStruct
 
+
 def readModel(filename, docname, ResultList):
 	''' This function creates a list of SimXResult Objects. The result objects in this list know the ident, dimension the relative path of the protocol and the dimension: \n
 	Ident="springDamper.dx" RelPath="protocol\file141.bin" Quantity="Mechanics.Translation.Displace" Unit="m" Dimension="3805"
@@ -36,16 +37,16 @@ def readModel(filename, docname, ResultList):
 	The functions resturn Value is a zipFile object. '''
 	Model = zipfile.ZipFile(filename, 'r')
 	# print Model.namelist()
-	Protocol_content = Model.open("protocol/content.xml", 'rU')
-	results = Protocol_content.readlines()
-	# firstline=re.search('((<Result Ident=)+(.*?)(/>)+)', results[1])
-	# print firstline.group(1)
-	matches = re.findall('((<Result )+(.*?)(/>)+)', results[1])
-	for tup in matches :
-		Result = SimXResult(filename, Model, docname, tup[2])
-		ResultList.append(Result)
-		# print str(Result.RelPath)
-		# print Result.Ident, Result.Dimension, Result.Unit
+	with Model.open("protocol/content.xml", 'rU') as Protocol_content:
+		results = Protocol_content.readlines()
+		# firstline=re.search('((<Result Ident=)+(.*?)(/>)+)', results[1])
+		# print firstline.group(1)
+		matches = re.findall('((<Result )+(.*?)(/>)+)', results[1])
+		for tup in matches :
+			Result = SimXResult(filename, Model, docname, tup[2])
+			ResultList.append(Result)
+			# print str(Result.RelPath)
+			# print Result.Ident, Result.Dimension, Result.Unit
 	return Model
 
 class SimXUnit:
