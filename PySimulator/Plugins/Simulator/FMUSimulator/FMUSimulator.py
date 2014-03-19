@@ -32,29 +32,26 @@ For documentation of general Simulator plugins, see also SimulatorBase.py
 '''
 
 
-import numpy
 import getpass
-import time
-import os
-import types
 from operator import itemgetter
+import os
+import time
+import types
 
+import numpy
 
-#import Plugins.Simulator.FMUSimulator.FMUInterface as FMUInterface
-#import Plugins.Simulator.FMUSimulator.FMIDescription as FMIDescription
-import FMUInterface
 import FMIDescription
-import Plugins.Simulator.SimulatorBase
+import FMUInterface
+from Plugins.Algorithms.Integrator.Sundials.AssimuloIntegrators import AssimuloCVode, AssimuloIda
 import Plugins.SimulationResult.IntegrationResults
 import Plugins.SimulationResult.Mtsf.Mtsf as Mtsf
-import Plugins.SimulationResult.Mtsf.pyMtsf as pyMtsf
 import Plugins.SimulationResult.Mtsf.MtsfFmi as MtsfFmi
-
-#from Plugins.Algorithms.Integrator.Sundials.SundialsIntegrators import SundialsCVode, SundialsIDA
-from Plugins.Algorithms.Integrator.Sundials.AssimuloIntegrators import AssimuloCVode, AssimuloIda
-
-
+import Plugins.SimulationResult.Mtsf.pyMtsf as pyMtsf
 from Plugins.Simulator.FMUSimulator.FMUInterface import fmiTrue, fmiFalse
+import Plugins.Simulator.SimulatorBase
+# import Plugins.Simulator.FMUSimulator.FMUInterface as FMUInterface
+# import Plugins.Simulator.FMUSimulator.FMIDescription as FMIDescription
+# from Plugins.Algorithms.Integrator.Sundials.SundialsIntegrators import SundialsCVode, SundialsIDA
 
 iconImage = 'simulatorFMUSimulator.ico'
 modelExtension = ['fmu']
@@ -105,12 +102,12 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         # Dummy object to get properties
         self.integrationResults = Mtsf.Results('')
         self.integrationSettings.resultFileExtension = 'mtsf'
-        #Default values
+        # Default values
         updateSettingsByFMI(self.description)
         self._availableIntegrationAlgorithms = ["BDF (IDA, Dassl like)", "BDF (CVode)", "Adams (CVode)", "Explicit Euler (fixed step size)"]
         self._IntegrationAlgorithmHasFixedStepSize = [False, False, False, True]
-        self._IntegrationAlgorithmCanProvideStepSizeResults = [True, True, True,  True]
-        self._IntegrationAlgorithmSupportsStateEvents = [True, True, True,  True]
+        self._IntegrationAlgorithmCanProvideStepSizeResults = [True, True, True, True]
+        self._IntegrationAlgorithmSupportsStateEvents = [True, True, True, True]
 
         self.integrationSettings.algorithmName = self._availableIntegrationAlgorithms[0]
         self.simulationStopRequest = False
@@ -184,7 +181,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             self.interface.fmiSetContinuousStates(x)
             dx = self.interface.fmiGetDerivatives()
 
-        return numpy.array([dx])  #Note that the return must be numpy array
+        return numpy.array([dx])  # Note that the return must be numpy array
 
     def getEventIndicators(self, t, x):
         ''' Returns the event indicator functions for
@@ -394,7 +391,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
                 if variable.aliasName is None:
                     variable.category.iReferences += 1
                     if name in fmi.scalarVariables:
-                        #print variable.seriesIndex, variable.category.name, name, variable.category.iReferences, len(variable.category.references)
+                        # print variable.seriesIndex, variable.category.name, name, variable.category.iReferences, len(variable.category.references)
                         variable.category.references[variable.category.iReferences] = fmi.scalarVariables[name].valueReference
                     else:
                         # e.g. for time variables, that do not exist in fmi-world
@@ -443,11 +440,11 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         def right_hand_side(t, x, xd=None):
             ''' Returns the right hand side (or the delta to xd for implicit solvers)
             '''
-            dx = self.getDerivatives(t, x)  #dx is returned as matrix with one row [[ 0.1  0.4]]
+            dx = self.getDerivatives(t, x)  # dx is returned as matrix with one row [[ 0.1  0.4]]
             if implicitSolver:
-                return dx[0] - xd #numpy.array(dx - xd)#maybe [dx] #dx - xd
+                return dx[0] - xd  # numpy.array(dx - xd)#maybe [dx] #dx - xd
             else:
-                return dx[0]    #return dx as vector
+                return dx[0]  # return dx as vector
 
         def state_events(t, x, sw):
             ''' Returns event indicator functions at time=t, states=x
@@ -458,7 +455,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         def state_eventsImplicit(t, x, xd, sw):
             ''' Returns event indicator functions at time=t, states=x
             '''
-            return state_events(t,x,sw)
+            return state_events(t, x, sw)
 
         def time_events(t, x, sw):
             ''' Returns the next time event
@@ -471,7 +468,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         def time_eventsImplicit(t, x, xd, sw):
             ''' Returns event indicator functions at time=t, states=x
             '''
-            return time_events(t,x,sw)
+            return time_events(t, x, sw)
 
         def handle_result(solver, t, x, xd=None):
             ''' This function is called when new values
@@ -512,18 +509,18 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
             if event_info[1]:
                 self.integrationStatistics.nTimeEvents += 1
-                #print "Handle time event at   ", solver.t_cur
+                # print "Handle time event at   ", solver.t_cur
             else:
                 self.integrationStatistics.nStateEvents += 1
 
-                #print "Handle state event at  ", solver.t_cur
+                # print "Handle state event at  ", solver.t_cur
 
             # To ensure that the current values are set in the model
             self.interface.fmiSetTime(solver.t)
             if not self.description.numberOfContinuousStates == 0:
                 self.interface.fmiSetContinuousStates(solver.y)
 
-            #handle_result(solver, solver.t, solver.y) here if your solver does not call it by itself(Assimulo does)
+            # handle_result(solver, solver.t, solver.y) here if your solver does not call it by itself(Assimulo does)
 
             # Do the event updates
             eventInfo = self.interface.fmiEventUpdate(fmiFalse)
@@ -537,12 +534,12 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
                     solver.y = self.interface.fmiGetContinuousStates()
             if eventInfo.terminateSimulation == fmiTrue:
                 print("terminated by model ... ")
-                #Raise exception to abort simulation...
+                # Raise exception to abort simulation...
                 finalize(None)
                 raise(Plugins.Simulator.SimulatorBase.Stopping)
 
 
-            #handle_result(solver, solver.t, solver.y) here if your solver does not call it by itself(Assimulo does)
+            # handle_result(solver, solver.t, solver.y) here if your solver does not call it by itself(Assimulo does)
 
             if 'Discrete' in self.integrationResults._mtsf.results.series:
                 # Write discrete Variables
@@ -619,11 +616,11 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             x0 = numpy.ndarray([1, ])
         else:
             x0 = self.interface.fmiGetContinuousStates()
-        #x_nominal = numpy.array(self.interface.fmiGetNominalContinuousStates())
+        # x_nominal = numpy.array(self.interface.fmiGetNominalContinuousStates())
 
-        #Prepare the solver
+        # Prepare the solver
         implicitSolver = False
-        #Set simulator and special parameters. General parameters are added after if-clause
+        # Set simulator and special parameters. General parameters are added after if-clause
         if "IDA" in IntegrationMethod:
             implicitSolver = True
             # Define the solver object
@@ -636,28 +633,28 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
                 dx0 = self.interface.fmiGetDerivatives()
 
             simulator.yd0 = dx0
-        elif "Adams" in IntegrationMethod or "BDF" in IntegrationMethod:      # Use CVode
+        elif "Adams" in IntegrationMethod or "BDF" in IntegrationMethod:  # Use CVode
             simulator = AssimuloCVode()
-            simulator.iter = 'Newton'               # Default 'FixedPoint'
-            simulator.discr = IntegrationMethod     # Default 'Adams'
+            simulator.iter = 'Newton'  # Default 'FixedPoint'
+            simulator.discr = IntegrationMethod  # Default 'Adams'
         else:
             simulator = ExplicitEulerSolver()
             simulator.completed_step = completed_step
 
-        #Set starting parameters common to all integrators here:
+        # Set starting parameters common to all integrators here:
         simulator.t0 = Tstart
         simulator.y0 = x0
-        simulator.atol = ErrorTolerance             # Default 1e-6
-        simulator.rtol = ErrorTolerance             # Default 1e-6
+        simulator.atol = ErrorTolerance  # Default 1e-6
+        simulator.rtol = ErrorTolerance  # Default 1e-6
 
-        #Set function pointers called by simulator
+        # Set function pointers called by simulator
         simulator.rhs = right_hand_side
         simulator.handle_result = handle_result
         simulator.handle_event = handle_event
-        simulator.finalize = finalize               #should not be called by the solver (needs one argument then) simulator.finalize = finalize
-        #simulator.completed_step = completed_step  # is not supported by python-sundials
+        simulator.finalize = finalize  # should not be called by the solver (needs one argument then) simulator.finalize = finalize
+        # simulator.completed_step = completed_step  # is not supported by python-sundials
 
-        #These methods can not have xd=None due to its signature... Apply its dummy-Versions here
+        # These methods can not have xd=None due to its signature... Apply its dummy-Versions here
         if implicitSolver == True:
             simulator.state_events = state_eventsImplicit
             simulator.time_events = time_eventsImplicit
@@ -778,7 +775,7 @@ class ExplicitEulerSolver():
             The grid width can be equal to dt or less or greater than dt.
         '''
 
-        #euler_basic.run_example()
+        # euler_basic.run_example()
 
         self.t_cur = Tstart
         self.y_cur = y0.copy()
