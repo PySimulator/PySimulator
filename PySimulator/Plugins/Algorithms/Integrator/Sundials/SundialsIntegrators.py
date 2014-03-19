@@ -24,6 +24,7 @@ import platform
 
 import numpy as np
 
+
 if platform.architecture()[0] == '32bit':
     import sundials
 elif platform.architecture()[0] == '64bit':
