@@ -52,6 +52,8 @@ class Results(IntegrationResults.Results):
         self._name = []
         self._unit = []
 
+        self.fileInfo = dict()
+
         if self.fileName is not None:
             if self.fileName == '':
                 return
@@ -66,6 +68,8 @@ class Results(IntegrationResults.Results):
         self._unit = reader.next()  # second row contains the units
         data = numpy.loadtxt(csvfile, delimiter=';')
         csvfile.close()
+        self.fileInfo['Rows'] = str(data.shape[0])
+        self.fileInfo['Columns'] = str(data.shape[1])
 
         self._isParameter = len(self._name) * [False]
         if numpy.ndim(data) > 1:
@@ -199,5 +203,18 @@ class Results(IntegrationResults.Results):
         return variables
 
     def getFileInfos(self):
-        # No relevant file infos stored in a csv result file
-        return dict()
+        return self.fileInfo
+
+    def close(self):
+        if hasattr(self, 'timeSeries'):
+            del self.timeSeries
+        if hasattr(self, 'fileInfo'):
+            del self.fileInfo
+        if hasattr(self, '_name'):
+            del self._name
+        if hasattr(self, '_unit'):
+            del self._unit
+        if hasattr(self, '_isParameter'):
+            del self._isParameter
+        if hasattr(self, '_info'):
+            del self._info

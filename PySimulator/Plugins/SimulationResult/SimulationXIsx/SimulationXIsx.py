@@ -45,6 +45,8 @@ class Results(IntegrationResults.Results):
 		self._name = []
 		self._unit = []
 
+		self.fileInfo = dict()
+
 		if fileName is None:
 			return
 		if fileName is '':
@@ -56,31 +58,51 @@ class Results(IntegrationResults.Results):
 		results = []
 		with isx.readModel(self.fullFileName, 'doc', results) as model:
 			if len(results) > 0:
-				doc = isx.SimXObject(model, 'doc' , None, [], results, 0)
-				data = doc.LoadResult('doc.t')
-				data = numpy.reshape(data, (len(data), 1))
+				try:
+					doc = isx.SimXObject(model, 'doc' , None, [], results, 0)
+					doc_t = doc.LoadResult('doc.t')
+				except:
+					raise Exception("Variable 't' not stored in file " + self.fullFileName)
+				cols = 0
+				for result in results:
+					if result.ndims == 1:
+						# Scalar dimension
+						cols += 1
+					elif result.ndims == 2:
+						# Vector dimension
+						cols += result.Dimension[1]
+					elif result.ndims == 3:
+						# Matrix dimension
+						cols += result.Dimension[1]*result.Dimension[2]
+				data = numpy.empty((len(doc_t), cols))  # pre-allocate array
+				self.fileInfo['Rows'] = str(len(doc_t))
+				self.fileInfo['Columns'] = str(cols)
+				cols = 0
 				for result in results:
 					res = doc.LoadResult(result.strIdent)
 					ident = '.'.join(result.Ident[1:])
 					if result.ndims == 1:
 						# Scalar dimension
+						data[:, cols] = res
+						cols += 1
 						self._name.append(ident)
 						self._unit.append(result.Unit)
-						data = numpy.c_[data, res]
 					elif result.ndims == 2:
 						# Vector dimension
+						data[:, range(cols, cols + result.Dimension[1])] = res
+						cols += result.Dimension[1]
 						for i in range(1, result.Dimension[1] + 1):
 							self._name.append(ident + '[' + str(i) + ']')
 							self._unit.append(result.Unit)
-						data = numpy.append(data, res, 1)
 					elif result.ndims == 3:
 						# Matrix dimension
 						for i in range(1, result.Dimension[1] + 1):
+							data[:, range(cols, cols + result.Dimension[1])] = res[:, i - 1, :]
+							cols += result.Dimension[2]
 							for j in range(1, result.Dimension[2] + 1):
 								self._name.append(ident + '[' + str(i) + ',' + str(j) + ']')
 								self._unit.append(result.Unit)
-							data = numpy.append(data, res[:, i - 1, :], 1)
-				self.timeSeries.append(IntegrationResults.TimeSeries(data[:, 0], data[:, 1:], "linear"))
+				self.timeSeries.append(IntegrationResults.TimeSeries(doc_t, data, "linear"))
 				self._filterUnit()
 				self.isAvailable = True  # Shows, if there is a file available to be read
 			else:
@@ -149,38 +171,51 @@ class Results(IntegrationResults.Results):
 		return variables
 
 	def getFileInfos(self):
-		fileInfo = dict()
 		with zipfile.ZipFile(self.fullFileName, 'r') as model:
 			with model.open('docProps/app.xml', 'rU') as app:
 				dom = minidom.parseString(app.read())
 				nodes = dom.getElementsByTagName('AppVersion')
 				if len(nodes) > 0:
 					if type(nodes[0].firstChild) is not types.NoneType:
-						fileInfo['SimulationX'] = nodes[0].firstChild.nodeValue
+						self.fileInfo['SimulationX'] = nodes[0].firstChild.nodeValue
 				nodes = dom.getElementsByTagName('Company')
 				if len(nodes) > 0:
 					if type(nodes[0].firstChild) is not types.NoneType:
-						fileInfo['Company'] = nodes[0].firstChild.nodeValue
+						self.fileInfo['Company'] = nodes[0].firstChild.nodeValue
 			with model.open('docProps/core.xml', 'rU') as core:
 				dom = minidom.parseString(core.read())
 				nodes = dom.getElementsByTagName('dc:title')
 				if len(nodes) > 0:
 					if type(nodes[0].firstChild) is not types.NoneType:
-						fileInfo['Title'] = nodes[0].firstChild.nodeValue
+						self.fileInfo['Title'] = nodes[0].firstChild.nodeValue
 				nodes = dom.getElementsByTagName('dc:subject')
 				if len(nodes) > 0:
 					if type(nodes[0].firstChild) is not types.NoneType:
-						fileInfo['Subject'] = nodes[0].firstChild.nodeValue
+						self.fileInfo['Subject'] = nodes[0].firstChild.nodeValue
 				nodes = dom.getElementsByTagName('dc:creator')
 				if len(nodes) > 0:
 					if type(nodes[0].firstChild) is not types.NoneType:
-						fileInfo['Creator'] = nodes[0].firstChild.nodeValue
+						self.fileInfo['Creator'] = nodes[0].firstChild.nodeValue
 				nodes = dom.getElementsByTagName('dc:keywords')
 				if len(nodes) > 0:
 					if type(nodes[0].firstChild) is not types.NoneType:
-						fileInfo['Keywords'] = nodes[0].firstChild.nodeValue
+						self.fileInfo['Keywords'] = nodes[0].firstChild.nodeValue
 				nodes = dom.getElementsByTagName('dc:description')
 				if len(nodes) > 0:
 					if type(nodes[0].firstChild) is not types.NoneType:
-						fileInfo['Description'] = nodes[0].firstChild.nodeValue
-		return fileInfo
+						self.fileInfo['Description'] = nodes[0].firstChild.nodeValue
+		return self.fileInfo
+
+	def close(self):
+		if hasattr(self, 'timeSeries'):
+			del self.timeSeries
+		if hasattr(self, 'fileInfo'):
+			del self.fileInfo
+		if hasattr(self, '_name'):
+			del self._name
+		if hasattr(self, '_unit'):
+			del self._unit
+		if hasattr(self, '_isParameter'):
+			del self._isParameter
+		if hasattr(self, '_info'):
+			del self._info
