@@ -20,9 +20,15 @@ You should have received a copy of the GNU Lesser General Public License
 along with PySimulator. If not, see www.gnu.org/licenses.
 '''
 
+import platform
 
 import numpy as np
-from sundials import *
+
+
+if platform.architecture()[0] == '32bit':
+    from sundials import *
+else:
+    raise ImportError('A 64-bit binary of sundials.pyd is not available.')
 
 
 class SundialsCVode():
