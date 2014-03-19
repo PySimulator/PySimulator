@@ -22,7 +22,6 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 
 
 import numpy as np
-from sundials import *
 
 from assimulo.problem import Explicit_Problem, Implicit_Problem
 from assimulo.solvers import CVode, IDA, RungeKutta34
