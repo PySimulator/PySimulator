@@ -31,16 +31,18 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
 
 
-import zipfile
-import re
-import ctypes
 import _ctypes
-import tempfile
+import ctypes
+from ctypes.util import find_library
 import platform
+import re
+import tempfile
+import zipfile
+
 import numpy
 
-import FMUError
 from FMIDescription import FMIDescription
+import FMUError
 
 
 ''' Declaration of file-type correspondents between Modelica/C and Python
@@ -191,15 +193,17 @@ class FMUInterface:
             For Linux it refers to the std-C library - this should always be present
         '''
         if platform.system() == 'Linux':
+            c_lib = ctypes.cdll.LoadLibrary('libc.so.6')
             self._fmiCallbackFunctions = _fmiCallbackFunctions(
                                      logger=Logger(_Logger),
-                                     allocateMemory=AllocateMemory(ctypes.cdll.LoadLibrary('libc.so.6').calloc),
-                                     freeMemory=FreeMemory(ctypes.cdll.LoadLibrary('libc.so.6').free))
+                                     allocateMemory=AllocateMemory(c_lib.calloc),
+                                     freeMemory=FreeMemory(c_lib.free))
         elif platform.system() == 'Windows':
+            msvcrt_lib = ctypes.CDLL(find_library('c'))
             self._fmiCallbackFunctions = _fmiCallbackFunctions(
                                      logger=Logger(_Logger),
-                                     allocateMemory=AllocateMemory(ctypes.cdll.msvcrt.calloc),
-                                     freeMemory=FreeMemory(ctypes.cdll.msvcrt.free))
+                                     allocateMemory=AllocateMemory(msvcrt_lib.calloc),
+                                     freeMemory=FreeMemory(msvcrt_lib.free))
 
         ''' Load instance of library into memory '''
         try:

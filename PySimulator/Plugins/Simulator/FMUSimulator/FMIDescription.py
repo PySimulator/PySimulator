@@ -31,9 +31,10 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
 
 
-import xml.etree.ElementTree as etree
 import copy
+
 import FMUError
+import xml.etree.ElementTree as etree
 
 
 class DISPLAYUnit:
