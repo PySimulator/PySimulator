@@ -1,7 +1,4 @@
 '''
-Copyright (C) 2014 German Aerospace Center DLR
-(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
-Institute of System Dynamics and Control
 Copyright (C) 2014 ITI GmbH
 All rights reserved.
 
