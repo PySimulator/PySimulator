@@ -26,9 +26,13 @@ import numpy as np
 
 
 if platform.architecture()[0] == '32bit':
-    from sundials import *
+    import sundials
+elif platform.architecture()[0] == '64bit':
+    import imp
+    import os
+    sundials = imp.load_dynamic('sundials', os.path.join(os.path.dirname(__file__), 'sundials64.pyd'))
 else:
-    raise ImportError('A 64-bit binary of sundials.pyd is not available.')
+    raise ImportError('A binary of sundials.pyd is not available.')
 
 
 class SundialsCVode():
@@ -67,7 +71,7 @@ class SundialsCVode():
     def simulate(self, Tend, nIntervals, gridWidth):
         # Create Solver and set settings
         noRootFunctions = np.size(self.state_events(self.t0, np.array(self.y0)))
-        solver = CVodeSolver(RHS=self.f, ROOT=self.rootf, SW=[False] * noRootFunctions,
+        solver = sundials.CVodeSolver(RHS=self.f, ROOT=self.rootf, SW=[False] * noRootFunctions,
                        abstol=self.atol, reltol=self.rtol)
 
 
@@ -132,7 +136,7 @@ class SundialsCVode():
                 self.y_cur = np.array(self.y_cur)
                 state_event = False
 
-            except CVodeRootException, info:
+            except sundials.CVodeRootException, info:
                 self.t_cur = info.t
                 self.y_cur = info.y
                 self.y_cur = np.array(self.y_cur)
@@ -200,7 +204,7 @@ class SundialsIDA():
 
         ''' Create Solver and set settings '''
         noRootFunctions = np.size(self.state_events(self.t0, np.array(self.y0)))
-        solver = IDASolver(RES=self.f, ROOT=self.rootf, SW=[False] * noRootFunctions,
+        solver = sundials.IDASolver(RES=self.f, ROOT=self.rootf, SW=[False] * noRootFunctions,
                        abstol=self.atol, reltol=self.rtol)
 
         solver.settings.maxord = 5  # default 5, Maximum order
@@ -259,7 +263,7 @@ class SundialsIDA():
                 self.yd_cur = np.array(self.yd_cur)
                 state_event = False
 
-            except IDARootException, info:
+            except sundials.IDARootException, info:
                 self.t_cur = info.t
                 self.y_cur = info.y
                 self.y_cur = np.array(self.y_cur)

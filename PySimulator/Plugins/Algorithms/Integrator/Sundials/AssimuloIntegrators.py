@@ -20,11 +20,23 @@ You should have received a copy of the GNU Lesser General Public License
 along with PySimulator. If not, see www.gnu.org/licenses.
 '''
 
-
-import numpy as np
+import platform
 
 from assimulo.problem import Explicit_Problem, Implicit_Problem
 from assimulo.solvers import CVode, IDA, RungeKutta34
+
+import numpy as np
+
+
+if platform.architecture()[0] == '32bit':
+    import sundials
+elif platform.architecture()[0] == '64bit':
+    import imp
+    import os
+    sundials = imp.load_dynamic('sundials', os.path.join(os.path.dirname(__file__), 'sundials64.pyd'))
+else:
+    raise ImportError('A binary of sundials.pyd is not available.')
+
 
 
 class AssimuloRK34():
@@ -349,9 +361,9 @@ class AssimuloRK():
             simulation.report_continuously = False  # default 0, if one step approach should be used
 
         # Create Solver and set settings
-        noRootFunctions = np.size(self.state_events(self.t0, np.array(self.y0)))
+#        noRootFunctions = np.size(self.state_events(self.t0, np.array(self.y0)))
 
-#        solver = CVodeSolver(RHS = self.f, ROOT = self.rootf, SW = [False]*noRootFunctions,
+#        solver = sundials.CVodeSolver(RHS = self.f, ROOT = self.rootf, SW = [False]*noRootFunctions,
 #                       abstol = self.atol, reltol = self.rtol)
         # solver.settings.JAC = None   #Add user-dependent jacobian here
 
@@ -410,8 +422,6 @@ class AssimuloRK():
                 self.t_cur = t_new[-1]
                 self.y_cur = y_new[-1]
                 state_event = False
-
-                a = 2;
 
             except:
                 import sys
@@ -484,7 +494,7 @@ class SundialsIDA():
 
         ''' Create Solver and set settings '''
         noRootFunctions = np.size(self.state_events(self.t0, np.array(self.y0)))
-        solver = IDASolver(RES=self.f, ROOT=self.rootf, SW=[False] * noRootFunctions,
+        solver = sundials.IDASolver(RES=self.f, ROOT=self.rootf, SW=[False] * noRootFunctions,
                        abstol=self.atol, reltol=self.rtol)
 
         solver.settings.maxord = 5  # default 5, Maximum order
@@ -548,7 +558,7 @@ class SundialsIDA():
                 self.yd_cur = np.array(self.yd_cur)
                 state_event = False
 
-            except IDARootException, info:
+            except sundials.IDARootException, info:
                 self.t_cur = info.t
                 self.y_cur = info.y
                 self.y_cur = np.array(self.y_cur)
