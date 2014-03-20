@@ -193,9 +193,7 @@ def convertFromDymolaMatFile(matFilename, mtsfFilename=None):
     dataIndexFixed = []
     dataIndexContinuous = []
     categoryIndex = pyMtsf.StandardCategoryNames.index(pyMtsf.CategoryMapping['Real'])
-    for index, variableName in enumerate(res._name):
-        if variableName == "SignalCurrent1.n.i":
-            pass
+    for index, variableName in enumerate(res._name):        
         aliasNegated = False
         if res._dataInfo[index, 0] == 1:
             variability = 'fixed'
