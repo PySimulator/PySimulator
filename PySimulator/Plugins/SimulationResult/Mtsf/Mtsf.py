@@ -194,6 +194,8 @@ def convertFromDymolaMatFile(matFilename, mtsfFilename=None):
     dataIndexContinuous = []
     categoryIndex = pyMtsf.StandardCategoryNames.index(pyMtsf.CategoryMapping['Real'])
     for index, variableName in enumerate(res._name):
+        if variableName == "SignalCurrent1.n.i":
+            pass
         aliasNegated = False
         if res._dataInfo[index, 0] == 1:
             variability = 'fixed'
@@ -201,8 +203,8 @@ def convertFromDymolaMatFile(matFilename, mtsfFilename=None):
         else:
             variability = 'continuous'
             seriesIndex = 1  # Continuous
-            if res._dataInfo[index, 1] < 0:
-                aliasNegated = True
+        if res._dataInfo[index, 1] < 0:
+            aliasNegated = True
         if aliasName[index] is None:
             if variability == 'fixed':
                 dataIndexFixed.append(abs(res._dataInfo[index, 1]) - 1)
@@ -243,7 +245,7 @@ def convertFromDymolaMatFile(matFilename, mtsfFilename=None):
                         cpuTime="")
     modelDescription = pyMtsf.ModelDescription(resultFileName[:-5], '', '', '', '', '', 'structured')
     # Create result object
-    mtsf = MTSF(resultFileName, modelDescription, modelVariables, experimentSetup, simpleTypes, units, enumerations)
+    mtsf = pyMtsf.MTSF(resultFileName, modelDescription, modelVariables, experimentSetup, simpleTypes, units, enumerations)
     # Write numeric data
     fixedValues = numpy.ndarray((len(dataIndexFixed,)))
     for i, index in enumerate(dataIndexFixed):
@@ -251,8 +253,8 @@ def convertFromDymolaMatFile(matFilename, mtsfFilename=None):
     continuousValues = numpy.ndarray((len(timeData), len(dataIndexContinuous)))
     for i, index in enumerate(dataIndexContinuous):
         continuousValues[:, i] = res._data[1][:, index]
-    mtsf._mtsf.results.series['Fixed'].category[pyMtsf.CategoryMapping['Real']].writeData(fixedValues)
-    mtsf._mtsf.results.series['Continuous'].category[pyMtsf.CategoryMapping['Real']].writeData(continuousValues)
+    mtsf.results.series['Fixed'].category[pyMtsf.CategoryMapping['Real']].writeData(fixedValues)
+    mtsf.results.series['Continuous'].category[pyMtsf.CategoryMapping['Real']].writeData(continuousValues)
 
     # Close file
     mtsf.close()

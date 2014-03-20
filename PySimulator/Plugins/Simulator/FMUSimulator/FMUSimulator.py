@@ -71,7 +71,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
     ''' Class to describe a whole "model", including all FMU information
         and some more information that is needed.
     '''
-    def __init__(self, modelName=None, modelFileName=None, config=None, loggingOn=True):
+    def __init__(self, modelName=None, modelFileName=None, config=None, loggingOn=False):
         ''' Opens a given model and sets it up with its default values
             @param modelFileName: fully qualified file name and path of model
         '''
