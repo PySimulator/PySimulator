@@ -71,7 +71,7 @@ def convertFromFmi(fmuFilename, fmi=None):
 
     # Load FMIDescription if necessary
     if fmi is None:
-        fmuFile = zipfile.ZipFile(os.getcwd() + '\\' + fmuFilename + '.fmu', 'r')
+        fmuFile = zipfile.ZipFile(os.getcwd() + u'\\' + fmuFilename + u'.fmu', 'r')
         fmi = FMIDescription(fmuFile.open('modelDescription.xml'))
 
     # Prepare some variables

@@ -28,6 +28,7 @@ The main UI window
 
 
 import os
+import sys
 from PySide import QtGui
 
 version = '0.6+'
@@ -361,7 +362,6 @@ class SimulatorGui(QtGui.QMainWindow):
             extensionStr = extensionStr[:-1]
         ''' Load a model '''
         (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open Model', os.getcwd(), extensionStr)
-        # fileName = str(fileName)
         if fileName == '':
             return
         split = string.rsplit(fileName, '.', 1)
@@ -423,7 +423,7 @@ class SimulatorGui(QtGui.QMainWindow):
         formats += ');;' + formats2
         (fileNames, trash) = QtGui.QFileDialog().getOpenFileNames(self, 'Open Result File', os.getcwd(), formats)
         for fileName in fileNames:
-            self.openResultFile(str(fileName).replace('\\', '/'))
+            self.openResultFile(fileName.replace(u'\\', u'/'))
 
     def _loadingFileInfo(self):
         ''' Shows a label 'Loading file...' '''
@@ -444,7 +444,6 @@ class SimulatorGui(QtGui.QMainWindow):
     def _convertResultFileMenu(self):
         ''' Select a result file '''
         (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Select Result File', os.getcwd(), 'Dymola Result File (*.mat)')
-        fileName = str(fileName)
         if fileName == '':
             return
         print("Convert " + fileName + " ...")
@@ -454,7 +453,6 @@ class SimulatorGui(QtGui.QMainWindow):
     def _changeDirectoryMenu(self):
         ''' Select a working directory '''
         dirName = QtGui.QFileDialog().getExistingDirectory(self, 'Select Working Directory', os.getcwd())
-        # dirName = str(dirName)
         if dirName == '':
             return
         self._chDir(dirName)
