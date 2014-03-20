@@ -42,7 +42,7 @@ import win32com.client
 import Plugins.SimulationResult.SimulationXCsv.SimulationXCsv as SimulationXCsv
 import Plugins.Simulator.SimulatorBase
 import _winreg as winreg
-from simx import *
+from SimXEnums import *
 
 
 iconImage = 'simulatorSimulationX.ico'
@@ -203,6 +203,18 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			Plugins.Simulator.SimulatorBase.Model.close(self)
 			if not type(sim) is types.NoneType:
 				sim.Interactive = True
+				sim = None
+
+		if hasattr(self, 'variableTree'):
+			del self.variableTree
+		if hasattr(self, '_availableIntegrationAlgorithms'):
+			del self._availableIntegrationAlgorithms
+		if hasattr(self, '_solverByName'):
+			del self._solverByName
+		if hasattr(self, '_IntegrationAlgorithmHasFixedStepSize'):
+			del self._IntegrationAlgorithmHasFixedStepSize
+		if hasattr(self, '_IntegrationAlgorithmCanProvideStepSizeResults'):
+			del self._IntegrationAlgorithmCanProvideStepSizeResults
 
 	def _isNumeric(self, s):
 		'''  Check if a string value can be successfully converted to a double value
