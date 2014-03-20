@@ -23,11 +23,13 @@ import os
 import types
 from xml.dom import minidom
 import zipfile
+import string
 
 import numpy
 
 from Plugins.SimulationResult import IntegrationResults
 import PyResultX as isx
+from SimXUnitSI import unitSI
 
 
 fileExtension = 'isx'
@@ -42,6 +44,7 @@ class Results(IntegrationResults.Results):
 
 		self.fileName = fileName
 
+		self._info = []
 		self._name = []
 		self._unit = []
 
@@ -62,7 +65,7 @@ class Results(IntegrationResults.Results):
 					doc = isx.SimXObject(model, 'doc' , None, [], results, 0)
 					doc_t = doc.LoadResult('doc.t')
 				except:
-					raise Exception("Variable 't' not stored in file " + self.fullFileName)
+					raise Exception("Result variable 't' not stored in file " + self.fullFileName)
 				cols = 0
 				for result in results:
 					if result.ndims == 1:
@@ -74,34 +77,47 @@ class Results(IntegrationResults.Results):
 					elif result.ndims == 3:
 						# Matrix dimension
 						cols += result.Dimension[1]*result.Dimension[2]
-				data = numpy.empty((len(doc_t), cols))  # pre-allocate array
+				rows = len(doc_t)
+				data = numpy.empty((rows, cols))  # pre-allocate array
 				self.fileInfo['Rows'] = str(len(doc_t))
-				self.fileInfo['Columns'] = str(cols)
 				cols = 0
 				for result in results:
-					res = doc.LoadResult(result.strIdent)
-					ident = '.'.join(result.Ident[1:])
-					if result.ndims == 1:
-						# Scalar dimension
-						data[:, cols] = res
-						cols += 1
-						self._name.append(ident)
-						self._unit.append(result.Unit)
-					elif result.ndims == 2:
-						# Vector dimension
-						data[:, range(cols, cols + result.Dimension[1])] = res
-						cols += result.Dimension[1]
-						for i in range(1, result.Dimension[1] + 1):
-							self._name.append(ident + '[' + str(i) + ']')
-							self._unit.append(result.Unit)
-					elif result.ndims == 3:
-						# Matrix dimension
-						for i in range(1, result.Dimension[1] + 1):
-							data[:, range(cols, cols + result.Dimension[1])] = res[:, i - 1, :]
-							cols += result.Dimension[2]
-							for j in range(1, result.Dimension[2] + 1):
-								self._name.append(ident + '[' + str(i) + ',' + str(j) + ']')
-								self._unit.append(result.Unit)
+					try:
+						res = doc.LoadResult(result.strIdent)
+						if res.shape[0] == rows:
+							ident = '.'.join(result.Ident[1:])
+							quantity = string.rsplit(result.Quantity, '.', 1)[-1]
+							if quantity in unitSI:
+								unit = unitSI[quantity]
+							else:
+								unit = None
+							if result.ndims == 1:
+								# Scalar dimension
+								data[:, cols] = res
+								cols += 1
+								self._name.append(ident)
+								self._unit.append(unit)
+								self._info.append(result.Quantity)
+							elif result.ndims == 2:
+								# Vector dimension
+								data[:, range(cols, cols + result.Dimension[1])] = res
+								cols += result.Dimension[1]
+								for i in range(1, result.Dimension[1] + 1):
+									self._name.append(ident + '[' + str(i) + ']')
+									self._unit.append(unit)
+									self._info.append(result.Quantity)
+							elif result.ndims == 3:
+								# Matrix dimension
+								for i in range(1, result.Dimension[1] + 1):
+									data[:, range(cols, cols + result.Dimension[1])] = res[:, i - 1, :]
+									cols += result.Dimension[2]
+									for j in range(1, result.Dimension[2] + 1):
+										self._name.append(ident + '[' + str(i) + ',' + str(j) + ']')
+										self._unit.append(unit)
+										self._info.append(result.Quantity)
+					except:
+						pass
+				self.fileInfo['Columns'] = str(cols)
 				self.timeSeries.append(IntegrationResults.TimeSeries(doc_t, data, "linear"))
 				self._filterUnit()
 				self.isAvailable = True  # Shows, if there is a file available to be read
@@ -109,7 +125,6 @@ class Results(IntegrationResults.Results):
 				raise Exception('No results stored in file ' + self.fullFileName)
 
 		self._isParameter = len(self._name) * [False]
-		self._info = len(self._name) * ['']
 		self.nTimeSeries = len(self.timeSeries)
 
 	def _filterUnit(self):
@@ -157,7 +172,7 @@ class Results(IntegrationResults.Results):
 			infos = collections.OrderedDict()
 			infos['Variability'] = variability
 			if not self._info[i] == '':
-				infos['Description'] = self._info[i]
+				infos['Quantity'] = self._info[i]
 			unit = self._unit[i]
 			sign = 1
 
