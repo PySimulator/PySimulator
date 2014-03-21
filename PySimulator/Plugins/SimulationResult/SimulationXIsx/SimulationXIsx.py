@@ -48,7 +48,7 @@ class Results(IntegrationResults.Results):
 		self._name = []
 		self._unit = []
 
-		self.fileInfo = dict()
+		self._fileInfo = dict()
 
 		if fileName is None:
 			return
@@ -56,16 +56,16 @@ class Results(IntegrationResults.Results):
 			return
 
 		# Determine complete file name
-		self.fullFileName = os.path.abspath(fileName)
+		self._fullFileName = os.path.abspath(fileName)
 
 		results = []
-		with isx.readModel(self.fullFileName, 'doc', results) as model:
+		with isx.readModel(self._fullFileName, 'doc', results) as model:
 			if len(results) > 0:
 				try:
 					doc = isx.SimXObject(model, 'doc' , None, [], results, 0)
 					doc_t = doc.LoadResult('doc.t')
 				except:
-					raise Exception("Result variable 't' not stored in file " + self.fullFileName)
+					raise Exception("Result variable 't' not stored in file " + self._fullFileName)
 				cols = 0
 				for result in results:
 					if result.ndims == 1:
@@ -79,7 +79,7 @@ class Results(IntegrationResults.Results):
 						cols += result.Dimension[1]*result.Dimension[2]
 				rows = len(doc_t)
 				data = numpy.empty((rows, cols))  # pre-allocate array
-				self.fileInfo['Rows'] = str(len(doc_t))
+				self._fileInfo['Rows'] = str(len(doc_t))
 				cols = 0
 				for result in results:
 					try:
@@ -117,14 +117,13 @@ class Results(IntegrationResults.Results):
 										self._info.append(result.Quantity)
 					except:
 						pass
-				self.fileInfo['Columns'] = str(cols)
+				self._fileInfo['Columns'] = str(cols)
 				self.timeSeries.append(IntegrationResults.TimeSeries(doc_t, data, "linear"))
 				self._filterUnit()
 				self.isAvailable = True  # Shows, if there is a file available to be read
 			else:
-				raise Exception('No results stored in file ' + self.fullFileName)
+				raise Exception('No results stored in file ' + self._fullFileName)
 
-		self._isParameter = len(self._name) * [False]
 		self.nTimeSeries = len(self.timeSeries)
 
 	def _filterUnit(self):
@@ -138,15 +137,9 @@ class Results(IntegrationResults.Results):
 		nameIndex = self._name.index(variableName)
 		if nameIndex < 0:
 			return None, None, None
-		if self._isParameter[nameIndex]:
-			y = numpy.array([self.timeSeries[1].data[0, nameIndex - self.timeSeries[0].data.shape[1]]])
-			i = 1
-		else:
-			y = self.timeSeries[0].data[:, nameIndex]
-			i = 0
-
-		t = self.timeSeries[i].independentVariable
-		method = self.timeSeries[i].interpolationMethod
+		y = self.timeSeries[0].data[:, nameIndex]
+		t = self.timeSeries[0].independentVariable
+		method = self.timeSeries[0].interpolationMethod
 
 		return t, y, method
 
@@ -156,81 +149,69 @@ class Results(IntegrationResults.Results):
 		variables = dict()
 
 		# Fill the values of the dict
-		for i in xrange(len(self._name)):
-			name = self._name[i]
-
-			if self._isParameter[i]:
-				variability = 'fixed'
-				value = self.timeSeries[1].data[0, i - self.timeSeries[0].data.shape[1]]
-				seriesIndex = 1
-				column = i - self.timeSeries[0].data.shape[1]
-			else:
-				variability = 'continuous'
-				value = None
-				seriesIndex = 0
-				column = i
+		variability = 'continuous'
+		value = None
+		seriesIndex = 0
+		sign = 1
+		for col in xrange(len(self._name)):
+			name = self._name[col]
 			infos = collections.OrderedDict()
 			infos['Variability'] = variability
-			if not self._info[i] == '':
-				infos['Quantity'] = self._info[i]
-			unit = self._unit[i]
-			sign = 1
+			if not self._info[col] == '':
+				infos['Quantity'] = self._info[col]
+			unit = self._unit[col]
 
 			if name in variables.keys():
-				print "Same name twice " + ('(Parameter): ' if self._isParameter[i] else '(Variable): ') + name
+				print "Same name twice (Variable): " + name
 			else:
-				variables[name] = IntegrationResults.ResultVariable(value, unit, variability, infos, seriesIndex, column, sign)
-
-		# print self._name
+				variables[name] = IntegrationResults.ResultVariable(value, unit, variability, infos, seriesIndex, col, sign)
 
 		return variables
 
 	def getFileInfos(self):
-		with zipfile.ZipFile(self.fullFileName, 'r') as model:
+		with zipfile.ZipFile(self._fullFileName, 'r') as model:
 			with model.open('docProps/app.xml', 'rU') as app:
 				dom = minidom.parseString(app.read())
 				nodes = dom.getElementsByTagName('AppVersion')
 				if len(nodes) > 0:
 					if type(nodes[0].firstChild) is not types.NoneType:
-						self.fileInfo['SimulationX'] = nodes[0].firstChild.nodeValue
+						self._fileInfo['SimulationX'] = nodes[0].firstChild.nodeValue
 				nodes = dom.getElementsByTagName('Company')
 				if len(nodes) > 0:
 					if type(nodes[0].firstChild) is not types.NoneType:
-						self.fileInfo['Company'] = nodes[0].firstChild.nodeValue
+						self._fileInfo['Company'] = nodes[0].firstChild.nodeValue
 			with model.open('docProps/core.xml', 'rU') as core:
 				dom = minidom.parseString(core.read())
 				nodes = dom.getElementsByTagName('dc:title')
 				if len(nodes) > 0:
 					if type(nodes[0].firstChild) is not types.NoneType:
-						self.fileInfo['Title'] = nodes[0].firstChild.nodeValue
+						self._fileInfo['Title'] = nodes[0].firstChild.nodeValue
 				nodes = dom.getElementsByTagName('dc:subject')
 				if len(nodes) > 0:
 					if type(nodes[0].firstChild) is not types.NoneType:
-						self.fileInfo['Subject'] = nodes[0].firstChild.nodeValue
+						self._fileInfo['Subject'] = nodes[0].firstChild.nodeValue
 				nodes = dom.getElementsByTagName('dc:creator')
 				if len(nodes) > 0:
 					if type(nodes[0].firstChild) is not types.NoneType:
-						self.fileInfo['Creator'] = nodes[0].firstChild.nodeValue
+						self._fileInfo['Creator'] = nodes[0].firstChild.nodeValue
 				nodes = dom.getElementsByTagName('dc:keywords')
 				if len(nodes) > 0:
 					if type(nodes[0].firstChild) is not types.NoneType:
-						self.fileInfo['Keywords'] = nodes[0].firstChild.nodeValue
+						self._fileInfo['Keywords'] = nodes[0].firstChild.nodeValue
 				nodes = dom.getElementsByTagName('dc:description')
 				if len(nodes) > 0:
 					if type(nodes[0].firstChild) is not types.NoneType:
-						self.fileInfo['Description'] = nodes[0].firstChild.nodeValue
-		return self.fileInfo
+						self._fileInfo['Description'] = nodes[0].firstChild.nodeValue
+		return self._fileInfo
 
 	def close(self):
 		if hasattr(self, 'timeSeries'):
 			del self.timeSeries
-		if hasattr(self, 'fileInfo'):
-			del self.fileInfo
+		if hasattr(self, '_fileInfo'):
+			del self._fileInfo
 		if hasattr(self, '_name'):
 			del self._name
 		if hasattr(self, '_unit'):
 			del self._unit
-		if hasattr(self, '_isParameter'):
-			del self._isParameter
 		if hasattr(self, '_info'):
 			del self._info
