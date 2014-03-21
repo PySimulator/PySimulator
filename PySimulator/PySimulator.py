@@ -422,8 +422,9 @@ class SimulatorGui(QtGui.QMainWindow):
                 formats2 += ';;'
         formats += ');;' + formats2
         (fileNames, trash) = QtGui.QFileDialog().getOpenFileNames(self, 'Open Result File', os.getcwd(), formats)
+        import locale
         for fileName in fileNames:
-            self.openResultFile(fileName.replace(u'\\', u'/'))
+            self.openResultFile(fileName.encode(locale.getpreferredencoding()).replace('\\', '/'))
 
     def _loadingFileInfo(self):
         ''' Shows a label 'Loading file...' '''
