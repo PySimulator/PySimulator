@@ -1,3 +1,3 @@
 python setup.py install
 pause
-python post-setup.py
+python post_setup.py

@@ -9,7 +9,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     package_dir={"": "."},
     include_package_data=True,
-    package_data={"": ["Examples/FMU1.0/*", "Examples/LinearSystems/*", "Examples/Testing/*", "Icons/*", "Documentation/*", "*.txt", "*.pdf", "*.pyd"]},
+    package_data={"": ["Examples/FMU1.0/*", "Examples/LinearSystems/*", "Examples/Testing/*", "Icons/*", "Documentation/*", "*.txt", "*.pdf"]},
     entry_points={
         "setuptools.installation":  ['PySimulator = PySimulator.PySimulator:start_PySimulator'],
         "gui_scripts":              ['PySimulator = PySimulator.PySimulator:start_PySimulator'],
@@ -41,5 +41,3 @@ setuptools.setup(
     url="www.pysimulator.org",
     platforms="Windows XP/Vista/7/8"
 )
-
-
