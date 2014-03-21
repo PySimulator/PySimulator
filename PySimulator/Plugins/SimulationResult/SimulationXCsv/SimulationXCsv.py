@@ -173,6 +173,7 @@ class Results(IntegrationResults.Results):
         variables = dict()
 
         # Fill the values of the dict
+        sign = 1
         for i in xrange(len(self._name)):
             name = self._name[i]
 
@@ -191,14 +192,11 @@ class Results(IntegrationResults.Results):
             if not self._info[i] == '':
                 infos['Description'] = self._info[i]
             unit = self._unit[i]
-            sign = 1
 
             if name in variables.keys():
                 print "Same name twice " + ('(Parameter): ' if self._isParameter[i] else '(Variable): ') + name
             else:
                 variables[name] = IntegrationResults.ResultVariable(value, unit, variability, infos, seriesIndex, column, sign)
-
-        # print self._name
 
         return variables
 
