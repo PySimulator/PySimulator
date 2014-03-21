@@ -75,7 +75,6 @@ def linearizeAndShowABCD(model, gui):
 
 def fun1(model, gui):
     print "Frequency Response."
-    pass
 
 def getModelCallbacks():
     ''' Registers model callbacks with main application
