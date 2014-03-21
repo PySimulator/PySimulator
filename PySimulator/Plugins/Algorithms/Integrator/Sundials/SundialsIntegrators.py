@@ -20,19 +20,12 @@ You should have received a copy of the GNU Lesser General Public License
 along with PySimulator. If not, see www.gnu.org/licenses.
 '''
 
-import platform
-
 import numpy as np
 
-
-if platform.architecture()[0] == '32bit':
+try:
     import sundials
-elif platform.architecture()[0] == '64bit':
-    import imp
-    import os
-    sundials = imp.load_dynamic('sundials', os.path.join(os.path.dirname(__file__), 'sundials64.pyd'))
-else:
-    raise ImportError('A binary of sundials.pyd is not available.')
+except:
+    raise ImportError('No module named sundials')
 
 
 class SundialsCVode():
