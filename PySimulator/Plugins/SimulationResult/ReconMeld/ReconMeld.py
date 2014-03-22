@@ -20,7 +20,6 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 
 import collections
 import os
-import types
 
 import numpy
 

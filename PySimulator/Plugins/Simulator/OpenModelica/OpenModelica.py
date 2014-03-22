@@ -47,7 +47,6 @@ def closeSimulationPlugin():
         OMPython.execute("quit()")
     except SystemExit:
         pass
-    pass
 
 # Change the parameters of the model file
 def setNewParameters(cmd):

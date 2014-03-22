@@ -20,8 +20,11 @@ import platform
 import urllib
 
 try:
-    from assimulo.problem import Explicit_Problem, Implicit_Problem
-    from assimulo.solvers import CVode, IDA, RungeKutta34
+    from assimulo.problem import Explicit_Problem
+    from assimulo.problem import Implicit_Problem
+    from assimulo.solvers import CVode
+    from assimulo.solvers import IDA
+    from assimulo.solvers import RungeKutta34
 except:
     if sys.version_info >= (2,7) and sys.version_info < (2,8):
         if win32ui.MessageBox('PySimulator optionally requires Assimulo which could not be installed by the automated installer.\nYou can manually download Assimulo from: http://www.jmodelica.org/assimulo\nDo you want to download and install Assimulo now?', 'Install Assimulo?', win32con.MB_YESNO) == win32con.IDYES:
@@ -31,7 +34,10 @@ except:
                 assimulo_name = 'Assimulo-2.5.win-amd64-py2.7.exe'
 
 try:
-    from sundials import CVodeSolver, CVodeRootException, IDASolver, IDARootException
+    from sundials import CVodeRootException
+    from sundials import CVodeSolver
+    from sundials import IDARootException
+    from sundials import IDASolver
 except:
     if sys.version_info >= (2,7) and sys.version_info < (2,8):
         if win32ui.MessageBox('PySimulator optionally requires Python-sundials which could not be installed by the automated installer.\nYou can manually download Python-sundials from: https://code.google.com/p/python-sundials/\nDo you want to download and install Python-sundials now?', 'Install Python-sundials?', win32con.MB_YESNO) == win32con.IDYES:
