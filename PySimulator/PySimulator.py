@@ -31,7 +31,7 @@ import os
 import sys
 from PySide import QtGui
 
-version = '0.6+'
+version = '0.61+ (master)'
 
 
 def loadPlugins(type):
