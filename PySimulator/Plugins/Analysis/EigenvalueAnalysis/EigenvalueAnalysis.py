@@ -182,6 +182,7 @@ class EigenvalueAnalysis(object):
         self.x0 = numpy.array(model.interface.fmiGetContinuousStates())
         self.n = numpy.size(self.x0, 0)
         self.StateNames = model.getStateNames()
+        model.interface.freeModelInstance()
 
 
         # Version 1: Linearized system by the linear system analysis plugin
