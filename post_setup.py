@@ -29,9 +29,9 @@ except:
     if sys.version_info >= (2,7) and sys.version_info < (2,8):
         if win32ui.MessageBox('PySimulator optionally requires Assimulo which could not be installed by the automated installer.\nYou can manually download Assimulo from: http://www.jmodelica.org/assimulo\nDo you want to download and install Assimulo now?', 'Install Assimulo?', win32con.MB_YESNO) == win32con.IDYES:
             if platform.architecture()[0] == '32bit':
-                assimulo_name = 'Assimulo-2.5.win32-py2.7.exe'
+                assimulo_name = 'Assimulo-2.5.1.win32-py2.7.exe'
             elif platform.architecture()[0] == '64bit':
-                assimulo_name = 'Assimulo-2.5.win-amd64-py2.7.exe'
+                assimulo_name = 'Assimulo-2.5.1.win-amd64-py2.7.exe'
 
 try:
     from sundials import CVodeRootException
