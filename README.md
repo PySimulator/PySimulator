@@ -19,10 +19,7 @@ with PySimulator](http:www.modprod.liu.se/modprod2013-program/1.456422/modprod20
 * Windows (Other platforms have not been tested.)
 
 ####Installation
-* To install PySimulator one of the following requirements has to be fulfilled:
-  * Python(x,y) is installed (tested with version 2.7.5 and 2.7.6.0), see www.pythonxy.org. This is the recommended option.
-  * Python 2.7 and Microsoft Visual Studio 2008 is installed (for experts).
-* Start "Install PySimulator.bat".
+* Start "Install PySimulator.bat". This batch file installs the 32 Bit Python(x,y) and all other necessary packages.
 * Run PySimulator by clicking on the desktop icon after the installation.
 * Further information about the installation can be found in the [wiki](../../wiki/Installation).
 
