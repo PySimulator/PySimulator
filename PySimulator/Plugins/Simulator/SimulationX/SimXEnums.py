@@ -27,11 +27,11 @@ simWindowStateMinimize = 2
 
 # SimSpecialToolButtons
 simSpecialToolButtonCurve = -1
-SpecialToolButtonOptions = 0
-SpecialToolButtonLast = 1
-SpecialToolButtonNext = 2
-SpecialToolButtonPrev = 3
-SpecialToolButtonFirst = 4
+simSpecialToolButtonOptions = 0
+simSpecialToolButtonLast = 1
+simSpecialToolButtonNext = 2
+simSpecialToolButtonPrev = 3
+simSpecialToolButtonFirst = 4
 
 # SimProperty
 simIsHidden = 0
@@ -184,11 +184,6 @@ SimTraceMsgTypeQuestion = 3
 SimTraceMsgTypeError = 4
 SimTraceMsgTypeDebug = 5
 SimTraceMsgTypeNone = 6
-
-# SimTraceMsgLocation
-SimTraceMsgCurrent = -1
-SimTraceMsgSimulation = 0
-SimTraceMsgLocationFile = 1
 
 # SimTraceMsgLocation
 SimTraceMsgCurrent = -1
