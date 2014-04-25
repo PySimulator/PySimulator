@@ -529,12 +529,14 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			# Save results in CSV file
 			resultFileName = os.path.abspath(simulation.resultFileName).replace('\\', '/')
 			ver = self.config['Plugins']['SimulationX']['version']
+			canExportDisplayUnit = True
 			if ver == 'Iti.Simx36':
 				ver = '3.6'
 			elif ver == 'Iti.Simx37':
 				ver = '3.7'
 			else:
 				ver = '3.5'
+				canExportDisplayUnit = False
 
 			try:
 				key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\ITI GmbH\SimulationX ' + ver + r'\DataFilter', 0, winreg.KEY_ALL_ACCESS)
@@ -571,7 +573,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			winreg.SetValueEx(key, 'AddColumnNames', 0, winreg.REG_DWORD, 1)
 			winreg.SetValueEx(key, 'AddColumnUnits', 0, winreg.REG_DWORD, 1)
 			winreg.FlushKey(key)
-			if float(ver) >= 3.6:
+			if canExportDisplayUnit:
 				doc.StoreAllResultsAsText(resultFileName, False)  # Export in displayUnit
 			else:
 				doc.StoreAllResultsAsText(resultFileName)  # Export in SI-Unit
