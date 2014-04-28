@@ -21,10 +21,12 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 '''
 
 
-import types
-from PySide import QtGui, QtCore
 import functools
+import re
 import sys
+import types
+
+from PySide import QtGui, QtCore
 
 
 class VariablesBrowser(QtGui.QTreeWidget):
@@ -36,7 +38,7 @@ class VariablesBrowser(QtGui.QTreeWidget):
     currentModelChanged = QtCore.Signal()
 
     ''' Python and Qt are using a different memory model - this causes Python to free
-        memory still in use by Qt. To make python keep this elements in memory, they
+        memory still in use by Qt. To make Python keep this elements in memory, they
         have to be saved somewhere, so they are simply added to this list
     '''
     _memoryHack = []
@@ -276,16 +278,12 @@ class VariablesBrowser(QtGui.QTreeWidget):
         for name, variable in model.variableTree.variable.iteritems():
             variableNames.append([variable.browserName, name])
 
-        def sortKey(x1):
+        def natsort_key(x1, _nsre=re.compile('([0-9]+)')):
             x = x1[0]
-            a = str(x).upper()
-            i = a.rfind('.')
-            if i < 0:
-                return '^' + a
-            else:
-                return a[:i] + '.^' + a[i + 1:]
+            return [int(text) if text.isdigit() else text.lower() for text in re.split(_nsre, x)]
+
         # Sort the variables for the tree
-        variableNames.sort(key=sortKey)
+        variableNames.sort(key=natsort_key)
 
         for v in variableNames:
             self.addItemToTree(treeRoot, v[0], v[1], model)
