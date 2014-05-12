@@ -31,7 +31,7 @@ and simulation executable of OpenModelica. It runs the executable and loads the 
 import Plugins.Simulator.SimulatorBase
 import OMPython
 import Plugins.SimulationResult.DymolaMat.DymolaMat as DymolaMat
-import os, shutil
+import os, sys, shutil
 import subprocess
 import SocketServer
 import re
@@ -115,7 +115,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
             # load the OpenModelica Standard library
             # OMPython.execute("loadModel(Modelica)")
-            OMPython.execute("loadFile(\"" + self.fileName[0] + "\")")
+            OMPython.execute("loadFile(\"" + self.fileName[0].encode(sys.getfilesystemencoding()) + "\")")
             # set the working directory in OMC
             pwd = os.path.abspath('.').replace('\\', '/')
             workdir = OMPython.execute("cd(\"" + pwd + "\")")
@@ -154,7 +154,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
         def compile_model(simulate_options):
             if self.fileName != None:
-                OMPython.execute("loadFile(\"" + self.fileName[0] + "\")")
+                OMPython.execute("loadFile(\"" + self.fileName[0].encode(sys.getfilesystemencoding()) + "\")")
 
             s = self.integrationSettings
 
