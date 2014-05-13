@@ -38,7 +38,7 @@ import re
 import threading
 
 iconImage = 'simulatorOpenModelica.ico'
-modelExtension = ['mo', 'exe']  # e.g. ['mo']
+modelExtension = ['mo']  # e.g. ['mo']
 parameters_changed = False
 simulationProgressData = 0.0
 
