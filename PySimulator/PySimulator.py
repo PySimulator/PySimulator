@@ -182,7 +182,11 @@ class SimulatorGui(QtGui.QMainWindow):
         self.setMenuBar(menu)
 
         # Load config file and adapt it to a minimum structure according to loaded plugins
-        self.config = configobj.ConfigObj(self.rootDir + '/PySimulator.ini', encoding='utf8')
+        self.configDir = os.path.join(os.path.expanduser("~"), '.config', 'PySimulator')
+        if not os.path.exists(self.configDir): # Create directory if it does not exist
+          os.makedirs(self.configDir)
+        self.configFile = os.path.join(self.configDir, 'PySimulator.ini')
+        self.config = configobj.ConfigObj(self.configFile, encoding='utf8')
         if not self.config.has_key('PySimulator'):
             self.config['PySimulator'] = {}
             self.config['PySimulator']['workingDirectory'] = os.getcwd()
