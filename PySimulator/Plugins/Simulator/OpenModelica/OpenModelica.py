@@ -108,10 +108,9 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         This function is needed to load the data into the VariablesBrowser
         before simulating the model with parameters.
         """
-
         if len(self.fileName) == 1:
             if not os.path.isfile(self.fileName[0]):
-                raise FileDoesNotExist("File '" + self.fileName[0] + "' does not exist")
+                raise FileDoesNotExist("compileModel failed, file '" + self.fileName[0] + "' does not exist")
 
             # load the OpenModelica Standard library
             # OMPython.execute("loadModel(Modelica)")
@@ -137,7 +136,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         Read the current simulation time during a simulation
         from the Model.exe file generated during loadFile()
         '''
-        fName = os.path.abspath('.') + "/" + self.name + ".exe"
+        fName = os.path.abspath('.') + "/" + self.name + (".exe" if os.name == "nt" else "")
 
         if self.file_thread is None:
             self.file_thread = threading.Thread(runExeFile(fName, self.server_port))
@@ -229,7 +228,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             Read statistics from the LOG_STATS.txt file
             '''
             work_dir = os.getcwd()
-            result_exe = work_dir + '\\' + self.name + ".exe -lv LOG_STATS"
+            result_exe = os.path.join(work_dir, self.name + (".exe" if os.name == "nt" else "")) + " -lv LOG_STATS"
 
             with open('LOG_STATS.txt', 'w') as output_f:
                 p = subprocess.Popen(result_exe,
@@ -358,7 +357,8 @@ def loadResultFileInit(fileName):
 
     """
     # Correct file path if needed
-    fileName = fileName.replace("/", "\\")
+    if os.name == "nt":
+      fileName = fileName.replace("/", "\\")
 
     # If no fileName given, inquire it interactively
     if fileName == None:
