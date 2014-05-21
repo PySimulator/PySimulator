@@ -177,7 +177,7 @@ class EigenvalueAnalysis(object):
         '''
 
         parent = QtGui.QApplication.activeWindow()
-        self.modelName = str(parent.nvb.currentModelItem.text(0))  # str convert QString to str
+        self.modelName = parent.nvb.currentModelItem.text(0)
         self.model = parent.models[self.modelName]
 
         self.t = 0

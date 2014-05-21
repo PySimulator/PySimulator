@@ -179,7 +179,7 @@ class Results(IntegrationResults.Results):
             nameIndex = self.index(name)
         elif isinstance(name, int):
             if name < 0 or name >= len(self._name):
-                raise UnknownIndex("Index = " + str(name) + " is not correct")
+                raise UnknownIndex(u"Index = " + str(name) + u" is not correct")
             nameIndex = name
         else:
             print name

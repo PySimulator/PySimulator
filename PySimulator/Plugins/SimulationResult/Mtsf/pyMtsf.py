@@ -447,9 +447,7 @@ class MTSF:
     def WriteEnumerations(self):
         if len(self.enumerations) == 0:
             return
-
-        maxLenName = self._getMaxLength([x.name for x in self.enumerations])
-        maxLenDescription = self._getMaxLength([x.description for x in self.enumerations])
+        
         numpyDataType = numpy.dtype({'names': ['name', 'value',
                                               'description', 'firstEntry'],
                                'formats': [h5py.special_dtype(vlen=unicode),#'S' + str(max(maxLenName, 1)),
@@ -483,9 +481,7 @@ class MTSF:
     def WriteSimpleTypes(self):
         if len(self.simpleTypes) == 0:
             return
-
-        maxLenTypeName = self._getMaxLength([x.name for x in self.simpleTypes])
-        maxLenQuantity = self._getMaxLength([x.quantity for x in self.simpleTypes])
+        
         # maxLenUnit = self._getMaxLength([x.unit for x in self.simpleTypes])
         numpyDataType = numpy.dtype({'names': ['name', 'dataType',
                                               'quantity',

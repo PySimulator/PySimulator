@@ -153,7 +153,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             self.interface.fmiSetBoolean(ScalarVariableReferenceVector, ScalarVariableValueVector)
         elif self.description.scalarVariables[valueName].type.type == 'String':
             ScalarVariableValueVector = FMUInterface.createfmiStringVector(1)
-            ScalarVariableValueVector[0] = str(valueValue)
+            ScalarVariableValueVector[0] = unicode(valueValue)
             self.interface.fmiSetString(ScalarVariableReferenceVector, ScalarVariableValueVector)
 
     def getDerivatives(self, t, x):

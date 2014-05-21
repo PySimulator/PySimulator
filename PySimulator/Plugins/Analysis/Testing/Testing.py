@@ -136,8 +136,8 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout):
 
                         for m in xrange(len(identical)):
                             if not identical[m]:
-                                message = "Results for " + namesBothSub[m] + " are NOT identical within the tolerance " + str(tol) + "; estimated Tolerance = " + str(estTol[m])
-                                fileOutput.write(message + "\n")
+                                message = u"Results for " + namesBothSub[m] + u" are NOT identical within the tolerance " + unicode(tol) + u"; estimated Tolerance = " + unicode(estTol[m])
+                                fileOutput.write(message + u"\n")
 
 
 
@@ -152,20 +152,20 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout):
 
     lenNamesOnce = len(allNamesOnce1) + len(allNamesOnce2)
     if lenNamesOnce > 0:
-        messageOnce = "; " + str(lenNamesOnce) + " only in one of the two files."
+        messageOnce = u"; " + unicode(lenNamesOnce) + u" only in one of the two files."
     else:
-        messageOnce = "."
-    message = "Compared results of " + str(nPos + nNeg) + " variables: " + str(nPos) + " identical, " + str(nNeg) + " differ" + messageOnce
+        messageOnce = u"."
+    message = u"Compared results of " + unicode(nPos + nNeg) + u" variables: " + unicode(nPos) + u" identical, " + unicode(nNeg) + u" differ" + messageOnce
     # print message
-    fileOutput.write(message + "\n")
+    fileOutput.write(message + u"\n")
 
     if allIdentical:
-        message = "The results for all compared variables are identical up to the given tolerance = " + str(tol)
+        message = u"The results for all compared variables are identical up to the given tolerance = " + unicode(tol)
         # print message
-        fileOutput.write(message + "\n")
-    message = "Maximum estimated tolerance = " + str(maxEstTol)
+        fileOutput.write(message + u"\n")
+    message = u"Maximum estimated tolerance = " + unicode(maxEstTol)
     # print message
-    fileOutput.write(message + "\n")
+    fileOutput.write(message + u"\n")
 
     print "... done."
 

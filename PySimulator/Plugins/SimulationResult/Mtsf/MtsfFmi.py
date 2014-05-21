@@ -269,11 +269,11 @@ if __name__ == '__main__':
     BlockSize = 100
 
     # Prepare information from FMU
-    name_fmu_file = 'Examples/fullRobot'
+    name_fmu_file = u'Examples/fullRobot'
     (modelDescription, modelVariables, simpleTypes, units, enumerations) = convertFromFmi(name_fmu_file)
     modelVariables.allSeries[1].initialRows = nPoints * BlockSize  # Continuous
     # Phase 1 of result file generation
-    resultFileName = name_fmu_file + str(nPoints) + '.mtsf'
+    resultFileName = name_fmu_file + unicode(nPoints) + u'.mtsf'
     experimentSetup = pyMtsf.ExperimentSetup(startTime=0.0, stopTime=4.78, algorithm="Dassl",
                         relativeTolerance=1e-7, author="", description="Test experiment",
                         generationDateAndTime=time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime()),

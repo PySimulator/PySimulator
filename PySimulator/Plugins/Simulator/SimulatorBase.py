@@ -169,7 +169,7 @@ class Model():
             The results are available in the class self.integrationResults
         '''
         if os.path.exists(fileName):
-            sp = string.rsplit(fileName, '.', 1)
+            sp = unicode.rsplit(fileName, '.', 1)
             suffix = sp[1]
             import Plugins.SimulationResult as SimulationResult
             if suffix in SimulationResult.fileExtension:

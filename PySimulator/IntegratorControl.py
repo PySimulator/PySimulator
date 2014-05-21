@@ -205,7 +205,6 @@ class IntegratorControl(QtGui.QDialog):
 
         def _browseSaveFileDo():
             (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, 'Save results', os.getcwd(), '*.' + self.models[self.currentNumberedModelName].integrationSettings.resultFileExtension)
-            # fileName = str(fileName)
             if fileName != '':
                 self.saveFilePath.setText(fileName)
 
@@ -275,7 +274,7 @@ class IntegratorControl(QtGui.QDialog):
             # Close the GUI
             self._close()
             return
-        modelName = str(item.text(0))
+        modelName = item.text(0)
         if modelName == self.currentNumberedModelName:
             return
 
