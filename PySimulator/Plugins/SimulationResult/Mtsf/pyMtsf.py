@@ -1,3 +1,6 @@
+﻿#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 '''
 Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
@@ -449,9 +452,9 @@ class MTSF:
         maxLenDescription = self._getMaxLength([x.description for x in self.enumerations])
         numpyDataType = numpy.dtype({'names': ['name', 'value',
                                               'description', 'firstEntry'],
-                               'formats': ['S' + str(max(maxLenName, 1)),
+                               'formats': [h5py.special_dtype(vlen=unicode),#'S' + str(max(maxLenName, 1)),
                                           'int32',
-                                          'S' + str(max(maxLenDescription, 1)),
+                                          h5py.special_dtype(vlen=unicode),#'S' + str(max(maxLenDescription, 1)),
                                            h5py.special_dtype(enum=(numpy.uint8, {'false':0, 'true':1}))]})  # 'uint8']})
         dataset = self.description.create_dataset('Enumerations', (len(self.enumerations), 1), dtype=numpyDataType, maxshape=(len(self.enumerations), 1), compression='gzip')
         allData = []
@@ -466,7 +469,7 @@ class MTSF:
         maxLenTypeName = self._getMaxLength([x.name for x in self.units])
         numpyDataType = numpy.dtype({'names': ['name', 'factor',
                                               'offset', 'mode'],
-                               'formats': ['S' + str(max(maxLenTypeName, 1)),
+                               'formats': [h5py.special_dtype(vlen=unicode),
                                           'double',
                                           'double',
                                           h5py.special_dtype(enum=(numpy.uint8, {'BaseUnit':0, 'Unit':1, 'DefaultDisplayUnit':2}))]})  # 'uint8']})
@@ -490,11 +493,11 @@ class MTSF:
                                               'description',
                                               'unitOrEnumerationRow',
                                               ],
-                               'formats': ['S' + str(max(maxLenTypeName, 1)),
+                               'formats': [h5py.special_dtype(vlen=unicode), #'S' + str(max(maxLenTypeName, 1)),
                                            h5py.special_dtype(enum=(numpy.uint8, DataType)),  # 'uint8',
-                                          'S' + str(max(maxLenQuantity, 1)),
+                                          h5py.special_dtype(vlen=unicode),#'S' + str(max(maxLenQuantity, 1)),
                                           h5py.special_dtype(enum=(numpy.uint8, {'false':0, 'true':1})),  # 'uint8',
-                                          'S1',
+                                          h5py.special_dtype(vlen=unicode),
                                           'int32']})
         dataset = self.description.create_dataset('SimpleTypes', (len(self.simpleTypes), 1), dtype=numpyDataType, maxshape=(len(self.simpleTypes), 1), compression='gzip')
         allData = []
@@ -522,11 +525,11 @@ class MTSF:
         numpyDataType = numpy.dtype({'names': ['name', 'simpleTypeRow',
                                               'causality', 'variability',
                                               'description', 'objectId', 'column', 'negated'],
-                               'formats': ['S' + str(max(maxLenName, 1)),
+                               'formats': [h5py.special_dtype(vlen=unicode),#'S' + str(max(maxLenName, 1)),
                                           'uint32',
                                           h5py.special_dtype(enum=(numpy.uint8, CausalityType)),  # 'uint8',
                                           h5py.special_dtype(enum=(numpy.uint8, VariabilityType)),  # 'uint8',
-                                          'S' + str(max(maxLenDescription, 1)),
+                                          h5py.special_dtype(vlen=unicode),#'S' + str(max(maxLenDescription, 1)),
                                           h5py.special_dtype(ref=h5py.Reference),
                                           'uint32',
                                           h5py.special_dtype(enum=(numpy.uint8, {'false':0, 'true':1}))]})  # 'uint8']})
@@ -564,7 +567,7 @@ class MTSF:
         if "ResultType" not in setup.keys():
             self.resultsHandle.attrs["ResultType"] = "Simulation"
         for x1, x2 in setup.iteritems():
-            self.resultsHandle.attrs[x1] = str(x2)
+            self.resultsHandle.attrs[x1] = unicode(x2)
 
         '''
         self.resultsHandle.attrs["ResultType"] = "Simulation"
@@ -707,7 +710,7 @@ class MTSF:
         '''
         info = dict()
         for aName, a in self.file["Results"].attrs.items():
-            x = str(a)
+            x = unicode(a)
             if len(x) > 0:
                 info[aName] = x
         return info

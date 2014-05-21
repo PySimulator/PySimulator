@@ -1,4 +1,4 @@
-# Setup file for simulation of several models
+﻿# Setup file for simulation of several models
 
 # List of models to be simulated
 # Model file                                                                     Model name                                                     tStart            tStop            errorTolerance          nIntervals     includeEvents
