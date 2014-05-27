@@ -77,16 +77,16 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         self.onlyResultFile = False
         self.integrationSettings.resultFileExtension = 'mat'
 
-        self._availableIntegrationAlgorithms = ['Dassl', 'Euler', 'Rungekutta', 'Dopri5', 'Inline-Euler', 'Inline-Rungekutta']
+        self._availableIntegrationAlgorithms = ['Dassl', 'Euler', 'Rungekutta', 'Dopri5']
         self.integrationSettings.algorithmName = self._availableIntegrationAlgorithms[0]
 
-        self._IntegrationAlgorithmHasFixedStepSize = [False, True, False, False, True, False]
-        self._IntegrationAlgorithmCanProvideStepSizeResults = [False, True, False, False, True, False]
+        self._IntegrationAlgorithmHasFixedStepSize = [False, True, True, False]
+        self._IntegrationAlgorithmCanProvideStepSizeResults = [False, True, True, False]
 
         self.compileModel()
 
         if self.resFile != '""':
-            self._initialResult = loadResultFileInit(os.path.abspath('.') + "/" + self.name + "_res.mat")
+            self._initialResult = loadResultFileInit(os.path.join(os.getcwd(), self.name + "_init.xml"))
         else:
             print "The selected model could not be instantiated, check for any dependencies that the model might have"
             return
@@ -112,27 +112,21 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         before simulating the model with parameters.
         """
         if len(self.fileName) == 1:
-            if not os.path.isfile(self.fileName[0]):
+            # Load the Modelica Standard library only if there is a uses-annotation on the model (done automagically)
+            if not (os.path.isfile(self.fileName[0]) and OMPython.sendExpression("loadFile(\"" + self.fileName[0].encode(sys.getfilesystemencoding()) + "\")")):
                 raise FileDoesNotExist("compileModel failed, file '" + self.fileName[0] + "' does not exist")
 
-            # load the OpenModelica Standard library
-            # OMPython.execute("loadModel(Modelica)")
-            OMPython.execute("loadFile(\"" + self.fileName[0].encode(sys.getfilesystemencoding()) + "\")")
             # set the working directory in OMC
             pwd = os.path.abspath('.').replace('\\', '/')
-            workdir = OMPython.execute("cd(\"" + pwd + "\")")
+            workdir = OMPython.sendExpression("cd(\"" + pwd + "\")")
             # simulate the model
-            simResult = OMPython.execute("simulate(" + self.name + ")")
-            # always print the messages if there are any
-            messages = OMPython.get(simResult, "SimulationResults.messages")
-            if messages != '""':
-                print messages
+            simResult = OMPython.sendExpression(str("buildModel(" + self.name + ")"))
+            if simResult[0] == "":
+              raise BuildModelFail(OMPython.sendExpression(getErrorString))
             # call getErrorString() to get complete error.
-            errorString = OMPython.execute("getErrorString()")
-            if errorString != '""':
-                print errorString
+            print OMPython.sendExpression("getErrorString()"),
             # read the result file
-            self.resFile = OMPython.get(simResult, "SimulationResults.resultFile")
+            self.resFile = os.path.join(workdir,self.name + "_res.mat")
 
     def getReachedSimulationTime(self):
         '''
@@ -154,53 +148,6 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
     def simulate(self):
 
-        def compile_model(simulate_options):
-            if self.fileName != None:
-                OMPython.execute("loadFile(\"" + self.fileName[0].encode(sys.getfilesystemencoding()) + "\")")
-
-            s = self.integrationSettings
-
-            # set the working directory in OMC
-            pwd = os.path.abspath('.').replace('\\', '/')
-            workdir = OMPython.execute("cd(\"" + pwd + "\")")
-            # prepare the simulate command string
-            if simulate_options != '':
-                simulate_string = "simulate(" + self.name + simulate_options + ")"
-            else:
-                simulate_string = "simulate(" + self.name + ")"
-
-            # simulate the model
-            sim_results = OMPython.execute(simulate_string)
-
-            # always print the messages if there are any
-            messages = OMPython.get(sim_results, "SimulationResults.messages")
-            if messages != '""':
-                print messages
-            # call getErrorString() to get complete error.
-            errorString = OMPython.execute("getErrorString()")
-            if errorString != '""':
-                print errorString
-
-            # rename the OpenModelica result file
-            result_file = OMPython.get(sim_results, 'SimulationResults.resultFile')
-            result_file = (result_file).strip('\"')
-            result_file = os.path.join(result_file)
-
-            old_file_name = os.path.basename(result_file)
-            old_file_name = old_file_name.strip('\"')
-            file_path = result_file.replace(old_file_name, '').strip()
-            file_path = file_path.strip('\"')
-            file_path = os.path.join(result_file)
-
-            if self.name + "_" in result_file:
-                if os.path.exists(s.resultFileName):
-                    shutil.copy(s.resultFileName, (file_path + "temp.mat"))
-                    os.remove(result_file)
-                    os.remove(s.resultFileName)
-                    os.rename((file_path + "temp.mat"), s.resultFileName)
-                else:
-                    os.rename(result_file, s.resultFileName)
-
         def precheck_for_set_sim_options():
             s = self.integrationSettings
             settings = s.__dict__
@@ -208,30 +155,28 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             # prepare the simulation options string for OpenModelica
             set_sim_options = ['startTime', 'stopTime', 'errorToleranceTol', 'resultFileFormat', 'fixedStepSize', 'algorithmName']
             om_sim_options = ['startTime', 'stopTime', 'tolerance', 'outputFormat', 'fixedStepSize', 'method']
-            simulate_options = ""
+            simulate_options = []
             for k, v in settings.iteritems():
                 if k in set_sim_options:
                     i = set_sim_options.index(k)
                     if v != None and v != "":
                         if k == "algorithmName":
-                            v = "\"" + str(v).lower() + '\"'
-                        simulate_options = simulate_options + "," + om_sim_options[i] + "=" + str(v)
-
-            return simulate_options
+                            v = str(v).lower()
+                        simulate_options += [om_sim_options[i] + "=" + str(v)]
+            return ",".join(simulate_options)
 
         def precheck_for_model():
-            sim_opts = precheck_for_set_sim_options()
-            if sim_opts != '':
-                compile_model(sim_opts)
-            else:
-                compile_model('')
+            self.sim_opts = precheck_for_set_sim_options()
 
         def readStatistics():
             '''
             Read statistics from the LOG_STATS.txt file
             '''
             work_dir = os.getcwd()
-            result_exe = os.path.join(work_dir, self.name + (".exe" if os.name == "nt" else "")) + " -lv LOG_STATS"
+            result_exe = os.path.join(work_dir, self.name + (".exe" if os.name == "nt" else "")) + " -lv LOG_STATS" + " -r='" + os.path.abspath(self.integrationSettings.resultFileName) + "'"
+            if self.sim_opts <> "":
+              result_exe += " -override=" + self.sim_opts
+            print result_exe
 
             with open('LOG_STATS.txt', 'w') as output_f:
                 p = subprocess.Popen(result_exe,
@@ -266,6 +211,8 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
                 statistics.close()
 
             currentTime = self.integrationSettings.stopTime
+            # Wait for the process to finish; otherwise we cannot read the result-file
+            p.wait()
 
             self.integrationStatistics.nTimeEvents = nTimeEvents
             self.integrationStatistics.nStateEvents = nStateEvents
@@ -274,58 +221,27 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
         precheck_for_model()
         readStatistics()
+        if not os.path.isfile(self.integrationSettings.resultFileName):
+          raise FileDoesNotExist(self.integrationSettings.resultFileName)
 
     def setVariableTree(self):
         if self.resFile == '""':
             return
-        for i in xrange(len(self._initialResult.name)):
-            if   self._initialResult.value[i, 0] == 1:
-                causality = 'parameter'
-            elif self._initialResult.value[i, 1] == 2:
-                causality = 'state'
-            elif self._initialResult.value[i, 0] == 3:
-                causality = 'stateDerivative'
-            elif self._initialResult.value[i, 0] == 4:
-                causality = 'output'
-            elif self._initialResult.value[i, 0] == 5:
-                causality = 'input'
-            else:
-                causality = 'local'
-                # variability = 'fixed' if causality == 'parameter' else 'continuous'
-            # The format of self._initialResult.value[i,5] is unclear. Try to include inital values for states
-            # valueEdit = True if int(self._initialResult.value[i,0]) == -1 and int(self._initialResult.value[i,5]) >= 280 else False
-
-            binStr = bin(int(self._initialResult.value[i, 0]))[2:]
-            binStr = '0' * (15 - len(binStr)) + binStr
-            variability = 'continuous'
-            if causality == 'parameter':
-                variability = 'fixed'
-            elif binStr[-7] == '1':  # 64
-                variability = 'discrete'
-
-            valueEdit = False
-            if int(self._initialResult.value[i, 0]) == -1:
-                if binStr[-4] == '1' or binStr[-6] == '1':  # 8 or 32
-                    valueEdit = True
-
-            dataType = 'Real'
-            if binStr[-2:] == '01':  # 1
-                dataType = 'Boolean'
-            elif binStr[-2:] == '10':  # 2
-                dataType = 'Real'
-
+        for v in self._initialResult:
             value = None
-            if variability == 'fixed' or valueEdit:
-                value = self._initialResult.value[i, 1]
+            if v['variability'] == 'fixed' or v['valueEdit']:
+              value = v['value']
+            else:
+              value = None
 
-            unit = self._initialResult.unit[i]
             variableAttribute = ''
-            if self._initialResult.description[i] != '' :
-                variableAttribute += 'Description:' + chr(9) + self._initialResult.description[i] + '\n'
-            variableAttribute += 'Causality:' + chr(9) + causality + '\n'
-            variableAttribute += 'Variability:' + chr(9) + variability + '\n'
-            variableAttribute += 'Type:' + chr(9) + dataType
-            self.variableTree.variable[self._initialResult.name[i].replace('[', '.[')] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(self._initialResult.name[i].replace('[', '.[')), value, valueEdit, unit, variability, variableAttribute)
+            if v['description'] != '' :
+                variableAttribute += 'Description:' + chr(9) + v['description'] + '\n'
+            variableAttribute += 'Causality:' + chr(9) + v['causality'] + '\n'
+            variableAttribute += 'Variability:' + chr(9) + v['variability'] + '\n'
+            variableAttribute += 'Type:' + chr(9) + v['type']
+
+            self.variableTree.variable[v['name'].replace('[', '.[')] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(v['name'].replace('[', '.[')), value, v['valueEdit'], v['unit'], v['variability'], variableAttribute)
 
     def getAvailableIntegrationAlgorithms(self):
         return self._availableIntegrationAlgorithms
@@ -342,18 +258,10 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 import scipy.io, string
 
 # Exception classes
-class FileDoesNotExist     (Exception): pass
-class WrongResultFile(Exception): pass
-
-
-def charArrayToStrList(charArray):
-    """Transform a numpy character array to a list of strings
-    """
-    strList = [];
-    for item in charArray:
-        strList.append(str(string.rstrip(string.join(item, ""))))
-    return strList;
-
+class FileDoesNotExist (Exception): pass
+class WrongResultFile (Exception): pass
+class BuildModelFail (Exception): pass
+class OMInitXMLParseException (Exception): pass
 
 def loadResultFileInit(fileName):
     """ Load Dymola initial data in an object.
@@ -368,7 +276,6 @@ def loadResultFileInit(fileName):
         return
         # fileName = selectResultFile()
 
-
     # Check if fileName exists
     if not os.path.isfile(fileName):
         raise FileDoesNotExist("File '" + fileName + "' does not exist")
@@ -376,75 +283,35 @@ def loadResultFileInit(fileName):
     # Determine complete file name
     fullFileName = os.path.abspath(fileName)
 
-    # Read data from file
-    fileData = scipy.io.loadmat(fullFileName, matlab_compatible=True)
+    from xml.parsers import expat
 
-    # Check Aclass array
-    if not("Aclass" in fileData):
-        raise WrongResultFile("Matrix 'Aclass' is missing in file " + fullFileName)
-    Aclass = charArrayToStrList(fileData["Aclass"])
-    if len(Aclass) < 3:
-        raise WrongResultFile("Matrix 'Aclass' has not 3 or more rows in file " + fullFileName)
-    if Aclass[1] != "1.1":
-        raise WrongResultFile("Amatrix[1] is not '1.1' in file " + fullFileName)
-
-    # Check whether other matrices are on the result file
-    if not("name" in fileData):
-        raise WrongResultFile("Matrix 'name' is not in file " + fullFileName)
-    if not("description" in fileData):
-        raise WrongResultFile("Matrix 'description' is not in file " + fullFileName)
-    if not("dataInfo" in fileData):
-        raise WrongResultFile("Matrix 'dataInfo' is not in file " + fullFileName)
-
-
-    # Get the raw matrices
-    name = fileData["name"]
-    description = fileData["description"]
-    value = fileData["dataInfo"]
-
-
-    # Transpose the data, if necessary
-    if len(Aclass) > 3 and Aclass[3] == "binTrans":
-        name = name.T
-        description = description.T
-        value = value.T
-
-
-    # Transform the charArrays in string lists
-    name = charArrayToStrList(name)
-    description = charArrayToStrList(description)
-
-    # Extract units and update description
-    unit = ['' for i in xrange(len(description))]
-    for index, s in enumerate(description):
-        t = s.rsplit('[', 1)
-        if len(t) > 1:
-            if len(t[1]) > 0:
-                if t[1][-1] == ']':
-                    if '|' in t[1]:
-                        if ':#' not in t[1]:
-                            unit[index] = t[1].split('|', 1)[0]
-                    elif ':#' not in t[1]:
-                        unit[index] = t[1][:-1]
-
-                    if len(t[0]) > 0:
-                        description[index] = t[0][:-1]  # Delete space
-                    else:
-                        description[index] = ''
-
-
-    # Generate a DymolaResult object
-    result = ResultFileInit(name, value, unit, description)
-    return result
-
-class ResultFileInit():
-    def __init__(self, name, value, unit, description):
-        self.name = name
-        self.value = value
-        self.unit = unit
-        self.description = description
-
-
+    p = expat.ParserCreate()
+    def start(name,attr):
+      if name == "ScalarVariable":
+        start.cname = attr['name']
+        start.cdesc = attr.get('description') or ''
+        start.cunit = ''
+        start.cvalue = ''
+        start.cvalueEdit = attr.get('isValueChangeable') == 'true'
+        start.ctype = ''
+        start.cvar = attr['variability']
+        start.ccaus = attr['causality']
+      elif name in ["Real","Integer","String","Boolean"]:
+        start.cvalue = attr.get('start') or ''
+        start.cunit = attr.get('unit') or ''
+        start.ctype = name
+    def end(name):
+      if name == "ScalarVariable":
+        end.result += [{'name':start.cname,'value':start.cvalue,'valueEdit':start.cvalueEdit,'unit':start.cunit,'variability':start.cvar,'description':start.cdesc,'causality':start.ccaus,'type':start.ctype}]
+    end.result = []
+    p.StartElementHandler = start
+    p.EndElementHandler = end
+    f = open(fullFileName,"r")
+    try:
+      p.ParseFile(f)
+    except:
+      raise OMInitXMLParseException("Failed to parse " + fullFileName)
+    return end.result
 
 def MyStrtod(s):
     regex = re.compile(r"[+-]?\b\d+(?:\.\d+)?(?:e[+-]?\d+)?\b", re.I)

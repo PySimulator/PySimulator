@@ -175,7 +175,7 @@ class Results(IntegrationResults.Results):
                v1     = result.data(i_v1)       # numpy vector of v1 values
         """
         # Get index of the desired signal and check it
-        if isinstance(name, str):
+        if isinstance(name, str) or isinstance(name, unicode):
             nameIndex = self.index(name)
         elif isinstance(name, int):
             if name < 0 or name >= len(self._name):
@@ -183,7 +183,7 @@ class Results(IntegrationResults.Results):
             nameIndex = name
         else:
             print name
-            raise UnknownArgument("Argument name must be a string or an int")
+            raise UnknownArgument("Argument name must be a string or an int, got %s %s" % (name,str(type(name))))
         if nameIndex < 0:
             return None
 

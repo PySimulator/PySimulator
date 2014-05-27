@@ -39,6 +39,7 @@ def loadPlugins(type):
     def get_immediate_subdirectories(directory):
         return [name for name in os.listdir(directory) if os.path.isdir(os.path.join(directory, name)) and name[0] != '.']
 
+    # Note: this fails if PySimulator is loaded using a relative path
     PlugInNames = get_immediate_subdirectories(os.path.abspath(os.path.dirname(inspect.getfile(inspect.currentframe()))) + "/./Plugins/" + type)
     ret = dict()
     for i in range(len(PlugInNames)):
@@ -353,6 +354,8 @@ class SimulatorGui(QtGui.QMainWindow):
             model = loaderplugin.Model(modelName, [fileName], self.config)
             self._newModel(model)
         except Exception as e:
+            import traceback
+            traceback.print_exc(e,file=sys.stderr)
             if hasattr(e, 'msg'):
                 print e.msg
             else:
@@ -384,7 +387,7 @@ class SimulatorGui(QtGui.QMainWindow):
             modelName, ok = QtGui.QInputDialog().getText(self, 'Modelica model', 'Full Modelica model name / ident, e.g. Modelica.Blocks.Examples.PID_Controller', text=defaultModelName)
             if not ok:
                 return
-            
+
 
         self.setEnabled(False)
         self._loadingFileInfo()
@@ -426,7 +429,7 @@ class SimulatorGui(QtGui.QMainWindow):
             if i + 1 < len(Plugins.SimulationResult.fileExtension):
                 formats2 += ';;'
         formats += ');;' + formats2
-        (fileNames, trash) = QtGui.QFileDialog().getOpenFileNames(self, 'Open Result File', os.getcwd(), formats)       
+        (fileNames, trash) = QtGui.QFileDialog().getOpenFileNames(self, 'Open Result File', os.getcwd(), formats)
         import locale
         for fileName in fileNames:
             self.openResultFile(unicode(fileName.encode(locale.getpreferredencoding()), locale.getpreferredencoding()).replace(u'\\', u'/'))
