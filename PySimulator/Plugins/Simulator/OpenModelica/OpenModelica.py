@@ -112,21 +112,28 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         before simulating the model with parameters.
         """
         if len(self.fileName) == 1:
+          if self.fileName[0] <> "":
             # Load the Modelica Standard library only if there is a uses-annotation on the model (done automagically)
             if not (os.path.isfile(self.fileName[0]) and OMPython.sendExpression("loadFile(\"" + self.fileName[0].encode(sys.getfilesystemencoding()) + "\")")):
+                print OMPython.sendExpression("getErrorString()")
                 raise FileDoesNotExist("compileModel failed, file '" + self.fileName[0] + "' does not exist")
+          else:
+            pack = str(self.name.split(".",1)[0])
+            if not OMPython.sendExpression("loadModel(" + pack + ")"):
+              print OMPython.sendExpression("getErrorString()")
+              raise FileDoesNotExist("compileModel failed, package " + pack + " does not exist")
 
-            # set the working directory in OMC
-            pwd = os.path.abspath('.').replace('\\', '/')
-            workdir = OMPython.sendExpression("cd(\"" + pwd + "\")")
-            # simulate the model
-            simResult = OMPython.sendExpression(str("buildModel(" + self.name + ")"))
-            if simResult[0] == "":
-              raise BuildModelFail(OMPython.sendExpression(getErrorString))
-            # call getErrorString() to get complete error.
-            print OMPython.sendExpression("getErrorString()"),
-            # read the result file
-            self.resFile = os.path.join(workdir,self.name + "_res.mat")
+          # set the working directory in OMC
+          pwd = os.path.abspath('.').replace('\\', '/')
+          workdir = OMPython.sendExpression("cd(\"" + pwd + "\")")
+          # simulate the model
+          simResult = OMPython.sendExpression(str("buildModel(" + self.name + ")"))
+          if simResult[0] == "":
+            raise BuildModelFail(OMPython.sendExpression("getErrorString()"))
+          # call getErrorString() to get complete error.
+          print OMPython.sendExpression("getErrorString()"),
+          # read the result file
+          self.resFile = os.path.join(workdir,self.name + "_res.mat")
 
     def getReachedSimulationTime(self):
         '''
@@ -176,7 +183,6 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             result_exe = os.path.join(work_dir, self.name + (".exe" if os.name == "nt" else "")) + " -lv LOG_STATS" + " -r='" + os.path.abspath(self.integrationSettings.resultFileName) + "'"
             if self.sim_opts <> "":
               result_exe += " -override=" + self.sim_opts
-            print result_exe
 
             with open('LOG_STATS.txt', 'w') as output_f:
                 p = subprocess.Popen(result_exe,
@@ -323,6 +329,9 @@ def runExeFile(exeFile, server_port):
     import subprocess
     p = subprocess.Popen([exeFile, args, str(server_port)], shell=True, stdout=None, stderr=None)
     return
+
+def prepareSimulationList(fileName, names, config):
+  pass
 
 class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
 

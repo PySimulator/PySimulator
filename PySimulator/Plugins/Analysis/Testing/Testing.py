@@ -434,16 +434,15 @@ def runListSimulation(PySimulatorPath, setupFile, resultDir, allSimulators, dele
     reader = csv.reader(f, delimiter=' ', skipinitialspace=True)
     for a in reader:
         if len(a) > 0:
-            if len(a[0]) > 0:
-                if a[0][0] != '#':
-                    # if len(a) >= 7:
-                    line.append(a[:7])
+          if not (len(a[0]) > 0 and a[0][0] == '#'):
+            # if len(a) >= 7:
+            line.append(a[:7])
     f.close()
 
     modelList = numpy.zeros((len(line),), dtype=[('fileName', 'U2000'), ('modelName', 'U2000'), ('tStart', 'f8'), ('tStop', 'f8'), ('tol', 'f8'), ('nInterval', 'i4'), ('includeEvents', 'b1')])
     for i, x in enumerate(line):
         absPath = x[0].replace('\\', '/')
-        if not os.path.isabs(absPath):
+        if absPath <> "" and not os.path.isabs(absPath):
             absPath = os.path.normpath(os.path.join(os.path.split(setupFile)[0], absPath)).replace('\\', '/')
         if len(x) == 7:
             modelList[i] = (absPath, x[1], float(x[2]), float(x[3]), float(x[4]), int(x[5]), True if x[6] == 'True' else False)
@@ -537,6 +536,8 @@ class simulationThread(QtCore.QThread):
                     if modelName != '':
                         canLoadAllPackages = True
                         for j in xrange(len(packageName)):
+                            if packageName[j] == '':
+                              continue
                             sp = packageName[j].rsplit('.', 1)
                             if len(sp) > 1:
                                 if not sp[1] in simulator.modelExtension:
@@ -545,29 +546,34 @@ class simulationThread(QtCore.QThread):
                             else:
                                 canLoadAllPackages = False
                                 break
-
                         if canLoadAllPackages:
-                            model = simulator.Model(modelName, packageName, self.config)
-
-                            resultFileName = fullSimulatorResultPath + '/' + modelName + '.' + model.integrationSettings.resultFileExtension
-                            model.integrationSettings.startTime = self.modelList['tStart'][i]
-                            model.integrationSettings.stopTime = self.modelList['tStop'][i]
-                            model.integrationSettings.errorToleranceRel = self.modelList['tol'][i]
-                            model.integrationSettings.gridPoints = self.modelList['nInterval'][i] + 1
-                            model.integrationSettings.gridPointsMode = 'NumberOf'
-                            model.integrationSettings.resultFileIncludeEvents = self.modelList['includeEvents'][i]
-                            model.integrationSettings.resultFileName = resultFileName
-
-                            print "Simulating " + modelName + " by " + simulatorName + " ..."
-
                             try:
                                 '''
                                 Do the numerical integration in a try branch
                                 to avoid loosing the thread when an intended exception is raised
+
+                                Also guard against compilation failures when loading the model
                                 '''
+                                model = simulator.Model(modelName, packageName, self.config)
+
+                                resultFileName = fullSimulatorResultPath + '/' + modelName + '.' + model.integrationSettings.resultFileExtension
+                                model.integrationSettings.startTime = self.modelList['tStart'][i]
+                                model.integrationSettings.stopTime = self.modelList['tStop'][i]
+                                model.integrationSettings.errorToleranceRel = self.modelList['tol'][i]
+                                model.integrationSettings.gridPoints = self.modelList['nInterval'][i] + 1
+                                model.integrationSettings.gridPointsMode = 'NumberOf'
+                                model.integrationSettings.resultFileIncludeEvents = self.modelList['includeEvents'][i]
+                                model.integrationSettings.resultFileName = resultFileName
+
+                                print "Simulating %s by %s (result in %s)..." % (modelName,simulatorName,resultFileName)
                                 model.simulate()
+
                             except Plugins.Simulator.SimulatorBase.Stopping:
-                                print("solver canceled ... ")
+                                print("Solver cancelled ... ")
+                            except Exception as e:
+                                import traceback
+                                traceback.print_exc(e,file=sys.stderr)
+                                print e
                             finally:
                                 model.close()
                         else:
