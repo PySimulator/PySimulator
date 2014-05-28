@@ -416,7 +416,7 @@ def prepareSimulationList(fileName, name, config):
     if dymolaPath == '':
         ''' Ask for Dymola executable '''
         print "No Dymola executable (Dymola.exe) found to run Dymola. Please select one ..."
-        (dymolaPath, trash) = QtGui.QFileDialog().getOpenFileName(None, 'Select Dymola executable file', os.getcwd(), 'Executation file (*.exe)')
+        (dymolaPath, trash) = QtGui.QFileDialog().getOpenFileName(None, 'Select Dymola executable file', os.getcwd(), 'Executable file (*.exe)')
         if dymolaPath == '':
             print "failed. No Dymola executable (Dymola.exe) specified."
             return None
