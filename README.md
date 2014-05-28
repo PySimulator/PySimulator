@@ -17,7 +17,7 @@ with PySimulator](http:www.modprod.liu.se/modprod2013-program/1.456422/modprod20
 
 ####Supported Platforms
 * Windows
-* Linux (OpenModelica and plotting works; FMU and other simulators do not work)
+* Linux (OpenModelica, FMU, and plotting works; other simulators do not work)
 * Other platforms have not been tested
 
 ####Installation
