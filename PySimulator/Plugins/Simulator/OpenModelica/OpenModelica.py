@@ -180,7 +180,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             Read statistics from the LOG_STATS.txt file
             '''
             work_dir = os.getcwd()
-            result_exe = os.path.join(work_dir, self.name + (".exe" if os.name == "nt" else "")) + " -lv LOG_STATS" + " -r='" + os.path.abspath(self.integrationSettings.resultFileName) + "'"
+            result_exe = os.path.join(work_dir, self.name + (".exe" if os.name == "nt" else "")) + " -lv LOG_STATS" + " -r=\"" + os.path.abspath(self.integrationSettings.resultFileName) + "\""
             if self.sim_opts <> "":
               result_exe += " -override=" + self.sim_opts
 
