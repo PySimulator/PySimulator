@@ -100,11 +100,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         self.server_thread = threading.Thread(target=self.server.serve_forever)
         self.server_thread.daemon = True
         self.server_thread.setDaemon(True)
-
-        if self.server_thread.isAlive():
-            self.server_thread._Thread__stop()
-
-        self.file_thread = None
+        self.server_thread.start()
 
     def compileModel(self):
         """
@@ -140,18 +136,8 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         Read the current simulation time during a simulation
         from the Model.exe file generated during loadFile()
         '''
-        fName = os.path.abspath('.') + "/" + self.name + (".exe" if os.name == "nt" else "")
-
-        if self.file_thread is None:
-            self.file_thread = threading.Thread(runExeFile(fName, self.server_port))
-            self.server_thread.start()
-            self.file_thread.start()
-            self.server.shutdown()
-
-        if simulationProgressData >= float(100.0):
-            self.server_thread._Thread__stop()
-
-        return ((simulationProgressData * self.integrationSettings.stopTime) / 100.0)
+        t = ((simulationProgressData * self.integrationSettings.stopTime) / 100.0)
+        return t
 
     def simulate(self):
 
@@ -183,6 +169,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             result_exe = os.path.join(work_dir, self.name + (".exe" if os.name == "nt" else "")) + " -lv LOG_STATS" + " -r=\"" + os.path.abspath(self.integrationSettings.resultFileName) + "\""
             if self.sim_opts <> "":
               result_exe += " -override=" + self.sim_opts
+            result_exe += " -port=%d" % self.server_port
 
             with open('LOG_STATS.txt', 'w') as output_f:
                 p = subprocess.Popen(result_exe,
@@ -319,37 +306,18 @@ def loadResultFileInit(fileName):
       raise OMInitXMLParseException("Failed to parse " + fullFileName)
     return end.result
 
-def MyStrtod(s):
-    regex = re.compile(r"[+-]?\b\d+(?:\.\d+)?(?:e[+-]?\d+)?\b", re.I)
-    for match in regex.finditer(s):
-        return float (match.group())
-
-def runExeFile(exeFile, server_port):
-    args = "-port"
-    import subprocess
-    p = subprocess.Popen([exeFile, args, str(server_port)], shell=True, stdout=None, stderr=None)
-    return
-
 def prepareSimulationList(fileName, names, config):
   pass
 
-class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
-
+class ThreadedTCPRequestHandler(SocketServer.StreamRequestHandler):
     def handle(self):
         global simulationProgressData
-        while self.request.recv(1024).strip() != None:
-            self.data = self.request.recv(1024).strip()
-            if self.data:
-                simulationProgressData = MyStrtod(self.data) / 100.0
-                if simulationProgressData >= 100.0:
-                    break
-            elif self.data == '':
-                if self.request.recv(1024).strip() == '':
-                    simulationProgressData = 100.0
-                    break
-            else:
-                continue
-        return
+        while 1:
+          line = self.rfile.readline().strip()
+          if line:
+            simulationProgressData = float(line.split(" ")[0])/100.0
+          else:
+            return
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     pass
