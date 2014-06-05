@@ -127,7 +127,12 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout):
                                 t2 = pMatrix2[j][0]
                                 f2 = pMatrix2[j][1]
 
-                        identical, estTol = Compare.Compare(t1, f1, i1, s1, t2, f2, i2, s2, tol)
+                        identical, estTol, error = Compare.Compare(t1, f1, i1, s1, t2, f2, i2, s2, tol)
+                        if error:
+                            message = u"Error during comparison of results."
+                            fileOutput.write(message + u"\n")
+                            return
+                                          
                         maxEstTol = max(maxEstTol, estTol.max())
                         allIdentical = allIdentical and all(identical)
                         s = sum(identical)
@@ -434,9 +439,9 @@ def runListSimulation(PySimulatorPath, setupFile, resultDir, allSimulators, dele
     reader = csv.reader(f, delimiter=' ', skipinitialspace=True)
     for a in reader:
         if len(a) > 0:
-          if not (len(a[0]) > 0 and a[0][0] == '#'):
-            # if len(a) >= 7:
-            line.append(a[:7])
+            if not (len(a[0]) > 0 and a[0][0] == '#'):
+                # if len(a) >= 7:
+                line.append(a[:7])
     f.close()
 
     modelList = numpy.zeros((len(line),), dtype=[('fileName', 'U2000'), ('modelName', 'U2000'), ('tStart', 'f8'), ('tStop', 'f8'), ('tol', 'f8'), ('nInterval', 'i4'), ('includeEvents', 'b1')])
@@ -620,15 +625,18 @@ class CompareThread(QtCore.QThread):
     def run(self):
         self.running = True
 
+        encoding = sys.getfilesystemencoding()
+
         dir1 = self.dir1
         dir2 = self.dir2
         files1 = os.listdir(dir1)
         files2 = os.listdir(dir2)
-
+       
         modelName1 = []
         fileName1 = []
         for fileName in files1:
             splits = fileName.rsplit('.', 1)
+            print splits
             if len(splits) > 1:
                 if splits[1] in SimulationResult.fileExtension:
                     modelName1.append(splits[0])
@@ -642,11 +650,14 @@ class CompareThread(QtCore.QThread):
                     modelName2.append(splits[0])
                     fileName2.append(fileName)
 
+        print modelName1
+        print fileName1
+
 
         fileOut = open(self.logFile, 'w')
         fileOut.write('Output file from comparison of list of simulation results within PySimulator\n')
-        fileOut.write('  directory 1 (reference) : ' + dir1.encode(sys.getfilesystemencoding()) + '\n')
-        fileOut.write('  directory 2 (comparison): ' + dir2.encode(sys.getfilesystemencoding()) + '\n')
+        fileOut.write('  directory 1 (reference) : ' + dir1.encode(encoding) + '\n')
+        fileOut.write('  directory 2 (comparison): ' + dir2.encode(encoding) + '\n')
 
 
         for index, name in enumerate(modelName1):
@@ -657,10 +668,10 @@ class CompareThread(QtCore.QThread):
                 self.running = False
                 return
 
-            fileOut.write('\nCompare results from\n')
-            fileOut.write('  Directory 1: ' + fileName1[index] + '\n')  # Print name of file1
+            fileOut.write('\nCompare results from\n')            
+            fileOut.write('  Directory 1: ' + fileName1[index].encode(encoding) + '\n')  # Print name of file1
             print "\nCompare results from "
-            print "  Directory 1: " + fileName1[index]
+            print "  Directory 1: " + fileName1[index].encode(encoding)
 
             try:
                 i = modelName2.index(name)
@@ -669,8 +680,8 @@ class CompareThread(QtCore.QThread):
                 print '  Directory 2: NO equivalent found'
                 i = -1
             if i >= 0:
-                fileOut.write('  Directory 2 ' + fileName2[i] + '\n')  # Print name of file2
-                print "  Directory 2 " + fileName2[i]
+                fileOut.write('  Directory 2: ' + fileName2[i].encode(encoding) + '\n')  # Print name of file2
+                print "  Directory 2: " + fileName2[i].encode(encoding)
 
 
                 file1 = dir1 + '/' + fileName1[index]
