@@ -32,48 +32,27 @@ and simulation executable of OpenModelica. It runs the executable and loads the 
 '''
 
 import Plugins.Simulator.SimulatorBase
-import OMPython
 import Plugins.SimulationResult.DymolaMat.DymolaMat as DymolaMat
 import os, sys, shutil
 import subprocess
 import SocketServer
 import re
 import threading
+from OMPython import OMCSession
 
 iconImage = 'simulatorOpenModelica.ico'
 modelExtension = ['mo', 'exe']  # e.g. ['mo']
-parameters_changed = False
 simulationProgressData = 0.0
 
 def closeSimulationPlugin():
-    try:
-        OMPython.execute("quit()")
-    except SystemExit:
-        pass
-
-# Change the parameters of the model file
-def setNewParameters(cmd):
-    OMPython.execute(cmd);
-    global parameters_changed  # Set this variable if the parameters are changed
-    parameters_changed = True
-    return
-
-# Set the parameters in the model_init.xml file
-def setInitXmlValues(modelName, varName, value):
-    modelName = modelName + "_init.xml"
-    OMPython.execute("setInitXmlStartValue(\"" + modelName + "\",variableName=\"" + varName + "\",startValue=\"" + value + "\",outputFile=\"temp.xml\")")
-
-    if os.path.exists(modelName):
-        os.remove(modelName)
-        os.rename("temp.xml", modelName)
-    return
+    pass
 
 class Model(Plugins.Simulator.SimulatorBase.Model):
 
     def __init__(self, modelName, modelFileName, config):
 
         Plugins.Simulator.SimulatorBase.Model.__init__(self, modelName, modelFileName, 'OpenModelica', config)
-
+        self._omc = OMCSession()
         self.onlyResultFile = False
         self.integrationSettings.resultFileExtension = 'mat'
 
@@ -110,24 +89,24 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         if len(self.fileName) == 1:
           if self.fileName[0] <> "":
             # Load the Modelica Standard library only if there is a uses-annotation on the model (done automagically)
-            if not (os.path.isfile(self.fileName[0]) and OMPython.sendExpression("loadFile(\"" + self.fileName[0].encode(sys.getfilesystemencoding()) + "\")")):
-                print OMPython.sendExpression("getErrorString()")
+            if not (os.path.isfile(self.fileName[0]) and self._omc.sendExpression("loadFile(\"" + self.fileName[0].encode(sys.getfilesystemencoding()) + "\")")):
+                print self._omc.sendExpression("getErrorString()")
                 raise FileDoesNotExist("compileModel failed, file '" + self.fileName[0] + "' does not exist")
           else:
             pack = str(self.name.split(".",1)[0])
-            if not OMPython.sendExpression("loadModel(" + pack + ")"):
-              print OMPython.sendExpression("getErrorString()")
+            if not self._omc.sendExpression("loadModel(" + pack + ")"):
+              print self._omc.sendExpression("getErrorString()")
               raise FileDoesNotExist("compileModel failed, package " + pack + " does not exist")
 
           # set the working directory in OMC
           pwd = os.path.abspath('.').replace('\\', '/')
-          workdir = OMPython.sendExpression("cd(\"" + pwd + "\")")
+          workdir = self._omc.sendExpression("cd(\"" + pwd + "\")")
           # simulate the model
-          simResult = OMPython.sendExpression(str("buildModel(" + self.name + ")"))
+          simResult = self._omc.sendExpression(str("buildModel(" + self.name + ")"))
           if simResult[0] == "":
-            raise BuildModelFail(OMPython.sendExpression("getErrorString()"))
+            raise BuildModelFail(self._omc.sendExpression("getErrorString()"))
           # call getErrorString() to get complete error.
-          print OMPython.sendExpression("getErrorString()"),
+          print self._omc.sendExpression("getErrorString()"),
           # read the result file
           self.resFile = os.path.join(workdir,self.name + "_res.mat")
 
