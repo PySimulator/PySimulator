@@ -1,4 +1,4 @@
-For the files 
+﻿For the files 
 
 dlr-splash.png
 OpenResults_20x20.ico

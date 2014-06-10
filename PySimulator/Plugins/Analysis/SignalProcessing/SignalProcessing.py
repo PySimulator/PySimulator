@@ -1,3 +1,6 @@
+﻿#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 '''
 Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
@@ -34,7 +37,7 @@ from chaco.tools.api import ZoomTool
 from chaco.tools.data_label_tool import DataLabelTool
 from chaco.tools.pan_tool import \
     PanTool  # there is some bug in in the default Pantools handling of the event "left_up"...
-
+from Plugins.Analysis.SignalProcessing.Algorithms import fft
 
 def printData2(widget):
     ''' Example callback function for plot specific actions
@@ -89,8 +92,7 @@ def plotFFT(widget):
     (timeInRange, valuesInRange) = getValuesInRange(time, values, Tmin, Tmax)
 
     # Compute fft: A=A(f)
-    import Algorithms
-    (f, A) = Algorithms.fft(timeInRange, valuesInRange, N)
+    (f, A) = fft(timeInRange, valuesInRange, N)
 
 
     # Open new plot tab:
@@ -140,8 +142,7 @@ def plotFFTPlusTHD(widget):
     (timeInRange, valuesInRange) = getValuesInRange(time, values, Tmin, Tmax)
 
     # Compute fft: A=A(f)
-    import Algorithms
-    (f, A) = Algorithms.fft(timeInRange, valuesInRange, N)
+    (f, A) = fft(timeInRange, valuesInRange, N)
 
 
 
@@ -561,7 +562,7 @@ class BrowserContextMenu:
         (timeInRange, valuesInRange) = getValuesInRange(time, values, Tmin, Tmax)
 
         # Compute fft: A=A(f)
-        (f, A) = Algorithms.fft(timeInRange, valuesInRange, N)
+        (f, A) = fft(timeInRange, valuesInRange, N)
 
         # Plot A=A(f)
         plt.figure()

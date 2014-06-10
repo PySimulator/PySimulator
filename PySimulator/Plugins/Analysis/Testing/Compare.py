@@ -1,3 +1,6 @@
+﻿#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 '''
 Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
@@ -16,7 +19,7 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU Lesser General Public License for more details.
 
-You should have received t1 copy of the GNU Lesser General Public License
+You should have received a copy of the GNU Lesser General Public License
 along with PySimulator. If not, see www.gnu.org/licenses.
 '''
 
@@ -40,11 +43,20 @@ def normDiff(tAIn, fAIn, iA, sA, tBIn, fBIn, iB, sB, t1, t2):
 
 
     # nSignals = fAIn.shape[1]
-    nSignals = len(iA)
+    nSignals = len(iA)    
+    NfAB = numpy.zeros((nSignals,))
+    NfA = numpy.zeros((nSignals,))
+    NfB = numpy.zeros((nSignals,))
+    AfA = numpy.zeros((nSignals,))
+    AfB = numpy.zeros((nSignals,))
+    AfAB = numpy.zeros((nSignals,))
+
     if len(iB) <> nSignals:
         print "Number of indexes iA, iB must be equal."
-        error = True
-        return
+        error = True        
+    
+    if error:
+        return NfAB, NfA, NfB, True
 
 
     dt = abs(t1) + abs(t2) + 1
@@ -66,7 +78,7 @@ def normDiff(tAIn, fAIn, iA, sA, tBIn, fBIn, iB, sB, t1, t2):
                 if fA[1, iA[i]] <> fA[2, iA[i]]:
                     print "Extrapolation for fA on left border of time grid not possible due to discontinuity in column " + str(iA[i]) + " for index " + str(i)
                     error = True
-                    return
+                    break
                 else:
                     fA[0, iA[i]] = fA[1, iA[i]]
         else:
@@ -77,7 +89,7 @@ def normDiff(tAIn, fAIn, iA, sA, tBIn, fBIn, iB, sB, t1, t2):
                 if fB[1, iB[i]] <> fB[2, iB[i]]:
                     print "Extrapolation for fB on left border of time grid not possible due to discontinuity in column " + str(iB[i]) + " for index " + str(i)
                     error = True
-                    return
+                    break
                 else:
                     fB[0, iB[i]] = fB[1, iB[i]]
         else:
@@ -88,7 +100,7 @@ def normDiff(tAIn, fAIn, iA, sA, tBIn, fBIn, iB, sB, t1, t2):
                 if fA[-2, iA[i]] <> fA[-3, iA[i]]:
                     print "Extrapolation for fA on right border of time grid not possible due to discontinuity in column " + str(iA[i]) + " for index " + str(i)
                     error = True
-                    return
+                    break
                 else:
                     fA[-1, iA[i]] = fA[-3, iA[i]]
         else:
@@ -99,23 +111,20 @@ def normDiff(tAIn, fAIn, iA, sA, tBIn, fBIn, iB, sB, t1, t2):
                 if fB[-2, iB[i]] <> fB[-3, iB[i]]:
                     print "Extrapolation for fB on right border of time grid not possible due to discontinuity in column " + str(iB[i]) + " for index " + str(i)
                     error = True
-                    return
+                    break
                 else:
                     fB[-1, iB[i]] = fB[-3, iB[i]]
         else:
             fB[-1, iB] = fB[-3, iB] + (fB[-2, iB] - fB[-3, iB]) * (tB[-1] - tB[-3]) / (tB[-2] - tB[-3])
 
+   
+    if error:
+        return NfAB, NfA, NfB, True
+
 
     '''
     Now begin computing the integrals
     '''
-
-    NfAB = numpy.zeros((nSignals,))
-    NfA = numpy.zeros((nSignals,))
-    NfB = numpy.zeros((nSignals,))
-    AfA = numpy.zeros((nSignals,))
-    AfB = numpy.zeros((nSignals,))
-    AfAB = numpy.zeros((nSignals,))
 
     s2 = t1
     s1 = t1
@@ -232,9 +241,9 @@ def Compare(tA, fA, iA, sA, tB, fB, iB, sB, tol=1e-3):
         diff, NfA, NfB, error = normDiff(tA2, fA2, iA, sA, tB2, fB2, iB, sB, tStart, tStop)
 
     if error:
-        return False, 0
+        return [False]*len(diff), diff / (1 + NfA + NfB), error
     else:
-        return diff <= tol * (1 + NfA + NfB), diff / (1 + NfA + NfB)
+        return diff <= tol * (1 + NfA + NfB), diff / (1 + NfA + NfB), error
 
 
 if __name__ == "__main__":

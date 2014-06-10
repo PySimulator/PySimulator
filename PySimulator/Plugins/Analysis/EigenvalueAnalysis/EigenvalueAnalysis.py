@@ -1,3 +1,6 @@
+﻿#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 '''
 Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
@@ -174,7 +177,7 @@ class EigenvalueAnalysis(object):
         '''
 
         parent = QtGui.QApplication.activeWindow()
-        self.modelName = str(parent.nvb.currentModelItem.text(0))  # str convert QString to str
+        self.modelName = parent.nvb.currentModelItem.text(0)
         self.model = parent.models[self.modelName]
 
         self.t = 0

@@ -16,7 +16,9 @@ for both simulation and analysis.
 with PySimulator](http:www.modprod.liu.se/modprod2013-program/1.456422/modprod2013-day2-talk05a-AndreasPfeiffer.pdf). Invited talk at 7th MODPROD Workshop on Model-Based Product Development, Linköping, Sweden, Feb. 2013.
 
 ####Supported Platforms
-* Windows (Other platforms have not been tested.)
+* Windows
+* Linux (OpenModelica, FMU, and plotting works; other simulators do not work)
+* Other platforms have not been tested
 
 ####Installation
 * Start "Install PySimulator.bat". This batch file installs the 32 Bit Python(x,y) and all other necessary packages.

@@ -1,3 +1,6 @@
+﻿#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 '''
 Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
@@ -124,7 +127,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             that is newer than the Modelica model file, then this executable is used.
         '''
         if len(self.fileName) == 1:
-            sp = string.rsplit(self.fileName[0], '.', 1)
+            sp = unicode.rsplit(self.fileName[0], '.', 1)
             suffix = sp[1]
             if suffix not in ['mo', 'moe']:
                 # Can only compile *.mo and *.moe files
@@ -413,8 +416,7 @@ def prepareSimulationList(fileName, name, config):
     if dymolaPath == '':
         ''' Ask for Dymola executable '''
         print "No Dymola executable (Dymola.exe) found to run Dymola. Please select one ..."
-        (dymolaPath, trash) = QtGui.QFileDialog().getOpenFileName(None, 'Select Dymola executable file', os.getcwd(), 'Executation file (*.exe)')
-        # dymolaPath = str(dymolaPath)
+        (dymolaPath, trash) = QtGui.QFileDialog().getOpenFileName(None, 'Select Dymola executable file', os.getcwd(), 'Executable file (*.exe)')
         if dymolaPath == '':
             print "failed. No Dymola executable (Dymola.exe) specified."
             return None

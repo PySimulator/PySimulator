@@ -1,3 +1,6 @@
+﻿#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 '''
 Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
@@ -117,7 +120,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			if len(modelFileName) == 1:
 				strMsg = 'PySimulator: Load model'
 
-				split = string.rsplit(modelFileName[0], '.', 1)
+				split = unicode.rsplit(modelFileName[0], '.', 1)
 				if len(split) > 1:
 					suffix = split[1]
 				else:

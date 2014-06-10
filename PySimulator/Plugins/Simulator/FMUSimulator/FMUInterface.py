@@ -1,3 +1,6 @@
+﻿#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 '''
 Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
@@ -96,7 +99,7 @@ class fmiEventInfo(ctypes.Structure):
 
 ''' C-interface for system functions '''
 Logger = ctypes.CFUNCTYPE(None, fmiComponent, fmiString, fmiStatus, fmiString, fmiString)
-AllocateMemory = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_uint, ctypes.c_uint)
+AllocateMemory = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_size_t, ctypes.c_size_t)
 FreeMemory = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
 class _fmiCallbackFunctions(ctypes.Structure):
     _fields_ = [('logger', Logger), ('allocateMemory', AllocateMemory), ('freeMemory', FreeMemory)]
@@ -188,22 +191,23 @@ class FMUInterface:
             if self._loggingOn:
                 print(message)
             # self.log.append( (c, instanceName, status, category, message) )
-
         ''' mapping of memory management functions for FMU to operating system functions, depending on OS.
             For Linux it refers to the std-C library - this should always be present
         '''
         if platform.system() == 'Linux':
             c_lib = ctypes.cdll.LoadLibrary('libc.so.6')
-            self._fmiCallbackFunctions = _fmiCallbackFunctions(
-                                     logger=Logger(_Logger),
-                                     allocateMemory=AllocateMemory(c_lib.calloc),
-                                     freeMemory=FreeMemory(c_lib.free))
         elif platform.system() == 'Windows':
-            msvcrt_lib = ctypes.CDLL(find_library('c'))
-            self._fmiCallbackFunctions = _fmiCallbackFunctions(
-                                     logger=Logger(_Logger),
-                                     allocateMemory=AllocateMemory(msvcrt_lib.calloc),
-                                     freeMemory=FreeMemory(msvcrt_lib.free))
+            c_lib = ctypes.CDLL(find_library('c'))
+        else:
+            raise FMUError.FMUError('Unknown platform: %s\n' % platform.system())
+        c_lib.calloc.restype = ctypes.c_void_p
+        c_lib.calloc.argtypes = [ctypes.c_size_t,ctypes.c_size_t]
+        c_lib.free.restype = None
+        c_lib.free.argtypes = [ctypes.c_void_p]
+        self._fmiCallbackFunctions = _fmiCallbackFunctions(
+                                 logger=Logger(_Logger),
+                                 allocateMemory=AllocateMemory(c_lib.calloc),
+                                 freeMemory=FreeMemory(c_lib.free))
 
         ''' Load instance of library into memory '''
         try:

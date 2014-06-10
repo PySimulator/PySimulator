@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 '''
 Copyright (C) 2011-2014 German Aerospace Center DLR
@@ -38,6 +39,7 @@ def loadPlugins(type):
     def get_immediate_subdirectories(directory):
         return [name for name in os.listdir(directory) if os.path.isdir(os.path.join(directory, name)) and name[0] != '.']
 
+    # Note: this fails if PySimulator is loaded using a relative path
     PlugInNames = get_immediate_subdirectories(os.path.abspath(os.path.dirname(inspect.getfile(inspect.currentframe()))) + "/./Plugins/" + type)
     ret = dict()
     for i in range(len(PlugInNames)):
@@ -182,7 +184,11 @@ class SimulatorGui(QtGui.QMainWindow):
         self.setMenuBar(menu)
 
         # Load config file and adapt it to a minimum structure according to loaded plugins
-        self.config = configobj.ConfigObj(self.rootDir + '/PySimulator.ini', encoding='utf8')
+        self.configDir = os.path.join(os.path.expanduser("~"), '.config', 'PySimulator')
+        if not os.path.exists(self.configDir): # Create directory if it does not exist
+          os.makedirs(self.configDir)
+        self.configFile = os.path.join(self.configDir, 'PySimulator.ini')
+        self.config = configobj.ConfigObj(self.configFile, encoding='utf8')
         if not self.config.has_key('PySimulator'):
             self.config['PySimulator'] = {}
             self.config['PySimulator']['workingDirectory'] = os.getcwd()
@@ -340,14 +346,16 @@ class SimulatorGui(QtGui.QMainWindow):
         if fileName == '':
             return
         if modelName is None:
-            sp = string.rsplit(fileName, '.', 1)
-            modelName = string.rsplit(sp[0], '/', 1)[1]
+            sp = unicode.rsplit(fileName, '.', 1)
+            modelName = unicode.rsplit(sp[0], '/', 1)[1]
 
         self._chDir(os.path.dirname(fileName))
         try:
             model = loaderplugin.Model(modelName, [fileName], self.config)
             self._newModel(model)
         except Exception as e:
+            import traceback
+            traceback.print_exc(e,file=sys.stderr)
             if hasattr(e, 'msg'):
                 print e.msg
             else:
@@ -357,29 +365,29 @@ class SimulatorGui(QtGui.QMainWindow):
     def _openFileMenu(self, loaderplugin):
         extensionStr = ''
         for ex in loaderplugin.modelExtension:
-            extensionStr += '*.' + ex + ';'
+            extensionStr += u'*.' + ex + u';'
         if len(extensionStr) > 0:
             extensionStr = extensionStr[:-1]
         ''' Load a model '''
         (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open Model', os.getcwd(), extensionStr)
         if fileName == '':
             return
-        split = string.rsplit(fileName, '.', 1)
+        split = unicode.rsplit(fileName, '.', 1)
         if len(split) > 1:
             suffix = split[1]
         else:
-            suffix = ''
+            suffix = u''
         modelName = None
-        if suffix in ['mo', 'moe']:
+        if suffix in [u'mo', u'moe']:
             if len(split[0]) > 0:
-                split = string.rsplit(split[0], '/', 1)
+                split = unicode.rsplit(split[0], u'/', 1)
                 defaultModelName = split[1]
             else:
-                defaultModelName = ''
+                defaultModelName = u''
             modelName, ok = QtGui.QInputDialog().getText(self, 'Modelica model', 'Full Modelica model name / ident, e.g. Modelica.Blocks.Examples.PID_Controller', text=defaultModelName)
             if not ok:
                 return
-            modelName = str(modelName)
+
 
         self.setEnabled(False)
         self._loadingFileInfo()
@@ -395,8 +403,8 @@ class SimulatorGui(QtGui.QMainWindow):
 
         self.setEnabled(False)
         self._loadingFileInfo()
-        sp = string.rsplit(fileName, '.', 1)
-        modelName = string.rsplit(sp[0], '/', 1)[1]
+        sp = unicode.rsplit(fileName, '.', 1)
+        modelName = unicode.rsplit(sp[0], '/', 1)[1]
         try:
             model = Plugins.Simulator.SimulatorBase.Model(modelName, None, 'None', self.config)
             model.loadResultFile(fileName)
@@ -424,7 +432,7 @@ class SimulatorGui(QtGui.QMainWindow):
         (fileNames, trash) = QtGui.QFileDialog().getOpenFileNames(self, 'Open Result File', os.getcwd(), formats)
         import locale
         for fileName in fileNames:
-            self.openResultFile(fileName.encode(locale.getpreferredencoding()).replace('\\', '/'))
+            self.openResultFile(unicode(fileName.encode(locale.getpreferredencoding()), locale.getpreferredencoding()).replace(u'\\', u'/'))
 
     def _loadingFileInfo(self):
         ''' Shows a label 'Loading file...' '''
@@ -463,7 +471,7 @@ class SimulatorGui(QtGui.QMainWindow):
         if len(self.models) == 0:
             print("No models opened!\n")
         else:
-            currentModelName = str(self.nvb.currentModelItem.text(0))
+            currentModelName = self.nvb.currentModelItem.text(0)
             if self.models[currentModelName].modelType != 'None':
                 self.simulateAction.setDisabled(True)
                 self.ic = IntegratorControl.IntegratorControl(self, self.models)
@@ -539,8 +547,8 @@ class SimulatorGui(QtGui.QMainWindow):
         for m in self.models.values():
             currentNumber = max(currentNumber, int(m.numberedModelName.split(':', 1)[0]))
         number = currentNumber + 1
-        model.numberedModelName = '%01i:' % number + model.name
-        model.integrationSettings.resultFileName = str(model.name) + '_%01i' % number + '.' + model.integrationSettings.resultFileExtension
+        model.numberedModelName = u'%01i:' % number + model.name
+        model.integrationSettings.resultFileName = model.name + u'_%01i' % number + u'.' + model.integrationSettings.resultFileExtension
 
     def _newModel(self, model):
         ''' Handles to add a new given model into the framework '''
@@ -582,10 +590,10 @@ class SimulatorGui(QtGui.QMainWindow):
     def _variableValueChanged(self, numberedModelName, variableName, value):
         ''' The user entered a new value for a variable in the variable browser.
             Store this information in the model. '''
-        print('Variable value changed: %s: %s = %s' % (numberedModelName, variableName, value))
-        self.models[str(numberedModelName)].changedStartValue[variableName] = value
+        print(u'Variable value changed: %s: %s = %s' % (numberedModelName, variableName, value))
+        self.models[numberedModelName].changedStartValue[variableName] = value
         # Delete pluginData because values of parameters have been changed
-        self.models[str(numberedModelName)].pluginData.clear()
+        self.models[numberedModelName].pluginData.clear()
 
     def closeEvent(self, event):
         for pluginName, plugin in self.simulatorPlugins.items():  # and self.analysisPlugins

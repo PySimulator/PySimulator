@@ -1,3 +1,6 @@
+﻿#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 '''
 Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
@@ -109,7 +112,7 @@ class VariablesBrowser(QtGui.QTreeWidget):
             return
 
         if 'isModelRoot' in vars(item):
-            modelName = str(item.text(0))
+            modelName = item.text(0)
             menu = QtGui.QMenu(self)
             model = self.parent.models[modelName]
             checkedModel = self.parent.models[self.currentModelItem.text(0)]

@@ -1,3 +1,6 @@
+﻿#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 '''
 Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
@@ -124,7 +127,12 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout):
                                 t2 = pMatrix2[j][0]
                                 f2 = pMatrix2[j][1]
 
-                        identical, estTol = Compare.Compare(t1, f1, i1, s1, t2, f2, i2, s2, tol)
+                        identical, estTol, error = Compare.Compare(t1, f1, i1, s1, t2, f2, i2, s2, tol)
+                        if error:
+                            message = u"Error during comparison of results."
+                            fileOutput.write(message + u"\n")
+                            return
+                                          
                         maxEstTol = max(maxEstTol, estTol.max())
                         allIdentical = allIdentical and all(identical)
                         s = sum(identical)
@@ -133,8 +141,8 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout):
 
                         for m in xrange(len(identical)):
                             if not identical[m]:
-                                message = "Results for " + namesBothSub[m] + " are NOT identical within the tolerance " + str(tol) + "; estimated Tolerance = " + str(estTol[m])
-                                fileOutput.write(message + "\n")
+                                message = u"Results for " + namesBothSub[m] + u" are NOT identical within the tolerance " + unicode(tol) + u"; estimated Tolerance = " + unicode(estTol[m])
+                                fileOutput.write(message + u"\n")
 
 
 
@@ -149,20 +157,20 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout):
 
     lenNamesOnce = len(allNamesOnce1) + len(allNamesOnce2)
     if lenNamesOnce > 0:
-        messageOnce = "; " + str(lenNamesOnce) + " only in one of the two files."
+        messageOnce = u"; " + unicode(lenNamesOnce) + u" only in one of the two files."
     else:
-        messageOnce = "."
-    message = "Compared results of " + str(nPos + nNeg) + " variables: " + str(nPos) + " identical, " + str(nNeg) + " differ" + messageOnce
+        messageOnce = u"."
+    message = u"Compared results of " + unicode(nPos + nNeg) + u" variables: " + unicode(nPos) + u" identical, " + unicode(nNeg) + u" differ" + messageOnce
     # print message
-    fileOutput.write(message + "\n")
+    fileOutput.write(message + u"\n")
 
     if allIdentical:
-        message = "The results for all compared variables are identical up to the given tolerance = " + str(tol)
+        message = u"The results for all compared variables are identical up to the given tolerance = " + unicode(tol)
         # print message
-        fileOutput.write(message + "\n")
-    message = "Maximum estimated tolerance = " + str(maxEstTol)
+        fileOutput.write(message + u"\n")
+    message = u"Maximum estimated tolerance = " + unicode(maxEstTol)
     # print message
-    fileOutput.write(message + "\n")
+    fileOutput.write(message + u"\n")
 
     print "... done."
 
@@ -431,16 +439,15 @@ def runListSimulation(PySimulatorPath, setupFile, resultDir, allSimulators, dele
     reader = csv.reader(f, delimiter=' ', skipinitialspace=True)
     for a in reader:
         if len(a) > 0:
-            if len(a[0]) > 0:
-                if a[0][0] != '#':
-                    # if len(a) >= 7:
-                    line.append(a[:7])
+            if not (len(a[0]) > 0 and a[0][0] == '#'):
+                # if len(a) >= 7:
+                line.append(a[:7])
     f.close()
 
     modelList = numpy.zeros((len(line),), dtype=[('fileName', 'U2000'), ('modelName', 'U2000'), ('tStart', 'f8'), ('tStop', 'f8'), ('tol', 'f8'), ('nInterval', 'i4'), ('includeEvents', 'b1')])
     for i, x in enumerate(line):
         absPath = x[0].replace('\\', '/')
-        if not os.path.isabs(absPath):
+        if absPath <> "" and not os.path.isabs(absPath):
             absPath = os.path.normpath(os.path.join(os.path.split(setupFile)[0], absPath)).replace('\\', '/')
         if len(x) == 7:
             modelList[i] = (absPath, x[1], float(x[2]), float(x[3]), float(x[4]), int(x[5]), True if x[6] == 'True' else False)
@@ -534,6 +541,8 @@ class simulationThread(QtCore.QThread):
                     if modelName != '':
                         canLoadAllPackages = True
                         for j in xrange(len(packageName)):
+                            if packageName[j] == '':
+                              continue
                             sp = packageName[j].rsplit('.', 1)
                             if len(sp) > 1:
                                 if not sp[1] in simulator.modelExtension:
@@ -542,29 +551,34 @@ class simulationThread(QtCore.QThread):
                             else:
                                 canLoadAllPackages = False
                                 break
-
                         if canLoadAllPackages:
-                            model = simulator.Model(modelName, packageName, self.config)
-
-                            resultFileName = fullSimulatorResultPath + '/' + modelName + '.' + model.integrationSettings.resultFileExtension
-                            model.integrationSettings.startTime = self.modelList['tStart'][i]
-                            model.integrationSettings.stopTime = self.modelList['tStop'][i]
-                            model.integrationSettings.errorToleranceRel = self.modelList['tol'][i]
-                            model.integrationSettings.gridPoints = self.modelList['nInterval'][i] + 1
-                            model.integrationSettings.gridPointsMode = 'NumberOf'
-                            model.integrationSettings.resultFileIncludeEvents = self.modelList['includeEvents'][i]
-                            model.integrationSettings.resultFileName = resultFileName
-
-                            print "Simulating " + modelName + " by " + simulatorName + " ..."
-
                             try:
                                 '''
                                 Do the numerical integration in a try branch
                                 to avoid loosing the thread when an intended exception is raised
+
+                                Also guard against compilation failures when loading the model
                                 '''
+                                model = simulator.Model(modelName, packageName, self.config)
+
+                                resultFileName = fullSimulatorResultPath + '/' + modelName + '.' + model.integrationSettings.resultFileExtension
+                                model.integrationSettings.startTime = self.modelList['tStart'][i]
+                                model.integrationSettings.stopTime = self.modelList['tStop'][i]
+                                model.integrationSettings.errorToleranceRel = self.modelList['tol'][i]
+                                model.integrationSettings.gridPoints = self.modelList['nInterval'][i] + 1
+                                model.integrationSettings.gridPointsMode = 'NumberOf'
+                                model.integrationSettings.resultFileIncludeEvents = self.modelList['includeEvents'][i]
+                                model.integrationSettings.resultFileName = resultFileName
+
+                                print "Simulating %s by %s (result in %s)..." % (modelName,simulatorName,resultFileName)
                                 model.simulate()
+
                             except Plugins.Simulator.SimulatorBase.Stopping:
-                                print("solver canceled ... ")
+                                print("Solver cancelled ... ")
+                            except Exception as e:
+                                import traceback
+                                traceback.print_exc(e,file=sys.stderr)
+                                print e
                             finally:
                                 model.close()
                         else:
@@ -611,15 +625,18 @@ class CompareThread(QtCore.QThread):
     def run(self):
         self.running = True
 
+        encoding = sys.getfilesystemencoding()
+
         dir1 = self.dir1
         dir2 = self.dir2
         files1 = os.listdir(dir1)
         files2 = os.listdir(dir2)
-
+       
         modelName1 = []
         fileName1 = []
         for fileName in files1:
             splits = fileName.rsplit('.', 1)
+            print splits
             if len(splits) > 1:
                 if splits[1] in SimulationResult.fileExtension:
                     modelName1.append(splits[0])
@@ -633,11 +650,14 @@ class CompareThread(QtCore.QThread):
                     modelName2.append(splits[0])
                     fileName2.append(fileName)
 
+        print modelName1
+        print fileName1
+
 
         fileOut = open(self.logFile, 'w')
         fileOut.write('Output file from comparison of list of simulation results within PySimulator\n')
-        fileOut.write('  directory 1 (reference) : ' + dir1.encode(sys.getfilesystemencoding()) + '\n')
-        fileOut.write('  directory 2 (comparison): ' + dir2.encode(sys.getfilesystemencoding()) + '\n')
+        fileOut.write('  directory 1 (reference) : ' + dir1.encode(encoding) + '\n')
+        fileOut.write('  directory 2 (comparison): ' + dir2.encode(encoding) + '\n')
 
 
         for index, name in enumerate(modelName1):
@@ -648,10 +668,10 @@ class CompareThread(QtCore.QThread):
                 self.running = False
                 return
 
-            fileOut.write('\nCompare results from\n')
-            fileOut.write('  Directory 1: ' + fileName1[index] + '\n')  # Print name of file1
+            fileOut.write('\nCompare results from\n')            
+            fileOut.write('  Directory 1: ' + fileName1[index].encode(encoding) + '\n')  # Print name of file1
             print "\nCompare results from "
-            print "  Directory 1: " + fileName1[index]
+            print "  Directory 1: " + fileName1[index].encode(encoding)
 
             try:
                 i = modelName2.index(name)
@@ -660,8 +680,8 @@ class CompareThread(QtCore.QThread):
                 print '  Directory 2: NO equivalent found'
                 i = -1
             if i >= 0:
-                fileOut.write('  Directory 2 ' + fileName2[i] + '\n')  # Print name of file2
-                print "  Directory 2 " + fileName2[i]
+                fileOut.write('  Directory 2: ' + fileName2[i].encode(encoding) + '\n')  # Print name of file2
+                print "  Directory 2: " + fileName2[i].encode(encoding)
 
 
                 file1 = dir1 + '/' + fileName1[index]
