@@ -455,7 +455,8 @@ def runListSimulation(PySimulatorPath, setupFile, resultDir, allSimulators, dele
             modelList['fileName'][i] = absPath
 
     # packageName = general[0]
-    config = configobj.ConfigObj(PySimulatorPath.replace('\\', '/') + '/PySimulator.ini')
+    #config = configobj.ConfigObj(PySimulatorPath.replace('\\', '/') + '/PySimulator.ini')
+    config = configobj.ConfigObj(os.path.join(os.path.expanduser("~"), '.config', 'PySimulator', 'PySimulator.ini'), encoding='utf8')
 
     sim = simulationThread(None)
     sim.config = config
