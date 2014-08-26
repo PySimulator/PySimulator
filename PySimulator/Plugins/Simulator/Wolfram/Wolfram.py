@@ -186,7 +186,14 @@ def loadResultFileInit(fileName):
         start.cunit = ''
         start.cvalueEdit = attr.get('protected') == 'true'
         start.ctype = attr.get('type')
-        start.cvar = attr['kind']
+        if attr.get('kind') == 'DISCRETE':
+            start.cvar = 'discrete'
+        elif attr.get('kind') =='PARAM':
+            start.cvar = 'parameter'
+        elif attr.get('kind') == 'CONSTANT':
+            start.cvar = 'constant'
+        else:
+            start.cvar = 'continuous'
         start.cvalue = attr.get('value')
     def end(name):
       if name == "variable":
