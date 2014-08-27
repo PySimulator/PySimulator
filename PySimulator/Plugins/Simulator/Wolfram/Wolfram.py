@@ -78,15 +78,9 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         # read the result file
         self.resFile = os.path.join(work_dir,self.name + "_res.mat")
 
-
-    def getReachedSimulationTime(self):
-        '''
-        Read the current simulation time during a simulation
-        from ?????
-        '''
     def simulate(self):
-        ''' Simulate a Modelica model by executing Wolfram's simulation executable.
-        '''
+        ''' Simulate a Modelica model by executing Wolfram's simulation executable.'''
+
         def compile_model(simulate_options):
 
             if self.fileName != None:
@@ -103,10 +97,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             else:
                 compile_model('')
 
-        def readStatistics():
-            '''
-            Read statistics from the ?? file
-            '''
+
 
     def setVariableTree(self):
         if self.resFile == '""':
@@ -114,7 +105,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         for v in self._initialResult:
             value = None
 
-            if v['valueEdit']:
+            if v['kind'] == 'parameter':
               value = v['value']
             else:
               value = None
@@ -122,10 +113,11 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             variableAttribute = ''
             if v['description'] != '' :
                 variableAttribute += 'Description:' + chr(9) + v['description'] + '\n'
+            variableAttribute += 'Causality:' + chr(9) + v['direction'] + '\n'
             variableAttribute += 'Variability:' + chr(9) + v['kind'] + '\n'
             variableAttribute += 'Type:' + chr(9) + v['type']
 
-            self.variableTree.variable[v['name'].replace('[', '.[')] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(v['name'].replace('[', '.[')), value,v['valueEdit'], v['unit'], v['kind'], variableAttribute)
+            self.variableTree.variable[v['name'].replace('[', '.[')] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(v['name'].replace('[', '.[')), value, v['unit'], v['direction'], v['kind'], variableAttribute)
     def getAvailableIntegrationAlgorithms(self):
         ''' Returns a list of strings with available integration algorithms
         '''
@@ -184,7 +176,13 @@ def loadResultFileInit(fileName):
         start.cname = attr['name']
         start.cdesc = attr.get('description') or ''
         start.cunit = ''
-        start.cvalueEdit = attr.get('protected') == 'true'
+        start.cvalue = attr.get('value')
+        if attr.get('direction') == 'BIDIR':
+            start.ccausality = 'internal'
+        if attr.get('direction') == 'INDIR':
+            start.ccausality = 'input'
+        if attr.get('direction') == 'OUTDIR':
+            start.ccausality = 'output'
         start.ctype = attr.get('type')
         if attr.get('kind') == 'DISCRETE':
             start.cvar = 'discrete'
@@ -197,7 +195,7 @@ def loadResultFileInit(fileName):
         start.cvalue = attr.get('value')
     def end(name):
       if name == "variable":
-        end.result += [{'name':start.cname,'value':start.cvalue,'valueEdit':start.cvalueEdit,'unit':start.cunit,'kind':start.cvar,'description':start.cdesc,'type':start.ctype}]
+        end.result += [{'name':start.cname, 'value':start.cvalue, 'unit':start.cunit, 'direction':start.ccausality, 'kind':start.cvar,'description':start.cdesc,'type':start.ctype}]
     end.result = []
     p.StartElementHandler = start
     p.EndElementHandler = end
