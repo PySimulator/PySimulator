@@ -117,7 +117,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             variableAttribute += 'Variability:' + chr(9) + v['kind'] + '\n'
             variableAttribute += 'Type:' + chr(9) + v['type']
 
-            self.variableTree.variable[v['name'].replace('[', '.[')] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(v['name'].replace('[', '.[')), value, v['unit'], v['direction'], v['kind'], variableAttribute)
+            self.variableTree.variable[v['name'].replace('[', '.[')] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(v['name'].replace('[', '.[')), value, 'false', v['unit'], v['kind'], variableAttribute)
     def getAvailableIntegrationAlgorithms(self):
         ''' Returns a list of strings with available integration algorithms
         '''
@@ -175,15 +175,19 @@ def loadResultFileInit(fileName):
       if name == "variable":
         start.cname = attr['name']
         start.cdesc = attr.get('description') or ''
-        start.cunit = ''
-        start.cvalue = attr.get('value')
+        start.cvalue = attr.get('value') or ''
+        start.cunit =  attr.get('unit') or ''
+        start.ctype = attr.get('type')
+
         if attr.get('direction') == 'BIDIR':
             start.ccausality = 'internal'
-        if attr.get('direction') == 'INDIR':
+        elif attr.get('direction') == 'INDIR':
             start.ccausality = 'input'
-        if attr.get('direction') == 'OUTDIR':
+        elif attr.get('direction') == 'OUTDIR':
             start.ccausality = 'output'
-        start.ctype = attr.get('type')
+        else:
+            start.ccausality = ''
+
         if attr.get('kind') == 'DISCRETE':
             start.cvar = 'discrete'
         elif attr.get('kind') =='PARAM':
@@ -192,7 +196,6 @@ def loadResultFileInit(fileName):
             start.cvar = 'constant'
         else:
             start.cvar = 'continuous'
-        start.cvalue = attr.get('value')
     def end(name):
       if name == "variable":
         end.result += [{'name':start.cname, 'value':start.cvalue, 'unit':start.cunit, 'direction':start.ccausality, 'kind':start.cvar,'description':start.cdesc,'type':start.ctype}]
