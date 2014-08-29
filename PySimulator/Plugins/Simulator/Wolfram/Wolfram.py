@@ -105,7 +105,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         for v in self._initialResult:
             value = None
 
-            if v['kind'] == 'parameter':
+            if v['kind'] == 'parameter' or v['direction'] == 'state':
               value = v['value']
             else:
               value = None
@@ -188,6 +188,8 @@ def loadResultFileInit(fileName):
         else:
             start.ccausality = ''
 
+        if attr.get('kind') == 'STATE':
+            start.ccausality = 'state'
 
         if attr.get('kind') == 'DISCRETE':
             start.cvar = 'discrete'
@@ -197,6 +199,7 @@ def loadResultFileInit(fileName):
             start.cvar = 'constant'
         else:
             start.cvar = 'continuous'
+
     def end(name):
       if name == "variable":
         end.result += [{'name':start.cname, 'value':start.cvalue, 'unit':start.cunit, 'direction':start.ccausality, 'kind':start.cvar,'description':start.cdesc,'type':start.ctype}]
