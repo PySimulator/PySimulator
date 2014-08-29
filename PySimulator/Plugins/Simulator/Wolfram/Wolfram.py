@@ -172,7 +172,7 @@ def loadResultFileInit(fileName):
 
     p = expat.ParserCreate()
     def start(name,attr):
-      if name == "variable":
+      if name == "variable" and attr['name'] != '$dummy' and attr['name'] != 'der($dummy)':
         start.cname = attr['name']
         start.cdesc = attr.get('description') or ''
         start.cvalue = attr.get('value') or ''
@@ -187,6 +187,7 @@ def loadResultFileInit(fileName):
             start.ccausality = 'output'
         else:
             start.ccausality = ''
+
 
         if attr.get('kind') == 'DISCRETE':
             start.cvar = 'discrete'
