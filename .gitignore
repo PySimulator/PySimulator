@@ -6,3 +6,4 @@ PySimulator.egg-info/*
 *.pyc
 PySimulator.psproj
 .idea/*
+PySimulator/Plugins/Simulator/Wolfram/pythonica/build/*
