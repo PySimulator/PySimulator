@@ -20,9 +20,10 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 '''
 
 import Plugins.Simulator.SimulatorBase
-import os
+import os, sys, shutil
 import pythonica
 import tempfile
+
 iconImage = 'simulatorWolfram.ico'
 modelExtension = ['mo']  # e.g. ['mo']
 
@@ -47,7 +48,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         self.compileModel()
 
         if self.resFile != '""':
-            self._initialResult = loadResultFileInit(os.path.join(tempfile.gettempdir(), self.name + "_init.sim"))
+            self._initialResult = loadResultFileInit(os.path.join(tempfile.gettempdir(), self.name + ".sim"))
         else:
             print "The selected model could not be instantiated, check for any dependencies that the model might have"
             return
@@ -68,12 +69,37 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         mofile = mofile.replace('\\', '/')
         pwd = os.path.abspath('.').replace('\\', '/')
 
-
         m = pythonica.Pythonica()
         m.eval('Needs["WSMLink`"]')
-        m.eval('Import["' + mofile + '",{"ModelicaModel"}]')
+        m.eval('Import["' + self.fileName[0] + '",{"ModelicaModel"}]')
 
-        res = m.eval('WSMSimulate["' + self.name + '",{' + str('0') + str(',') + str('10')+ '} ]')
+        m.eval('sim = WSMSimulate["' + self.name + '",{' + str('0') + str(',') + str('10')+ '} ]')
+
+        simResultFileName = m.eval('sim[[1]]')
+        resultDirectory = os.path.dirname(simResultFileName)
+
+        fileName =  os.path.splitext(os.path.basename(simResultFileName))[0]
+
+        sourceResultFileName = os.path.join(resultDirectory + "\\\\\\\\" , fileName + ".mat"+ '"')
+        sourceResultFileName = sourceResultFileName.replace('"', '')
+        sourceResultFileName = sourceResultFileName.replace(' ', '')
+
+        destinationResultFileName = os.path.join(tempfile.gettempdir(), self.name + ".mat")
+
+        shutil.copyfile(sourceResultFileName, destinationResultFileName)
+
+        sourceSettingsFileName = os.path.join(resultDirectory + "\\\\\\\\" , fileName + ".sim"+ '"')
+        sourceSettingsFileName = sourceSettingsFileName.replace('"', '')
+        sourceSettingsFileName = sourceSettingsFileName.replace(' ', '')
+
+        destinationSettingsFileName = os.path.join(tempfile.gettempdir(), self.name + ".sim")
+
+        shutil.copyfile(sourceSettingsFileName, destinationSettingsFileName)
+
+
+        #resultFileName1 = m.eval('result[[1]];')
+        #testResult = m.eval('CopyFile[simPull,"C:\\Users\\alash325\\AppData\\Local\\Temp\\WolframSystemModeler\\BouncingBall.mat"]')
+
 
         # read the result file
         self.resFile = os.path.join(work_dir,self.name + "_res.mat")

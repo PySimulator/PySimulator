@@ -258,7 +258,7 @@ class Pythonica(object):
           Whether to produce plots, plot_dir must not be None
         output_type: string
           Whether to output a string or a python object, must be either
-          'string' or 'pythong'
+          'string' or 'python'
         str_format: string
           How to format the string if output_type='string'. If 'input' will
           produce a string which can be used as Mathematica Input. If 'tex'
