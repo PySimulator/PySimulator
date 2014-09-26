@@ -68,7 +68,10 @@ class Results(IntegrationResults.Results):
 					doc = isx.SimXObject(model, 'doc' , None, [], results, 0)
 					doc_t = doc.LoadResult('doc.t')
 				except:
-					raise Exception("Result variable 't' not stored in file " + self._fullFileName)
+					try:
+						doc_t = doc.LoadResult('doc.time')
+					except:
+						raise Exception("Neither result variable 't' nor 'time' is stored in file " + self._fullFileName)
 				cols = 0
 				for result in results:
 					if result.ndims == 1:
