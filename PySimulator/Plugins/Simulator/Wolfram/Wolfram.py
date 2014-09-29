@@ -22,10 +22,11 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 import Plugins.Simulator.SimulatorBase
 import os, sys, shutil
 import pythonica
-import tempfile
+
 
 iconImage = 'simulatorWolfram.ico'
 modelExtension = ['mo']  # e.g. ['mo']
+simulationProgressData = 0.0
 
 def closeSimulationPlugin():
     pass
@@ -39,52 +40,82 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         self.onlyResultFile = False
         self.integrationSettings.resultFileExtension = 'mat'
 
-        self._availableIntegrationAlgorithms = ['DASSL', 'CVODES', 'Explicit Euler', 'Heuns method', 'Runge-Kutta (RK4)']
+        self._availableIntegrationAlgorithms = ['DASSL', 'CVODES', 'Euler', 'RungeKutta', 'Heun']
         self.integrationSettings.algorithmName = self._availableIntegrationAlgorithms[0]
 
-        self._IntegrationAlgorithmHasFixedStepSize = [False, True, False, False, True, False]
-        self._IntegrationAlgorithmCanProvideStepSizeResults = [False, True, False, False, True, False]
+        self._IntegrationAlgorithmHasFixedStepSize = [False, False, True, True, True]
+        self._IntegrationAlgorithmCanProvideStepSizeResults = [False, False, True, True, True]
+
+        #Creates a link to a Mathematica Kernel and stores information needed communication
+        self.mathLink = pythonica.Pythonica()
 
         self.compileModel()
 
-        if self.resFile != '""':
-            self._initialResult = loadResultFileInit(os.path.join(tempfile.gettempdir(), self.name + ".sim"))
-        else:
-            print "The selected model could not be instantiated, check for any dependencies that the model might have"
-            return
-
+        self._initialResult = loadResultFileInit(os.path.join(os.getcwd(), self.name + ".sim"))
 
     def compileModel(self):
         """
-        This function is needed to load the data into the VariablesBrowser
-        before simulating the model with parameters.
+        Compiles a Modelica model by Loading Wolfram SystemModeler Link.It is just needed to load the data into the VariablesBrowser
+        before simulating the model with parameters
         """
         if len(self.fileName) == 1:
             if not os.path.isfile(self.fileName[0]):
                 raise FileDoesNotExist("File '" + self.fileName[0] + "' does not exist")
 
-        # set the working directory in Wolfram
-        work_dir = os.getcwd()
-        mofile = os.path.join(work_dir,self.name + ".mo")
-        mofile = mofile.replace('\\', '/')
-        pwd = os.path.abspath('.').replace('\\', '/')
+        # Load Wolfram SystemModeler Link and Modelica Model and then compiles a model
+        self.mathLink.eval('Needs["WSMLink`"]')
+        self.mathLink.eval('Import["' + self.fileName[0].encode('utf8') + '",{"ModelicaModel"}]')
+        self.mathLink.eval('sim = WSMSimulate["' + self.name + '",{' + str('0') + str(',') + str('10')+ '} ]')
 
-        m = pythonica.Pythonica()
-        m.eval('Needs["WSMLink`"]')
-        m.eval('Import["' + self.fileName[0] + '",{"ModelicaModel"}]')
-
-        m.eval('sim = WSMSimulate["' + self.name + '",{' + str('0') + str(',') + str('10')+ '} ]')
-
-        simResultFileName = m.eval('sim[[1]]')
+        # Retrieve the path to the result file and copy the simulation settings result file(.sim) to the current working directory
+        simResultFileName = self.mathLink.eval('sim[[1]]')
         resultDirectory = os.path.dirname(simResultFileName)
+        fileName =  os.path.splitext(os.path.basename(simResultFileName))[0]
 
+        sourceSettingsFileName = os.path.join(resultDirectory + "\\\\\\\\" , fileName + ".sim"+ '"')
+        sourceSettingsFileName = sourceSettingsFileName.replace('"', '')
+        sourceSettingsFileName = sourceSettingsFileName.replace(' ', '')
+
+        destinationSettingsFileName = os.path.join(os.getcwd(), self.name + ".sim")
+
+        shutil.copyfile(sourceSettingsFileName, destinationSettingsFileName)
+
+    def getReachedSimulationTime(self):
+        '''
+        Read the current simulation time during a simulation
+        '''
+        t = ((simulationProgressData * self.integrationSettings.stopTime) / 100.0)
+        return t
+
+    def simulate(self):
+
+        s = self.integrationSettings
+
+        # Set Parameter values, initial values for state variables and simulation settings
+        simInterval = str(s.startTime) + str(',') + str(s.stopTime)
+
+        intAlg = self._availableIntegrationAlgorithms.index(s.algorithmName)
+	if self._IntegrationAlgorithmHasFixedStepSize[intAlg]:
+            simMethod = str('Method->{"')+ str(s.algorithmName)+ str('","StepSize" ->') + str(s.fixedStepSize)+ str('}')
+        else:
+           simMethod = str('Method->{"')+ str(s.algorithmName)+ str('","Tolerance" ->') + str(s.errorToleranceRel)+ str('}')
+
+        changedParameters = ','.join(['"%s" -> %s' % (name,newValue) for name,newValue in self.changedStartValue.iteritems()])
+        ChangedParameters = str('WSMParameterValues->{')+ changedParameters +  str('}')
+
+        # Simulate a model with a new parameter settings
+        self.mathLink.eval('sim = WSMSimulate["' + self.name + '",{' + simInterval + '}, '+ simMethod +', '+ ChangedParameters +']')
+
+        # Retrieve the path to the result file and copy to the current working directory
+        simResultFileName = self.mathLink.eval('sim[[1]]')
+        resultDirectory = os.path.dirname(simResultFileName)
         fileName =  os.path.splitext(os.path.basename(simResultFileName))[0]
 
         sourceResultFileName = os.path.join(resultDirectory + "\\\\\\\\" , fileName + ".mat"+ '"')
         sourceResultFileName = sourceResultFileName.replace('"', '')
         sourceResultFileName = sourceResultFileName.replace(' ', '')
 
-        destinationResultFileName = os.path.join(tempfile.gettempdir(), self.name + ".mat")
+        destinationResultFileName = os.path.join(os.getcwd(), os.path.abspath(self.integrationSettings.resultFileName))
 
         shutil.copyfile(sourceResultFileName, destinationResultFileName)
 
@@ -92,42 +123,16 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         sourceSettingsFileName = sourceSettingsFileName.replace('"', '')
         sourceSettingsFileName = sourceSettingsFileName.replace(' ', '')
 
-        destinationSettingsFileName = os.path.join(tempfile.gettempdir(), self.name + ".sim")
+        destinationSettingsFileName = os.path.join(os.getcwd(), self.name + ".sim")
 
         shutil.copyfile(sourceSettingsFileName, destinationSettingsFileName)
 
-
-        #resultFileName1 = m.eval('result[[1]];')
-        #testResult = m.eval('CopyFile[simPull,"C:\\Users\\alash325\\AppData\\Local\\Temp\\WolframSystemModeler\\BouncingBall.mat"]')
-
-
-        # read the result file
-        self.resFile = os.path.join(work_dir,self.name + "_res.mat")
-
-    def simulate(self):
-        ''' Simulate a Modelica model by executing Wolfram's simulation executable.'''
-
-        def compile_model(simulate_options):
-
-            if self.fileName != None:
-                print("okey")
-
-        def precheck_for_set_sim_options():
-            s = self.integrationSettings
-            settings = s.__dict__
-
-        def precheck_for_model():
-            sim_opts = precheck_for_set_sim_options()
-            if sim_opts != '':
-                compile_model(sim_opts)
-            else:
-                compile_model('')
-
-
+        #if not os.path.isfile(self.integrationSettings.resultFileName):
+           # raise FileDoesNotExist(self.integrationSettings.resultFileName)
 
     def setVariableTree(self):
-        if self.resFile == '""':
-            return
+        #if self.resFile == '""':
+            #return
         for v in self._initialResult:
             value = None
 
@@ -163,10 +168,6 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         '''
         return self._IntegrationAlgorithmCanProvideStepSizeResults[self._availableIntegrationAlgorithms.index(algorithmName)]
 
-
-# Adapted from DymolaMat/DymolaMat.py for OpenModelica #
-
-import scipy.io, string
 
 # Exception classes
 class FileDoesNotExist (Exception): pass
