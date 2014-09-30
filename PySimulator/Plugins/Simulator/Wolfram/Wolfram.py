@@ -100,8 +100,9 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         else:
            simMethod = str('Method->{"')+ str(s.algorithmName)+ str('","Tolerance" ->') + str(s.errorToleranceRel)+ str('}')
 
+        # New parameter settings
         changedParameters = ','.join(['"%s" -> %s' % (name,newValue) for name,newValue in self.changedStartValue.iteritems()])
-        ChangedParameters = str('WSMParameterValues->{')+ changedParameters +  str('}')
+        ChangedParameters = str('WSMInitialValues->{')+ changedParameters +  str('}')
 
         # Simulate a model with a new parameter settings
         self.mathLink.eval('sim = WSMSimulate["' + self.name + '",{' + simInterval + '}, '+ simMethod +', '+ ChangedParameters +']')
