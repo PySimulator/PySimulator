@@ -224,7 +224,7 @@ class Pythonica(object):
         import sys
         self._env = _ml.env()
         self.mathematicaversion = "10.0"
-        sys.argv.extend(['-linkname', "C:\\Program Files\\Wolfram Research\\Mathematica\\" + self.mathematicaversion + "\\WolframKernel.exe -mathlink"])
+        sys.argv.extend(['-linkname', "C:\\Program Files\\Wolfram Research\\Mathematica\\" + self.mathematicaversion + "\\Math.exe -mathlink"])
 
         self.kernel = self._env.openargv(sys.argv)
        # print type(self.kernel)
