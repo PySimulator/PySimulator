@@ -221,8 +221,13 @@ class Pythonica(object):
                  plot_format='png',
                  output_prompt=False,
                  input_prompt=False):
+        import sys
         self._env = _ml.env()
-        self.kernel = self._env.open(name,mode=mode)
+        self.mathematicaversion = "10.0"
+        sys.argv.extend(['-linkname', "C:\\Program Files\\Wolfram Research\\Mathematica\\" + self.mathematicaversion + "\\WolframKernel.exe -mathlink"])
+
+        self.kernel = self._env.openargv(sys.argv)
+       # print type(self.kernel)
         self.kernel.connect()
         self.debug=debug
         self.plot_dir = plot_dir
