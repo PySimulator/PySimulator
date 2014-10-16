@@ -21,6 +21,7 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 
 import Plugins.Simulator.SimulatorBase
 import os, sys, shutil
+from PySide import QtGui
 import pythonica
 
 
@@ -46,9 +47,23 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         self._IntegrationAlgorithmHasFixedStepSize = [False, False, True, True, True]
         self._IntegrationAlgorithmCanProvideStepSizeResults = [False, False, True, True, True]
 
-        #Creates a link to a Mathematica Kernel and stores information needed communication
-        self.mathLink = pythonica.Pythonica()
+        if not config['Plugins']['Wolfram'].has_key('mathLinkPath'):
+            config['Plugins']['Wolfram']['mathLinkPath'] = ''
+        mathLinkPath = config['Plugins']['Wolfram']['mathLinkPath']
 
+        if mathLinkPath == '' or not os.path.exists(mathLinkPath):
+            ''' Ask for MathLink executable '''
+            print "No MathLink executable (math.exe or MathKernel.exe) found to run Wolfram. Please select one ..."
+            (mathLinkPath, trash) = QtGui.QFileDialog().getOpenFileName(None, 'Select MathLink executable file', os.getcwd(), 'Executable file (*.exe)')
+        if mathLinkPath == '':
+            print "failed. No MathLink executable (math.exe or MathKernel.exe) specified."
+            return None
+        else:
+            config['Plugins']['Wolfram']['mathLinkPath'] = mathLinkPath
+            config.write()
+
+        #Creates a link to a Mathematica Kernel and stores information needed for communication
+        self.mathLink = pythonica.Pythonica(path= "" + mathLinkPath + "" )
         self.compileModel()
 
         self._initialResult = loadResultFileInit(os.path.join(os.getcwd(), self.name + ".sim"))
@@ -91,20 +106,21 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
         s = self.integrationSettings
 
-        # Set Parameter values, initial values for state variables and simulation settings
+        # Set simulation interval
         simInterval = str(s.startTime) + str(',') + str(s.stopTime)
 
+        # Set simulation method
         intAlg = self._availableIntegrationAlgorithms.index(s.algorithmName)
 	if self._IntegrationAlgorithmHasFixedStepSize[intAlg]:
             simMethod = str('Method->{"')+ str(s.algorithmName)+ str('","StepSize" ->') + str(s.fixedStepSize)+ str('}')
         else:
            simMethod = str('Method->{"')+ str(s.algorithmName)+ str('","Tolerance" ->') + str(s.errorToleranceRel)+ str('}')
 
-        # New parameter settings
+        # Set new parameter and initial values for state variables
         changedParameters = ','.join(['"%s" -> %s' % (name,newValue) for name,newValue in self.changedStartValue.iteritems()])
         ChangedParameters = str('WSMInitialValues->{')+ changedParameters +  str('}')
 
-        # Simulate a model with a new parameter settings
+        # Simulate a model with a new parameter values and simulation interval
         self.mathLink.eval('sim = WSMSimulate["' + self.name + '",{' + simInterval + '}, '+ simMethod +', '+ ChangedParameters +']')
 
         # Retrieve the path to the result file and copy to the current working directory
@@ -128,8 +144,8 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
         shutil.copyfile(sourceSettingsFileName, destinationSettingsFileName)
 
-        #if not os.path.isfile(self.integrationSettings.resultFileName):
-           # raise FileDoesNotExist(self.integrationSettings.resultFileName)
+        if not os.path.isfile(self.integrationSettings.resultFileName):
+           raise FileDoesNotExist(self.integrationSettings.resultFileName)
 
     def setVariableTree(self):
         #if self.resFile == '""':
@@ -187,7 +203,6 @@ def loadResultFileInit(fileName):
     # If no fileName given, inquire it interactively
     if fileName == None:
         return
-        # fileName = selectResultFile()
 
     # Check if fileName exists
     if not os.path.isfile(fileName):

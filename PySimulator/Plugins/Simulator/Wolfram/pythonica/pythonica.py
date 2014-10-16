@@ -1,5 +1,6 @@
 import mathlink as _ml
 import time as _time
+import sys
 
 __author__="""\n""".join(['Benjamin Edwards (bedwards@cs.unm.edu)'])
 
@@ -212,7 +213,7 @@ class Pythonica(object):
 
 
     def __init__(self,
-                 name='math -mathlink',
+                 path,
                  mode='launch',
                  timeout=1,
                  debug=False,
@@ -221,13 +222,10 @@ class Pythonica(object):
                  plot_format='png',
                  output_prompt=False,
                  input_prompt=False):
-        import sys
         self._env = _ml.env()
-        self.mathematicaversion = "10.0"
-        sys.argv.extend(['-linkname', "C:\\Program Files\\Wolfram Research\\Mathematica\\" + self.mathematicaversion + "\\Math.exe -mathlink"])
-
+        mathLinkPath = path.encode('latin1')
+        sys.argv.extend(['-linkname', "" + mathLinkPath +"  -mathlink"])
         self.kernel = self._env.openargv(sys.argv)
-       # print type(self.kernel)
         self.kernel.connect()
         self.debug=debug
         self.plot_dir = plot_dir
