@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 '''
 Copyright (C) 2011-2014
 Open Source Modelica Consortium
@@ -22,7 +25,7 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 import Plugins.Simulator.SimulatorBase
 import os, sys, shutil
 from PySide import QtGui
-import pythonica
+from pythonica import pythonica
 
 
 iconImage = 'simulatorWolfram.ico'
