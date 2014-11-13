@@ -10,6 +10,3 @@ Quick Install
       "python setup.py install". This will add mathlink to the python 3rd party libraries.
 3.  Install Wolfram SystemModeler 4.0
 4.  Configure a link between SystemModeler and Mathematica (Skip this step if you have already done it in step 3). In SystemModeler go to Tools->Options->Global->Mathematica and specify the Mathematica installation directory.
-5.  Install Pythonica
-      Pythonica is located in PySimulator/PySimulator/Plugins/Simulator/Wolfram/pythonica
-      "python setup.py install". This will add Pythonica to the python 3rd party libraries.
