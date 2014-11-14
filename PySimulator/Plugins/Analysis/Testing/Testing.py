@@ -38,47 +38,32 @@ import Plugins.SimulationResult as SimulationResult
 
 
 def compareResults(filewritehtml,resultfile,htmlfile,model1, model2, tol=1e-3, fileOutput=sys.stdout):
-    print "A1" 
     def prepareMatrix(t, y):
-        print "A2" 
         if t is None or y is None:
             print "Not supported to prepare None-vector/matrix."
             return None, None
-        print "A3" 
 
         if len(t) <> y.shape[0]:
-            print "A4" 
             print "prepareMatrix: Length of time vector and number of rows of y have to be identical."
             return None, None
-        print "A5" 
         yNew = numpy.ndarray((y.shape[0] * 2, y.shape[1]))
-        print "A6"
-        print yNew
         tNew = numpy.ndarray((t.shape[0] * 2,))
         yNew[0, :] = y[0, :]
         tNew[0] = t[0]
-        print "A7" 
         for i in xrange(y.shape[0] - 1):
-            print "A8" 
             yNew[2 * i + 1, :] = y[i, :]
             yNew[2 * i + 2, :] = y[i + 1, :]
             tNew[2 * i + 1] = t[i + 1]
             tNew[2 * i + 2] = t[i + 1]
-        print "A9"     
         yNew[-1, :] = y[-1, :]
         tNew[-1] = t[-1] + 1
         return tNew, yNew
-    print "A10" 
     var1 = model1.integrationResults.getVariables()
     var1Name = var1.keys()
     var2 = model2.integrationResults.getVariables()
     var2Name = var2.keys()
 
-    print "A11"
-    print var1Name
-    print var2Name
     print "Start of comparing results ..."
-    print "A12" 
 
     allIdentical = True
     maxEstTol = 0.0
@@ -86,130 +71,89 @@ def compareResults(filewritehtml,resultfile,htmlfile,model1, model2, tol=1e-3, f
     allNamesBoth = set(var1Name) & set(var2Name)
     allNamesOnce1 = set(var1Name) - set(var2Name)
     allNamesOnce2 = set(var2Name) - set(var1Name)
-    print 'A13'
-    print allNamesBoth  
-    print allNamesOnce1  
-    print allNamesOnce2  
 
     nPos = 0
     nNeg = 0
-    print "A14" 
 
     pMatrix2 = [None] * model2.integrationResults.nTimeSeries
-    print "A15" 
     timeSeries1Names = []
-    print "A16"
     timeSeries2Names = []
-    print "A17" 
-    print timeSeries2Names
+    
     for i in xrange(model1.integrationResults.nTimeSeries):
-        print "A18" 
         timeSeries1Names.append([])
-    print "A19" 
     
     for i in xrange(model2.integrationResults.nTimeSeries):
-        print "A20" 
         timeSeries2Names.append([])
 
-    print "A21" 
 
     for name in allNamesBoth:
-        print "A22" 
-        print name 
         timeSeries1Names[var1[name].seriesIndex].append(name)
         timeSeries2Names[var2[name].seriesIndex].append(name)
-        print "A23" 
     
 
     for i in xrange(model1.integrationResults.nTimeSeries):
-        print "A24" 
         if len(timeSeries1Names[i]) > 0:
-            print "A25" 
             t1 = model1.integrationResults.timeSeries[i].independentVariable
             f1 = model1.integrationResults.timeSeries[i].data
 
-            print "A26" 
             numpy.set_printoptions(threshold='nan')
             if model1.integrationResults.timeSeries[i].interpolationMethod == "constant" and t1 is not None:
-                print "A27" 
                 t1, f1 = prepareMatrix(t1, f1)
-            print "A28"   
             for j in xrange(model2.integrationResults.nTimeSeries):
-                print "A29" 
                 if len(timeSeries2Names[j]) > 0:
-                    print "A30" 
                     check1= set(timeSeries1Names[i])
                     check2= set(timeSeries2Names[j])
                     namesBothSub = list(set(timeSeries1Names[i]) & set(timeSeries2Names[j]))
-                    print "A31"
-                    print namesBothSub
-                    print type(namesBothSub)
-                    print len(namesBothSub)
+    
                     # These variable names are considered in the following:
                     if len(namesBothSub) > 0:
-                        print "A32"
                         k = 0
                         i1 = numpy.ones((len(namesBothSub),), dtype=int) * (-1)
                         i2 = numpy.ones((len(namesBothSub),), dtype=int) * (-1)
                         s1 = numpy.ones((len(namesBothSub),), dtype=int)
                         s2 = numpy.ones((len(namesBothSub),), dtype=int)
-                        print "A32a"
                         
                         for variableName in namesBothSub:
-                            print "A33"
-                            print variableName                           
                             i1[k] = var1[variableName].column
                             i2[k] = var2[variableName].column
                             s1[k] = var1[variableName].sign
                             s2[k] = var2[variableName].sign
                             k = k + 1
-                        print "A34"
                                           
                         t2 = model2.integrationResults.timeSeries[j].independentVariable
                         f2 = model2.integrationResults.timeSeries[i].data
-                        print "A35"
+                        
                         if model2.integrationResults.timeSeries[j].interpolationMethod == "constant" and t2 is not None:
-                            print "A36"
                             if pMatrix2[j] is None:
-                                print "A37"
                                 t2, f2 = prepareMatrix(t2, f2)
                                 pMatrix2[j] = (t2, f2)
-                                print "A38"
                             else:
-                                print "A39"
                                 t2 = pMatrix2[j][0]
                                 f2 = pMatrix2[j][1]
-                                print "A40"
-                        print "A41"
                         result = [var for var in namesBothSub if 'Time' in var] 
-        
-                        '''if (result==['Time']):
-                            generatehtml(f1,f2,namesBothSub,i1,i2,htmlfile,resultfile)'''
-                            
+                        
                         identical, estTol, error = Compare.Compare(t1, f1, i1, s1, t2, f2, i2, s2, tol)
-                        print "A42"
                                   
                         if error:
                             message = u"Error during comparison of results."
                             fileOutput.write(message + u"\n")
                             return
-                        print "A43"
                     
                         maxEstTol = max(maxEstTol, estTol.max())
-                        print "A44"
  
                         allIdentical = allIdentical and all(identical)
                         s = sum(identical)
                         nNeg = nNeg + (len(identical) - s)
                         nPos = nPos + s
-                        print "A45"
+                        '''Get the differed variables after comparison'''
                         diff=[]               
                         for m in xrange(len(identical)):
                             if not identical[m]:
                                 message = u"Results for " + namesBothSub[m] + u" are NOT identical within the tolerance " + unicode(tol) + u"; estimated Tolerance = " + unicode(estTol[m])
                                 diff.append(namesBothSub[m])
                                 fileOutput.write(message + u"\n")
-                                
+                        
+                        '''Pass the numpy matrix data to generate the html graph in the browser'''        
                         if (len(diff)!=0):
                            l2=[]
                            l1=[]
@@ -263,7 +207,8 @@ def counter(func):
 
 @counter    
 def htmloverview(fileouthtml,resultfile,file,diff):
-    print "overview"
+    '''This function is used to present the users with the overall comparison report of different models, The report includes, for each model the number of variables 
+       differed, and a link is provided to inspect the differed variables, if there are no differed variables then no link is provided '''
     os.getcwd()
     modelname=os.path.basename(file).replace('.mat',' ')
     x=runCompareResultsInDirectories.count       
@@ -327,7 +272,7 @@ def checkrows(model):
     
     
 def generatehtml(model1,model2,namesBoth,col1var,col2var,htmlfile,resultfile):
-    print "inside html"
+    '''This function is used to fetch the array of data from mat files and create the html graph for the differed variables which can be viewed in browser'''
     #get the modelname of the file                   
     report=os.path.basename(str(htmlfile)).replace('.mat',' ')
     x=runCompareResultsInDirectories.count       
@@ -746,14 +691,8 @@ class simulationThread(QtCore.QThread):
                                 globalPackageList.append(x)
 
                     packageName = []
-            print "Simulation list testing"
-            print globalModelList
-            print globalPackageList
             simulator.prepareSimulationList(globalPackageList, globalModelList, self.config)
-            print "S1"
-
             haveCOM = False
-            print "S2"
 
             try:
                 try:
@@ -762,18 +701,13 @@ class simulationThread(QtCore.QThread):
                     haveCOM = True
                 except:
                     pass
-                print "S3"
                 for i in xrange(len(self.modelList['fileName'])):
-                    print "S4"
                     if self.stopRequest:
                         print "... Simulations canceled."
                         self.running = False
                         return
-                    print "S5"
                     modelName = self.modelList['modelName'][i]
-                    print "S6"
                     packageName.append(self.modelList['fileName'][i])
-                    print "S7"
                     if modelName != '':
                         canLoadAllPackages = True
                         for j in xrange(len(packageName)):
@@ -795,7 +729,6 @@ class simulationThread(QtCore.QThread):
 
                                 Also guard against compilation failures when loading the model
                                 '''
-                                print "S8"
                                 model = simulator.Model(modelName, packageName, self.config)
 
                                 resultFileName = fullSimulatorResultPath + '/' + modelName + '.' + model.integrationSettings.resultFileExtension
@@ -806,10 +739,8 @@ class simulationThread(QtCore.QThread):
                                 model.integrationSettings.gridPointsMode = 'NumberOf'
                                 model.integrationSettings.resultFileIncludeEvents = self.modelList['includeEvents'][i]
                                 model.integrationSettings.resultFileName = resultFileName
-                                print "S9"
                                 print "Simulating %s by %s (result in %s)..." % (modelName,simulatorName,resultFileName)
                                 model.simulate()
-                                print "S10"
 
                             except Plugins.Simulator.SimulatorBase.Stopping:
                                 print("Solver cancelled ... ")
@@ -857,12 +788,8 @@ class CompareThread(QtCore.QThread):
         super(CompareThread, self).__init__(parent)
         
     def run(self):
-        print "running"
-        print self.running
         self.running = True
-
         encoding = sys.getfilesystemencoding()
-
         dir1 = self.dir1
         dir2 = self.dir2
         files1 = os.listdir(dir1)
@@ -884,20 +811,14 @@ class CompareThread(QtCore.QThread):
             if len(splits) > 1:
                 if splits[1] in SimulationResult.fileExtension:
                     modelName2.append(splits[0])
-                    fileName2.append(fileName)
-        print 'arun'
-        print dir1
-        print dir2
-        
+                    fileName2.append(fileName) 
+                    
+        '''create a html result file '''
         filename,fileExtension = os.path.splitext(self.logFile)
         logfile1=self.logFile.replace(fileExtension,'.html')
-        print logfile1        
-        print fileName1
-        print fileName2
-        print self.logFile
+       
         x=runCompareResultsInDirectories.count       
-        
-         
+                
         fileOut = open(self.logFile, 'w')       
         fileOuthtml= open(logfile1,'w')
            
@@ -905,10 +826,7 @@ class CompareThread(QtCore.QThread):
         fileOut.write('  directory 1 (reference) : ' + dir1.encode(encoding) + '\n')
         fileOut.write('  directory 2 (comparison): ' + dir2.encode(encoding) + '\n')
 
-        for index, name in enumerate(modelName1):
-            print 'B1'
-            print modelName1.index(name)
-            
+        for index, name in enumerate(modelName1):            
             if self.stopRequest:
                 fileOut.write("Analysis canceled.")
                 fileOut.close()
@@ -942,6 +860,7 @@ class CompareThread(QtCore.QThread):
                 
         fileOut.close()
         fileOuthtml.close()
+        '''open the html file to check the html tags are correctly closed for proper display of table'''
         with open(logfile1) as myfile:
            data=myfile.read()
            m1="<table><tr><th>Model</th><th>"+os.path.basename(os.path.dirname(file2))+'</th>'+'</tr>'
@@ -1003,7 +922,7 @@ def selectcolor(datalist):
     return color
     
 def genregressionreport():
-
+    ''' the function is used to parse the html files and collect the table datas from different html files and finally generate single regression chart'''
     try:
       l1=[]
       dir1='&nbsp'
