@@ -178,15 +178,11 @@ class FMUInterface:
         '''
         self._binaryName = self._assembleBinaryName(self.description.modelIdentifier)
         self._tmpfile = tempfile.NamedTemporaryFile(suffix='.dll' if platform.system() == 'Windows' else '.so', delete=False)
-        print 'temp'
-        print self._tmpfile
         try:
             binFile = self._file.read(self._binaryName)
         except BaseException as e:
             raise FMUError.FMUError("Error when reading binary file from FMU.\n" + str(e) + '\n')
         self._tmpfile.file.write(binFile)
-        self._tmpfile.file.close()
-        print 'temp1'
         self._tmpfile.file.close()
 
 
@@ -198,18 +194,13 @@ class FMUInterface:
         ''' mapping of memory management functions for FMU to operating system functions, depending on OS.
             For Linux it refers to the std-C library - this should always be present
         '''
-        print 'L1'
         if platform.system() == 'Linux':
             c_lib = ctypes.cdll.LoadLibrary('libc.so.6')
         elif platform.system() == 'Windows':
-            print 'L2'
             c_lib = ctypes.CDLL(find_library('c'))
-            print 'L3'
         else:
             raise FMUError.FMUError('Unknown platform: %s\n' % platform.system())
-        print 'L4'
         c_lib.calloc.restype = ctypes.c_void_p
-        print 'L5'
         c_lib.calloc.argtypes = [ctypes.c_size_t,ctypes.c_size_t]
         c_lib.free.restype = None
         c_lib.free.argtypes = [ctypes.c_void_p]
@@ -217,20 +208,14 @@ class FMUInterface:
                                  logger=Logger(_Logger),
                                  allocateMemory=AllocateMemory(c_lib.calloc),
                                  freeMemory=FreeMemory(c_lib.free))
-        print 'L6'
+
         ''' Load instance of library into memory '''
         try:
-            print 'L7'
-            print self._tmpfile.name
-            import os           
-            os.chdir(os.path.dirname(self._tmpfile.name))
             self._libraryHandle = ctypes.cdll.LoadLibrary(self._tmpfile.name)._handle
-            print 'L8'
             self._library = ctypes.CDLL(self._tmpfile.name, handle=self._libraryHandle)
-            print 'L9'
         except BaseException as e:
             raise FMUError.FMUError('Error when loading binary from FMU.\n' + str(e) + '\n')
-            print e
+
 
 
 
