@@ -162,8 +162,7 @@ def compareResults(filewritehtml,resultfile,htmlfile,model1, model2, tol=1e-3, f
                               c2 = var2[z].column
                               l1.append(c1)
                               l2.append(c2)
-                           if (result==['Time']):
-                              generatehtml(f1,f2,diff,l1,l2,htmlfile,resultfile)
+                           generatehtml(f1,f2,diff,l1,l2,htmlfile,resultfile)
                                       
 #    if len(allNamesOnce1) > 0:
 #        print "The following variables are not contained in file " + model2.integrationResults.fileName + ":"
@@ -192,7 +191,7 @@ def compareResults(filewritehtml,resultfile,htmlfile,model1, model2, tol=1e-3, f
     fileOutput.write(message + u"\n")
 
     print "... done."
-    
+    ''' Function call to generate the overview report'''
     htmloverview(filewritehtml,resultfile,htmlfile,diff)
 
     return
@@ -205,7 +204,7 @@ def counter(func):
     tmp.count = 0
     return tmp   
 
-@counter    
+
 def htmloverview(fileouthtml,resultfile,file,diff):
     '''This function is used to present the users with the overall comparison report of different models, The report includes, for each model the number of variables 
        differed, and a link is provided to inspect the differed variables, if there are no differed variables then no link is provided '''
@@ -217,21 +216,14 @@ def htmloverview(fileouthtml,resultfile,file,diff):
     os.chdir(p)
     filename=os.path.join(p,modelname1.replace(' ',''))
     fileerror=os.path.join(filename,'err.html').replace('\\','/')
-    r=htmloverview.count
     messerr="""<html>
 <head> Differed variables </head>
 <li>"""     
-    m1="<table><tr><th>Model</th><th>"+os.path.basename(os.path.dirname(file))+'</th>'+'</tr>'
-
-    message='\n'.join(['<html>',m1,'<tr>','<td>'])
-
+    
     message1= '<a href=' + os.path.relpath(resultfile) + '>' + modelname + '</a>' +' </td>' 
     if(len(diff)==0):
          emptyhref='<a href="" style="text-decoration:none;">0</a>'
-         if(r==1):
-            s = '\n'.join([message,message1,'<td bgcolor=#00FF00>',emptyhref,'</td>','</tr>'])
-         else:
-            s = '\n'.join(['<tr>','<td>',message1,'<td bgcolor=#00FF00>',emptyhref,'</td>','</tr>']) 
+         s = '\n'.join(['<tr>','<td>',message1,'<td bgcolor=#00FF00>',emptyhref,'</td>','</tr>']) 
          fileouthtml.write(s)
          fileouthtml.write('\n')   
     
@@ -252,17 +244,13 @@ def htmloverview(fileouthtml,resultfile,file,diff):
          f.close()
          
          diff = '<a href='+ os.path.relpath(fileerror) +'>'+str(len(diff))+'</a>'+'</td>'+'</tr>'      
-         if(r==1):                 
-              s = '\n'.join([message,message1,'<td bgcolor=#FF0000>',diff])
-         else:
-              s = '\n'.join(['<tr>','<td>',message1,'<td bgcolor=#FF0000>',diff])
-              
+         s = '\n'.join(['<tr>','<td>',message1,'<td bgcolor=#FF0000>',diff])            
          fileouthtml.write(s)
          fileouthtml.write('\n')
    
     
 def checkrows(model):
-   ''' This function used to delete duplicate rows in a numpy array to do np.concatenate'''
+   ''' This function used to delete duplicate rows in a numpy array'''
    column1=model[:,0]
    indices = numpy.setdiff1d(numpy.arange(len(column1)), numpy.unique(column1, return_index=True)[1])
    if len(indices>0):
@@ -860,19 +848,17 @@ class CompareThread(QtCore.QThread):
                 
         fileOut.close()
         fileOuthtml.close()
-        '''open the html file to check the html tags are correctly closed for proper display of table'''
+        '''open the html file to check the html tags are correctly closed for proper display of table and add headers'''
         with open(logfile1) as myfile:
            data=myfile.read()
+           header='''<body><h1>Comparison Report </h1>
+<p><font style="background-color:#00FF00">Green</font> cells means success. <font style="background-color:#FF0000">Red</font> cells represents number of variables differed .</p>
+</body>'''          
            m1="<table><tr><th>Model</th><th>"+os.path.basename(os.path.dirname(file2))+'</th>'+'</tr>'
-           message='\n'.join(['<html>',m1])
-           first_line = data.split('\n', 1)[0]
+           message='\n'.join(['<html>',header,m1])
            f=open(logfile1,'w')
-           if (first_line !='<html>'):
-               s = '\n'.join([message,data,'</table>','</html>']) 
-               f.write(s)             
-           else:
-               s = '\n'.join([data,'</table>','</html>']) 
-               f.write(s)
+           s = '\n'.join([message,data,'</table>','</html>']) 
+           f.write(s)                    
            f.close() 
        
         ''' Save the data to prepare regression report, total number of directories that can be compared is 6'''
