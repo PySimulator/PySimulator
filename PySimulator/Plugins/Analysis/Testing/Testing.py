@@ -29,14 +29,15 @@ import numpy
 import os
 import sys
 import shutil
+from bs4 import BeautifulSoup
+import webbrowser
 from PySide import QtGui, QtCore
 import Plugins.Simulator
 import Plugins.Simulator.SimulatorBase as SimulatorBase
 import Plugins.SimulationResult as SimulationResult
 
 
-def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout):
-
+def compareResults(filewritehtml,resultfile,htmlfile,model1, model2, tol=1e-3, fileOutput=sys.stdout):
     def prepareMatrix(t, y):
         if t is None or y is None:
             print "Not supported to prepare None-vector/matrix."
@@ -45,10 +46,8 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout):
         if len(t) <> y.shape[0]:
             print "prepareMatrix: Length of time vector and number of rows of y have to be identical."
             return None, None
-
         yNew = numpy.ndarray((y.shape[0] * 2, y.shape[1]))
         tNew = numpy.ndarray((t.shape[0] * 2,))
-
         yNew[0, :] = y[0, :]
         tNew[0] = t[0]
         for i in xrange(y.shape[0] - 1):
@@ -59,14 +58,10 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout):
         yNew[-1, :] = y[-1, :]
         tNew[-1] = t[-1] + 1
         return tNew, yNew
-
-
-
     var1 = model1.integrationResults.getVariables()
     var1Name = var1.keys()
     var2 = model2.integrationResults.getVariables()
     var2Name = var2.keys()
-
 
     print "Start of comparing results ..."
 
@@ -81,28 +76,35 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout):
     nNeg = 0
 
     pMatrix2 = [None] * model2.integrationResults.nTimeSeries
-
     timeSeries1Names = []
     timeSeries2Names = []
+    
     for i in xrange(model1.integrationResults.nTimeSeries):
         timeSeries1Names.append([])
+    
     for i in xrange(model2.integrationResults.nTimeSeries):
         timeSeries2Names.append([])
+
 
     for name in allNamesBoth:
         timeSeries1Names[var1[name].seriesIndex].append(name)
         timeSeries2Names[var2[name].seriesIndex].append(name)
+    
 
     for i in xrange(model1.integrationResults.nTimeSeries):
         if len(timeSeries1Names[i]) > 0:
             t1 = model1.integrationResults.timeSeries[i].independentVariable
             f1 = model1.integrationResults.timeSeries[i].data
+
+            numpy.set_printoptions(threshold='nan')
             if model1.integrationResults.timeSeries[i].interpolationMethod == "constant" and t1 is not None:
                 t1, f1 = prepareMatrix(t1, f1)
-
             for j in xrange(model2.integrationResults.nTimeSeries):
                 if len(timeSeries2Names[j]) > 0:
+                    check1= set(timeSeries1Names[i])
+                    check2= set(timeSeries2Names[j])
                     namesBothSub = list(set(timeSeries1Names[i]) & set(timeSeries2Names[j]))
+    
                     # These variable names are considered in the following:
                     if len(namesBothSub) > 0:
                         k = 0
@@ -110,15 +112,17 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout):
                         i2 = numpy.ones((len(namesBothSub),), dtype=int) * (-1)
                         s1 = numpy.ones((len(namesBothSub),), dtype=int)
                         s2 = numpy.ones((len(namesBothSub),), dtype=int)
+                        
                         for variableName in namesBothSub:
                             i1[k] = var1[variableName].column
                             i2[k] = var2[variableName].column
                             s1[k] = var1[variableName].sign
                             s2[k] = var2[variableName].sign
                             k = k + 1
-
+                                          
                         t2 = model2.integrationResults.timeSeries[j].independentVariable
-                        f2 = model2.integrationResults.timeSeries[j].data
+                        f2 = model2.integrationResults.timeSeries[i].data
+                        
                         if model2.integrationResults.timeSeries[j].interpolationMethod == "constant" and t2 is not None:
                             if pMatrix2[j] is None:
                                 t2, f2 = prepareMatrix(t2, f2)
@@ -126,26 +130,40 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout):
                             else:
                                 t2 = pMatrix2[j][0]
                                 f2 = pMatrix2[j][1]
-
+                        result = [var for var in namesBothSub if 'Time' in var] 
+                        
                         identical, estTol, error = Compare.Compare(t1, f1, i1, s1, t2, f2, i2, s2, tol)
+                                  
                         if error:
                             message = u"Error during comparison of results."
                             fileOutput.write(message + u"\n")
                             return
-                                          
+                    
                         maxEstTol = max(maxEstTol, estTol.max())
+ 
                         allIdentical = allIdentical and all(identical)
                         s = sum(identical)
                         nNeg = nNeg + (len(identical) - s)
                         nPos = nPos + s
-
+                        '''Get the differed variables after comparison'''
+                        diff=[]               
                         for m in xrange(len(identical)):
                             if not identical[m]:
                                 message = u"Results for " + namesBothSub[m] + u" are NOT identical within the tolerance " + unicode(tol) + u"; estimated Tolerance = " + unicode(estTol[m])
+                                diff.append(namesBothSub[m])
                                 fileOutput.write(message + u"\n")
-
-
-
+                        
+                        '''Pass the numpy matrix data to generate the html graph in the browser'''        
+                        if (len(diff)!=0):
+                           l2=[]
+                           l1=[]
+                           for z in diff:
+                              c1 = var1[z].column
+                              c2 = var2[z].column
+                              l1.append(c1)
+                              l2.append(c2)
+                           generatehtml(f1,f2,diff,l1,l2,htmlfile,resultfile)
+                                      
 #    if len(allNamesOnce1) > 0:
 #        print "The following variables are not contained in file " + model2.integrationResults.fileName + ":"
 #    for variableName in allNamesOnce1:
@@ -173,9 +191,146 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout):
     fileOutput.write(message + u"\n")
 
     print "... done."
+    ''' Function call to generate the overview report'''
+    htmloverview(filewritehtml,resultfile,htmlfile,diff)
 
     return
 
+
+def counter(func):
+    def tmp(*args, **kwargs):
+        tmp.count += 1
+        return func(*args, **kwargs)
+    tmp.count = 0
+    return tmp   
+
+
+def htmloverview(fileouthtml,resultfile,file,diff):
+    '''This function is used to present the users with the overall comparison report of different models, The report includes, for each model the number of variables 
+       differed, and a link is provided to inspect the differed variables, if there are no differed variables then no link is provided '''
+    os.getcwd()
+    modelname=os.path.basename(file).replace('.mat',' ')
+    x=runCompareResultsInDirectories.count       
+    modelname1=modelname+'res'+str(x)
+    p=os.path.dirname(resultfile)
+    os.chdir(p)
+    filename=os.path.join(p,modelname1.replace(' ',''))
+    fileerror=os.path.join(filename,'err.html').replace('\\','/')
+    messerr="""<html>
+<head> Differed variables </head>
+<li>"""     
+    
+    message1= '<a href=' + os.path.relpath(resultfile) + '>' + modelname + '</a>' +' </td>' 
+    if(len(diff)==0):
+         emptyhref='<a href="" style="text-decoration:none;">0</a>'
+         s = '\n'.join(['<tr>','<td>',message1,'<td bgcolor=#00FF00>',emptyhref,'</td>','</tr>']) 
+         fileouthtml.write(s)
+         fileouthtml.write('\n')   
+    
+    if(len(diff)>0): 
+         f=open(fileerror,'w')   
+         for z in xrange(len(diff)):
+             str1=''.join([modelname+'_'+diff[z]+'.html'])
+             x= '<a href='+str1.replace(' ','')+'>'+ diff[z]+ '</a>'+'</li>'
+             if(diff[z]==diff[-1]):
+                  x= '<a href='+str1.replace(' ','')+'>'+ diff[z]+ '</a>' +'</li>'+'</html>'      
+             if(z==0):
+               s = '\n'.join([messerr,x])
+             else:         
+               s = '\n'.join(['<li>',x])
+                
+             f.write(s)
+             f.write('\n')
+         f.close()
+         
+         diff = '<a href='+ os.path.relpath(fileerror) +'>'+str(len(diff))+'</a>'+'</td>'+'</tr>'      
+         s = '\n'.join(['<tr>','<td>',message1,'<td bgcolor=#FF0000>',diff])            
+         fileouthtml.write(s)
+         fileouthtml.write('\n')
+   
+    
+def checkrows(model):
+   ''' This function used to delete duplicate rows in a numpy array'''
+   column1=model[:,0]
+   indices = numpy.setdiff1d(numpy.arange(len(column1)), numpy.unique(column1, return_index=True)[1])
+   if len(indices>0):
+      '''axis=0 represent the rows to be deleted from the obtained index '''
+      model= numpy.delete(model, indices, axis=0)
+   return model
+    
+    
+def generatehtml(model1,model2,namesBoth,col1var,col2var,htmlfile,resultfile):
+    '''This function is used to fetch the array of data from mat files and create the html graph for the differed variables which can be viewed in browser'''
+    #get the modelname of the file                   
+    report=os.path.basename(str(htmlfile)).replace('.mat',' ')
+    x=runCompareResultsInDirectories.count       
+    err=report+'res'+str(x)
+    report1='\''+report+'\''
+    #create a new directory for the result_files which differ
+    path=os.path.dirname(os.path.abspath(str(resultfile)))
+    newpath=os.path.join(path,err.replace(' ',''))
+    if not os.path.exists(newpath): 
+        os.mkdir(newpath)
+                
+        
+    model1=checkrows(model1)
+    model2=checkrows(model2)
+    i = numpy.intersect1d(model1[:,0], model2[:,0])   
+    
+    # Get the appropriate datas from model1 and model2 for the variables and create a new array which will be written in the javascript part of html file   
+    for z in range(len(namesBoth)):
+        name=namesBoth[z]
+        var1=col1var[z]
+        var2=col2var[z]
+        if (name != 'Time'):
+             try:
+                # for each variable get the appropriate column datas from model1 and model2 
+               fast_c = numpy.vstack([i, model1[numpy.in1d(model1[:,0], i), var1], model2[numpy.in1d(model2[:,0], i), var2]]).T
+               dygraph_array= repr(fast_c).replace('array',' ').replace('(' ,' ').replace(')' ,' ')
+               htmlreport=newpath+'\\'+report+'_'+name+'.html'     
+               htmlreport=htmlreport.replace(' ','').replace('\\','/')
+               with open(htmlreport, 'wb') as f:
+                message = """<html>
+<head>
+<script type="text/javascript" src="http://dygraphs.com/1.0.1/dygraph-combined.js"></script>
+<style type="text/css">
+    #graphdiv {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      top: 40px;
+      bottom: 10px;
+    }
+    </style>
+</head>
+<body>
+<div id="graphdiv"></div>
+<p><input type=checkbox id="0" checked onClick="change(this)">
+<label for="0">reference</label>
+<input type=checkbox id="1" checked onClick="change(this)">
+<label for="1">actual</label>
+,  Parameters used for the comparison: Relative tolerance 1e-3 </p>
+<script type="text/javascript">
+g = new Dygraph(document.getElementById("graphdiv"),"""
+              
+                varname='title:'+'\''+name+'\''+','
+                option="""xlabel: ['time'],
+labels: ['time','reference','actual'],
+visibility:[true,true,true]
+}"""
+                message2="""function change(el) {
+g.setVisibility(parseInt(el.id), el.checked);
+}
+</script>
+</body>
+</html>"""
+
+                s = '\n'.join([message,str(dygraph_array),",","{",varname,option,")",";",message2])
+                f.write(s)
+                f.close()
+             except IndexError:
+                pass
+                
 def simulateListMenu(model, gui):
 
     class SimulateListControl(QtGui.QDialog):
@@ -225,7 +380,6 @@ def simulateListMenu(model, gui):
             self.closeButton = QtGui.QPushButton("Close", self)
             mainGrid.addWidget(self.closeButton, 7, 2)
             self.closeButton.clicked.connect(self._close_)
-
 
             def _browseSetupFileDo():
                 (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open Simulation Setup File', os.getcwd(), '(*.txt);;All Files(*.*)')
@@ -307,6 +461,7 @@ def compareListMenu(model, gui):
             self.dir2Edit = QtGui.QLineEdit("", self)
             mainGrid.addWidget(self.dir2Edit, 1, 1)
 
+            
             tol = QtGui.QLabel("Error tolerance:", self)
             mainGrid.addWidget(tol, 2, 0, QtCore.Qt.AlignRight)
             self.tolEdit = QtGui.QLineEdit("", self)
@@ -328,7 +483,10 @@ def compareListMenu(model, gui):
             self.closeButton = QtGui.QPushButton("Close", self)
             mainGrid.addWidget(self.closeButton, 7, 2)
             self.closeButton.clicked.connect(self._close_)
-
+            
+            self.RegressionButton = QtGui.QPushButton("Regression Chart", self)
+            mainGrid.addWidget(self.RegressionButton, 8, 1)
+            self.RegressionButton.clicked.connect(self.regressionreport)
 
             def _browseDir1Do():
                 dirName = QtGui.QFileDialog().getExistingDirectory(self, 'Open Directory of Results', os.getcwd())
@@ -370,21 +528,23 @@ def compareListMenu(model, gui):
             dir2 = self.dir2Edit.text()
             logFile = self.resultEdit.text()
             tol = float(self.tolEdit.text())
-
+             
             # Run the analysis
             gui._compareThreadTesting = runCompareResultsInDirectories(gui.rootDir, dir1, dir2, tol, logFile)
-
+            
         def stop(self):
             if hasattr(gui, '_compareThreadTesting'):
                 if gui._compareThreadTesting.running:
                     gui._compareThreadTesting.stopRequest = True
                     print "Try to cancel comparing results files ..."
-
+       
+        def regressionreport(self):
+            genregressionreport()
 
     # Code of function
     control = CompareListControl()
     control.show()
-
+    
 
 
 def getModelCallbacks():
@@ -520,9 +680,8 @@ class simulationThread(QtCore.QThread):
 
                     packageName = []
             simulator.prepareSimulationList(globalPackageList, globalModelList, self.config)
-
-
             haveCOM = False
+
             try:
                 try:
                     import pythoncom
@@ -535,10 +694,8 @@ class simulationThread(QtCore.QThread):
                         print "... Simulations canceled."
                         self.running = False
                         return
-
                     modelName = self.modelList['modelName'][i]
                     packageName.append(self.modelList['fileName'][i])
-
                     if modelName != '':
                         canLoadAllPackages = True
                         for j in xrange(len(packageName)):
@@ -570,7 +727,6 @@ class simulationThread(QtCore.QThread):
                                 model.integrationSettings.gridPointsMode = 'NumberOf'
                                 model.integrationSettings.resultFileIncludeEvents = self.modelList['includeEvents'][i]
                                 model.integrationSettings.resultFileName = resultFileName
-
                                 print "Simulating %s by %s (result in %s)..." % (modelName,simulatorName,resultFileName)
                                 model.simulate()
 
@@ -597,8 +753,8 @@ class simulationThread(QtCore.QThread):
 
         print "... running the list of simulations done."
         self.running = False
-
-
+        
+@counter        
 def runCompareResultsInDirectories(PySimulatorPath, dir1, dir2, tol, logFile):
 
     print "Start comparing results ..."
@@ -611,28 +767,22 @@ def runCompareResultsInDirectories(PySimulatorPath, dir1, dir2, tol, logFile):
     compare.stopRequest = False
     compare.running = False
     compare.start()
-
     return compare
-
-
-
-
+   
 
 class CompareThread(QtCore.QThread):
     ''' Class for the simulation thread '''
     def __init__(self, parent):
         super(CompareThread, self).__init__(parent)
-
+        
     def run(self):
         self.running = True
-
         encoding = sys.getfilesystemencoding()
-
         dir1 = self.dir1
         dir2 = self.dir2
         files1 = os.listdir(dir1)
         files2 = os.listdir(dir2)
-       
+        
         modelName1 = []
         fileName1 = []
         for fileName in files1:
@@ -649,19 +799,22 @@ class CompareThread(QtCore.QThread):
             if len(splits) > 1:
                 if splits[1] in SimulationResult.fileExtension:
                     modelName2.append(splits[0])
-                    fileName2.append(fileName)
-
-        print modelName1
-        print fileName1
-
-
-        fileOut = open(self.logFile, 'w')
+                    fileName2.append(fileName) 
+                    
+        '''create a html result file '''
+        filename,fileExtension = os.path.splitext(self.logFile)
+        logfile1=self.logFile.replace(fileExtension,'.html')
+       
+        x=runCompareResultsInDirectories.count       
+                
+        fileOut = open(self.logFile, 'w')       
+        fileOuthtml= open(logfile1,'w')
+           
         fileOut.write('Output file from comparison of list of simulation results within PySimulator\n')
         fileOut.write('  directory 1 (reference) : ' + dir1.encode(encoding) + '\n')
         fileOut.write('  directory 2 (comparison): ' + dir2.encode(encoding) + '\n')
 
-
-        for index, name in enumerate(modelName1):
+        for index, name in enumerate(modelName1):            
             if self.stopRequest:
                 fileOut.write("Analysis canceled.")
                 fileOut.close()
@@ -687,15 +840,201 @@ class CompareThread(QtCore.QThread):
 
                 file1 = dir1 + '/' + fileName1[index]
                 file2 = dir2 + '/' + fileName2[i]
-
                 model1 = SimulatorBase.Model(None, None, None, None)
                 model1.loadResultFile(file1)
                 model2 = SimulatorBase.Model(None, None, None, None)
                 model2.loadResultFile(file2)
-
-                compareResults(model1, model2, self.tol, fileOut)
-
+                compareResults(fileOuthtml,self.logFile,file2,model1, model2, self.tol, fileOut)
+                
         fileOut.close()
-
-        print "... running the analysis done."
+        fileOuthtml.close()
+        '''open the html file to check the html tags are correctly closed for proper display of table and add headers'''
+        with open(logfile1) as myfile:
+           data=myfile.read()
+           header='''<body><h1>Comparison Report </h1>
+<p><font style="background-color:#00FF00">Green</font> cells means success. <font style="background-color:#FF0000">Red</font> cells represents number of variables differed .</p>
+</body>'''          
+           m1="<table><tr><th>Model</th><th>"+os.path.basename(os.path.dirname(file2))+'</th>'+'</tr>'
+           message='\n'.join(['<html>',header,m1])
+           f=open(logfile1,'w')
+           s = '\n'.join([message,data,'</table>','</html>']) 
+           f.write(s)                    
+           f.close() 
+       
+        ''' Save the data to prepare regression report, total number of directories that can be compared is 6'''
+        if(x==1):
+           CompareThread.data1=readhtmlreport(logfile1)
+           CompareThread.dirname1=dir2
+           
+        if(x==2):   
+           CompareThread.data2=readhtmlreport(logfile1)
+           CompareThread.dirname2=dir2
+        
+        if(x==3):  
+           CompareThread.data3=readhtmlreport(logfile1)
+           CompareThread.dirname3=dir2
+        
+        if(x==4):  
+           CompareThread.data4=readhtmlreport(logfile1)
+           CompareThread.dirname4=dir2
+        
+        if(x==5):  
+           CompareThread.data5=readhtmlreport(logfile1)
+           CompareThread.dirname5=dir2
+        
+        if(x==6):  
+           CompareThread.data6=readhtmlreport(logfile1)
+           CompareThread.dirname6=dir2
+        
+        #print "... running the analysis done."
+        import ctypes 
+        ctypes.windll.user32.MessageBoxA(0, "running the analysis done", "Compare Analysis", 0)
+        
         self.running = False
+
+
+def readhtmlreport(file):
+     f=open(file,'r')
+     data=f.read()
+     f.close()
+     return data   
+
+def selectcolor(datalist):
+    d=datalist.string
+    if(d=='0'):
+      color="#00FF00"
+    else:
+      color="#FF0000"    
+    return color
+    
+def genregressionreport():
+    ''' the function is used to parse the html files and collect the table datas from different html files and finally generate single regression chart'''
+    try:
+      l1=[]
+      dir1='&nbsp'
+      d1=BeautifulSoup(CompareThread.data1)
+      l1=d1.find_all('a')
+      dir1=os.path.basename(CompareThread.dirname1)
+    except AttributeError:
+      pass
+    
+    try:
+      l2=[]
+      dir2='&nbsp'
+      d2=BeautifulSoup(CompareThread.data2)
+      l2=d2.find_all('a')
+      dir2=os.path.basename(CompareThread.dirname2)
+    except AttributeError:
+      pass
+    
+    try:
+      l3=[]
+      dir3='&nbsp'
+      d3=BeautifulSoup(CompareThread.data3)
+      l3=d3.find_all('a')
+      dir3=os.path.basename(CompareThread.dirname3)
+    except AttributeError:
+      pass
+     
+    try:
+      l4=[]
+      dir4='&nbsp'
+      d4=BeautifulSoup(CompareThread.data4)
+      l4=d4.find_all('a')
+      dir4=os.path.basename(CompareThread.dirname4)
+    except AttributeError:
+      pass
+   
+    try:
+      l5=[]
+      dir5='&nbsp'
+      d5=BeautifulSoup(CompareThread.data5)
+      l5=d5.find_all('a')
+      dir5=os.path.basename(CompareThread.dirname5)
+    except AttributeError:
+      pass
+    
+    try:
+      l6=[]
+      dir6='&nbsp'
+      d6=BeautifulSoup(CompareThread.data6)
+      l6=d6.find_all('a')
+      dir6=os.path.basename(CompareThread.dirname6)
+    except AttributeError:
+      pass
+        
+    if (len(l1)!=0):
+       f=open('regression.html','w')
+       for i in xrange(len(l1)):
+         try:        
+          if(i==0):   
+             m1='''<body><h1>Regression Report </h1>
+<p><font style="background-color:#00FF00">Green</font> cells means success. <font style="background-color:#FF0000">Red</font> cells represents number of variables differed .</p>
+</body>'''          
+             m2='<tr><th>Model</th>'+ '<th>' + dir1 + '</th>' + '<th>' + dir2 + '</th>'+ '<th>' + dir3 + '</th>'+ '<th>' + dir4 + '</th>'+ '<th>' + dir5 + '</th>'+ '<th>' + dir6 + '</th>'+'</tr>'
+            
+             s='\n'.join(['<html>',m1,'<table>',m2])      
+             f.write(s)
+             f.write('\n')     
+        
+          if(i%2==0):
+             h=l1[i].string
+             s='\n'.join(['<tr>','<td>',h,'</td>'])
+             f.write(s)
+             f.write('\n')
+       
+          if(i%2!=0):
+             if(len(l1)!=0):
+               color=selectcolor(l1[i])
+               tdcolor='<td bgcolor='+color+'>'
+               x1='\n'.join([tdcolor,str(l1[i]),'</td>'])
+             else:
+               x1='\n'.join(['<td>','&nbsp','</td>'])
+ 
+             if(len(l2)!=0):
+               color=selectcolor(l2[i])
+               tdcolor='<td bgcolor='+color+'>'
+               x2='\n'.join([tdcolor,str(l2[i]),'</td>'])
+             else:
+               x2='\n'.join(['<td>','&nbsp','</td>'])
+               
+             if(len(l3)!=0):
+               color=selectcolor(l3[i])
+               tdcolor='<td bgcolor='+color+'>'
+               x3='\n'.join([tdcolor,str(l3[i]),'</td>'])
+             else:
+               x3='\n'.join(['<td>','&nbsp','</td>'])
+               
+             if(len(l4)!=0):
+               color=selectcolor(l4[i])
+               tdcolor='<td bgcolor='+color+'>'
+               x4='\n'.join([tdcolor,str(l4[i]),'</td>'])
+             else:
+               x4='\n'.join(['<td>','&nbsp','</td>'])
+               
+             if(len(l5)!=0):
+               color=selectcolor(l5[i])
+               tdcolor='<td bgcolor='+color+'>'
+               x5='\n'.join([tdcolor,str(l5[i]),'</td>'])
+             else:
+               x5='\n'.join(['<td>','&nbsp','</td>'])
+               
+             if(len(l6)!=0):
+               color=selectcolor(l6[i])
+               tdcolor='<td bgcolor='+color+'>'
+               x6='\n'.join([tdcolor,str(l6[i]),'</td>'])
+             else:
+               x6='\n'.join(['<td>','&nbsp','</td>'])
+                          
+             s='\n'.join([x1,x2,x3,x4,x5,x6])
+                               
+             f.write(s)
+             f.write('\n')
+         except IndexError:
+             pass        
+       f.close()
+       print "Regression report generated"
+       webbrowser.open('regression.html')
+
+    else:
+       print "Regression report cannot be generated, Run the Compare Analysis First to get the report"
