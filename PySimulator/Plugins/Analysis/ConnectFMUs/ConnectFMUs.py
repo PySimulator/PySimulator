@@ -96,28 +96,45 @@ def ConnectFMUMenu(model, gui):
             mainGrid.addWidget(self.removeButtonconnect, 4, 2)
             self.removeButtonconnect.clicked.connect(self.connectremove)
             self.removeButtonconnect.hide()
+            
+            self.SaveFile = QtGui.QLabel("Save File", self)
+            mainGrid.addWidget(self.SaveFile, 5, 0, QtCore.Qt.AlignRight)
+            self.SaveFileEdit = QtGui.QLineEdit("", self)
+            mainGrid.addWidget(self.SaveFileEdit, 5, 1)
+            self.SaveFile.hide()
+            self.SaveFileEdit.hide()
+            
+            self.saveButton = QtGui.QPushButton("Select", self)
+            self.saveButton.setFixedSize(90,25)
+            mainGrid.addWidget(self.saveButton, 5, 2)
+            self.saveButton.hide()
  
             self.step1Button = QtGui.QPushButton("Previous", self)
             self.step1Button.setFixedSize(90,25)
-            mainGrid.addWidget(self.step1Button, 5, 1)
+            mainGrid.addWidget(self.step1Button, 6, 1)
             self.step1Button.clicked.connect(self.previous)
             self.step1Button.hide()  
             
             self.FinishButton = QtGui.QPushButton("Finish", self)
             self.FinishButton.setFixedSize(90,25)
-            mainGrid.addWidget(self.FinishButton, 5, 2)
+            mainGrid.addWidget(self.FinishButton, 6, 2)
             self.FinishButton.clicked.connect(self.finish)
             self.FinishButton.hide()            
            
-
-            def _browseSetupFileDo():
-                (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open File', os.getcwd(), '(*.fmu*)')
+            def browseFile():
+                (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open File', os.getcwd(), '(*.fmu)')
                 if fileName != '':
                     self.setupFileEdit.setText(fileName)
             
-            self.browseSetupFile.clicked.connect(_browseSetupFileDo)
-       
-       
+            self.browseSetupFile.clicked.connect(browseFile)
+            
+            def browseResultFile():
+                (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, 'Define fileName', os.getcwd(), '(*.xml)')
+                if fileName != '':
+                    self.SaveFileEdit.setText(fileName)
+
+            self.saveButton.clicked.connect(browseResultFile)
+
             
        def add(self):
             'Get data from GUI'                    
@@ -158,6 +175,9 @@ def ConnectFMUMenu(model, gui):
             self.FinishButton.hide()            
             self.variablelist.hide()
             self.connectionlist.hide()
+            self.SaveFile.hide()
+            self.SaveFileEdit.hide()
+            self.saveButton.hide()
 
             self.File.show()
             self.setupFileEdit.show()
@@ -169,6 +189,7 @@ def ConnectFMUMenu(model, gui):
             self.parseButton.show()
        
        def finish(self):
+           logFile = self.SaveFileEdit.text()
            template='''<?xml version="1.0" encoding="utf-8"?>
 <connectedFmus>
 <fmus>
@@ -203,7 +224,7 @@ def ConnectFMUMenu(model, gui):
            
            s=prettify(root)
            xmlstr=s.replace('&quot;','"')
-           f=open('connect.xml','w')
+           f=open(logFile,'w')
            f.write(xmlstr)
            print 'xml file generated'
     
@@ -227,7 +248,10 @@ def ConnectFMUMenu(model, gui):
             self.step1Button.show()  
             self.removeButtonconnect.show()  
             self.FinishButton.show()        
-            
+            self.SaveFile.show()
+            self.SaveFileEdit.show()            
+            self.saveButton.show()
+
             'Parse FMUs from the List'                    
             x=self.simulator.count()
             for i in xrange(x):
