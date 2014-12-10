@@ -148,11 +148,30 @@ def ConnectFMUMenu(model, gui):
             self.saveButton.clicked.connect(browseResultFile)
        
        def display(self):
-                (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open File', os.getcwd(), '(*.xml)')
-                if fileName != '':
-                    self.xmlFileEdit.setText(fileName)
+            (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open File', os.getcwd(), '(*.xml)')
+            if fileName != '':
+                 self.xmlFileEdit.setText(fileName)
+                 setupfile=self.xmlFileEdit.text()
+                 tree = ET.parse(setupfile)
+                 root = tree.getroot()
+                 for fmu in root.iter('fmu'):
+                     name = fmu.get('path')
+                     self.simulator.addItem(name)
+                 self.simulator.show() 
+                 
+                 for connection in root.iter('connection'):
+                    fid=connection.get('fromFmuId')
+                    fvar=connection.get('fromFmuvar')
+                    fvarcon=connection.get('fromFmuvarconnection')
+                    fval=connection.get('fromValueReference')                     
+                    tid=connection.get('toFmuId')
+                    tvar=connection.get('toFmuvar')
+                    tvarcon=connection.get('toFmuvarconnection')
+                    tval=connection.get('toValueReference') 
                     
-            #self.browseSetupFile.clicked.connect(browseFile)            
+                    s=''.join([fid,' ',fvar,' ',fvarcon,' ','(',fval,')','--->',tid,' ',tvar,' ',tvarcon,' ','(',tval,')'])
+                    self.componentConnect.addItem(s)
+
                 
        def add(self):
             'Get data from GUI'                    
@@ -182,7 +201,7 @@ def ConnectFMUMenu(model, gui):
        
        def previous(self):
             self.combo.clear()
-            self.componentConnect.clear()
+            #self.componentConnect.clear()
             self.combo1.clear()
             self.combo.hide()
             self.combo1.hide()
@@ -226,8 +245,10 @@ def ConnectFMUMenu(model, gui):
               item=self.simulator.item(i).text()
               fmus = root.find('fmus')
               fmu = ET.SubElement(fmus,'fmu')
-              subtag =''.join(['fmuId=','"',str(i),'"',' ','name=','"',os.path.basename(item).replace('.fmu',''),'"',' ','path=','"',item,'"'])
-              fmu.text = subtag
+              fmu.set("fmuId",str(i))               
+              fmu.set("name",os.path.basename(item).replace('.fmu','')) 
+              fmu.set("path",item)
+      
            
            list2=self.componentConnect.count()
            for i in xrange(list2):
@@ -239,10 +260,15 @@ def ConnectFMUMenu(model, gui):
               x2=h[1]
               y1=x1.split(' ')
               y2=x2.split(' ')
-              subtag=''.join(['fromFmuId=','"',str(y1[0]),'"',' ','fromValueReference=','"',str(y1[3]).replace('(','').replace(')',''),'"',' ','toFmuId=','"',str(y2[0]),'"',
-                             ' ','toValueReference=','"',str(y2[3]).replace('(','').replace(')',''),'"'])
-              connection.text=subtag
-           
+              connection.set("fromFmuId",str(y1[0]))
+              connection.set("fromFmuvar",str(y1[1]))
+              connection.set("fromFmuvarconnection",str(y1[2]))
+              connection.set("fromValueReference",str(y1[3]).replace('(','').replace(')',''))
+              connection.set("toFmuId",str(y2[0]))
+              connection.set("toFmuvar",str(y2[1]))
+              connection.set("toFmuvarconnection",str(y2[2]))
+              connection.set("toValueReference",str(y2[3]).replace('(','').replace(')',''))
+              
            s=prettify(root)
            xmlstr=s.replace('&quot;','"')
            f=open(logFile,'w')
