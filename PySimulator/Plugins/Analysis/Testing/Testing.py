@@ -449,31 +449,47 @@ def compareListMenu(model, gui):
 
             dir1 = QtGui.QLabel("Directory 1 of results:", self)
             mainGrid.addWidget(dir1, 0, 0, QtCore.Qt.AlignRight)
+            self.dir1Edit = QtGui.QLineEdit("", self)
+            mainGrid.addWidget(self.dir1Edit, 0, 1)
+            browseDir1 = QtGui.QPushButton("Select", self)
+            mainGrid.addWidget(browseDir1, 0, 2)
+           
+            dir2 = QtGui.QLabel("Directory 2 of results:", self)
+            mainGrid.addWidget(dir2, 1, 0, QtCore.Qt.AlignRight)
+            self.dir2Edit = QtGui.QLineEdit("", self)
+            mainGrid.addWidget(self.dir2Edit, 1, 1)
+            browseDir2 = QtGui.QPushButton("Select", self)
+            mainGrid.addWidget(browseDir2, 1, 2)
+           
+            self.listdir = QtGui.QLabel("List of Directory:", self)
+            mainGrid.addWidget(self.listdir , 2, 0, QtCore.Qt.AlignRight)
+            self.directory = QtGui.QListWidget(self)
+            self.directory.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+            self.directory.setFixedHeight(80)
+            mainGrid.addWidget(self.directory, 2, 1)
+            
+            self.removeButton = QtGui.QPushButton("Remove", self)
+            mainGrid.addWidget(self.removeButton, 2, 2)
+            self.removeButton.clicked.connect(self.remove)
+            
+            tol = QtGui.QLabel("Error tolerance:", self)
+            mainGrid.addWidget(tol, 3, 0, QtCore.Qt.AlignRight)
+            self.tolEdit = QtGui.QLineEdit("", self)
+            mainGrid.addWidget(self.tolEdit, 3, 1)
+
+            result = QtGui.QLabel("Logging:", self)
+            mainGrid.addWidget(result, 4, 0, QtCore.Qt.AlignRight)
+            self.resultEdit = QtGui.QLineEdit("", self)
+            mainGrid.addWidget(self.resultEdit, 4, 1)
+            browseResult = QtGui.QPushButton("Select", self)
+            mainGrid.addWidget(browseResult, 4, 2)
+            
             browseDir1 = QtGui.QPushButton("Select", self)
             mainGrid.addWidget(browseDir1, 0, 2)
             self.dir1Edit = QtGui.QLineEdit("", self)
             mainGrid.addWidget(self.dir1Edit, 0, 1)
 
-            dir2 = QtGui.QLabel("Directory 2 of results:", self)
-            mainGrid.addWidget(dir2, 1, 0, QtCore.Qt.AlignRight)
-            browseDir2 = QtGui.QPushButton("Select", self)
-            mainGrid.addWidget(browseDir2, 1, 2)
-            self.dir2Edit = QtGui.QLineEdit("", self)
-            mainGrid.addWidget(self.dir2Edit, 1, 1)
-
             
-            tol = QtGui.QLabel("Error tolerance:", self)
-            mainGrid.addWidget(tol, 2, 0, QtCore.Qt.AlignRight)
-            self.tolEdit = QtGui.QLineEdit("", self)
-            mainGrid.addWidget(self.tolEdit, 2, 1)
-
-            result = QtGui.QLabel("Logging:", self)
-            mainGrid.addWidget(result, 3, 0, QtCore.Qt.AlignRight)
-            browseResult = QtGui.QPushButton("Select", self)
-            mainGrid.addWidget(browseResult, 3, 2)
-            self.resultEdit = QtGui.QLineEdit("", self)
-            mainGrid.addWidget(self.resultEdit, 3, 1)
-
             self.stopButton = QtGui.QPushButton("Stop", self)
             mainGrid.addWidget(self.stopButton, 7, 0)
             self.stopButton.clicked.connect(self.stop)
@@ -499,6 +515,7 @@ def compareListMenu(model, gui):
                 dirName = dirName.replace('\\', '/')
                 if dirName != '':
                     self.dir2Edit.setText(dirName)
+                    self.directory.addItem(dirName)
 
             def _browseResultDo():
                 (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, 'Define Analysis Result File', os.getcwd(), '(*.log);;All Files(*.*)')
@@ -516,7 +533,13 @@ def compareListMenu(model, gui):
 
         def _close_(self):
             self.close()
-
+        
+        def remove(self):
+           listItems=self.directory.selectedItems()
+           if not listItems: return        
+           for item in listItems:
+               self.directory.takeItem(self.directory.row(item))
+               
         def run(self):
             if hasattr(gui, '_compareThreadTesting'):
                 if gui._compareThreadTesting.running:
@@ -525,13 +548,26 @@ def compareListMenu(model, gui):
 
             # Get data from GUI
             dir1 = self.dir1Edit.text()
-            dir2 = self.dir2Edit.text()
+            #dir2 = self.dir2Edit.text()
             logFile = self.resultEdit.text()
             tol = float(self.tolEdit.text())
-             
-            # Run the analysis
-            gui._compareThreadTesting = runCompareResultsInDirectories(gui.rootDir, dir1, dir2, tol, logFile)
             
+            listdirs=[]
+            sitems=self.directory.selectedItems()
+            if(len(sitems)!=0):
+               for item in self.directory.selectedItems():        
+                  listdirs.append(item.text())
+            else:
+               for i in xrange(self.directory.count()):
+                 item=self.directory.item(i).text()
+                 listdirs.append(item)
+                 
+            # Run the analysis
+            if (len(listdirs)!=0):
+                gui._compareThreadTesting = runCompareResultsInDirectories(gui.rootDir, dir1, listdirs, tol, logFile)
+            else:
+                print 'Select Directory 2 of results to be added to List of Directory to compare'
+                
         def stop(self):
             if hasattr(gui, '_compareThreadTesting'):
                 if gui._compareThreadTesting.running:
@@ -756,13 +792,13 @@ class simulationThread(QtCore.QThread):
         self.running = False
         
 @counter        
-def runCompareResultsInDirectories(PySimulatorPath, dir1, dir2, tol, logFile):
+def runCompareResultsInDirectories(PySimulatorPath, dir1, listdirs, tol, logFile):
 
     print "Start comparing results ..."
 
     compare = CompareThread(None)
     compare.dir1 = dir1
-    compare.dir2 = dir2
+    compare.listdirs= listdirs
     compare.tol = tol
     compare.logFile = logFile
     compare.stopRequest = False
@@ -777,11 +813,15 @@ class CompareThread(QtCore.QThread):
         super(CompareThread, self).__init__(parent)
         
     def run(self):
-        self.running = True
-        encoding = sys.getfilesystemencoding()
-        dir1 = self.dir1
-        dir2 = self.dir2
-        files1 = os.listdir(dir1)
+      self.running = True
+      encoding = sys.getfilesystemencoding()
+      dir1 = self.dir1
+      listdirs=self.listdirs
+      files1 = os.listdir(dir1) 
+      
+      fileOut = open(self.logFile, 'w')       
+      for z in xrange(len(listdirs)):
+        dir2=listdirs[z]    
         files2 = os.listdir(dir2)
         
         modelName1 = []
@@ -804,11 +844,7 @@ class CompareThread(QtCore.QThread):
                     
         '''create a html result file '''
         filename,fileExtension = os.path.splitext(self.logFile)
-        logfile1=self.logFile.replace(fileExtension,'.html')
-       
-        x=runCompareResultsInDirectories.count       
-                
-        fileOut = open(self.logFile, 'w')       
+        logfile1=self.logFile.replace(fileExtension,'.html')                
         fileOuthtml= open(logfile1,'w')
            
         fileOut.write('Output file from comparison of list of simulation results within PySimulator\n')
@@ -847,7 +883,6 @@ class CompareThread(QtCore.QThread):
                 model2.loadResultFile(file2)
                 compareResults(fileOuthtml,self.logFile,file2,model1, model2, self.tol, fileOut)
                 
-        fileOut.close()
         fileOuthtml.close()
         '''open the html file to check the html tags are correctly closed for proper display of table and add headers'''
         with open(logfile1) as myfile:
@@ -866,7 +901,7 @@ class CompareThread(QtCore.QThread):
         
         newpath=os.path.dirname(logfile1)
         name=os.path.basename(logfile1)
-        newname=''.join([str(x),name])
+        newname=''.join([str(z),name])
         np1=os.path.join(newpath,'rfiles').replace('\\','/')
         np2=os.path.join(np1,newname).replace('\\','/')
         
@@ -875,11 +910,11 @@ class CompareThread(QtCore.QThread):
            os.mkdir(np1)
         shutil.copy(logfile1,np2)
                      
-        #print "... running the analysis done."
-        import ctypes 
-        ctypes.windll.user32.MessageBoxA(0, "running the analysis done", "Compare Analysis", 0)
-        
-        self.running = False
+      #print "... running the analysis done."
+      fileOut.close()
+      import ctypes 
+      ctypes.windll.user32.MessageBoxA(0, "running the analysis done", "Compare Analysis", 0)
+      self.running = False
 
 
 def get_column(n,table):
@@ -905,7 +940,9 @@ def genregressionreport(logfile):
          dirname.append(dir)
     
     os.chdir(dir1)
-    f=open('Regression.html','w')     
+    filename,fileExtension = os.path.splitext(logfile)
+    logfile1=logfile.replace(fileExtension,'.html')    
+    f=open(logfile1,'w')    
     m1='''<body><h1>Regression Report </h1>
 <p><font style="background-color:#00FF00">Green</font> cells means success. <font style="background-color:#FF0000">Red</font> cells represents number of variables differed .</p>
 </body>'''
@@ -950,7 +987,7 @@ def genregressionreport(logfile):
     
     f.close()
     print "Regression report generated"
-    webbrowser.open('regression.html')       
+    webbrowser.open(logfile1)       
     
   else:
     print 'Directory rfiles does not exist, Run the the compare analysis first to get the Regression chart'  
