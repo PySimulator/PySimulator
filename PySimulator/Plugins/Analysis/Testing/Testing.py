@@ -449,31 +449,47 @@ def compareListMenu(model, gui):
 
             dir1 = QtGui.QLabel("Directory 1 of results:", self)
             mainGrid.addWidget(dir1, 0, 0, QtCore.Qt.AlignRight)
+            self.dir1Edit = QtGui.QLineEdit("", self)
+            mainGrid.addWidget(self.dir1Edit, 0, 1)
+            browseDir1 = QtGui.QPushButton("Select", self)
+            mainGrid.addWidget(browseDir1, 0, 2)
+           
+            dir2 = QtGui.QLabel("Directory 2 of results:", self)
+            mainGrid.addWidget(dir2, 1, 0, QtCore.Qt.AlignRight)
+            self.dir2Edit = QtGui.QLineEdit("", self)
+            mainGrid.addWidget(self.dir2Edit, 1, 1)
+            browseDir2 = QtGui.QPushButton("Select", self)
+            mainGrid.addWidget(browseDir2, 1, 2)
+           
+            self.listdir = QtGui.QLabel("List of Directory:", self)
+            mainGrid.addWidget(self.listdir , 2, 0, QtCore.Qt.AlignRight)
+            self.directory = QtGui.QListWidget(self)
+            self.directory.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+            self.directory.setFixedHeight(80)
+            mainGrid.addWidget(self.directory, 2, 1)
+            
+            self.removeButton = QtGui.QPushButton("Remove", self)
+            mainGrid.addWidget(self.removeButton, 2, 2)
+            self.removeButton.clicked.connect(self.remove)
+            
+            tol = QtGui.QLabel("Error tolerance:", self)
+            mainGrid.addWidget(tol, 3, 0, QtCore.Qt.AlignRight)
+            self.tolEdit = QtGui.QLineEdit("", self)
+            mainGrid.addWidget(self.tolEdit, 3, 1)
+
+            result = QtGui.QLabel("Logging:", self)
+            mainGrid.addWidget(result, 4, 0, QtCore.Qt.AlignRight)
+            self.resultEdit = QtGui.QLineEdit("", self)
+            mainGrid.addWidget(self.resultEdit, 4, 1)
+            browseResult = QtGui.QPushButton("Select", self)
+            mainGrid.addWidget(browseResult, 4, 2)
+            
             browseDir1 = QtGui.QPushButton("Select", self)
             mainGrid.addWidget(browseDir1, 0, 2)
             self.dir1Edit = QtGui.QLineEdit("", self)
             mainGrid.addWidget(self.dir1Edit, 0, 1)
 
-            dir2 = QtGui.QLabel("Directory 2 of results:", self)
-            mainGrid.addWidget(dir2, 1, 0, QtCore.Qt.AlignRight)
-            browseDir2 = QtGui.QPushButton("Select", self)
-            mainGrid.addWidget(browseDir2, 1, 2)
-            self.dir2Edit = QtGui.QLineEdit("", self)
-            mainGrid.addWidget(self.dir2Edit, 1, 1)
-
             
-            tol = QtGui.QLabel("Error tolerance:", self)
-            mainGrid.addWidget(tol, 2, 0, QtCore.Qt.AlignRight)
-            self.tolEdit = QtGui.QLineEdit("", self)
-            mainGrid.addWidget(self.tolEdit, 2, 1)
-
-            result = QtGui.QLabel("Logging:", self)
-            mainGrid.addWidget(result, 3, 0, QtCore.Qt.AlignRight)
-            browseResult = QtGui.QPushButton("Select", self)
-            mainGrid.addWidget(browseResult, 3, 2)
-            self.resultEdit = QtGui.QLineEdit("", self)
-            mainGrid.addWidget(self.resultEdit, 3, 1)
-
             self.stopButton = QtGui.QPushButton("Stop", self)
             mainGrid.addWidget(self.stopButton, 7, 0)
             self.stopButton.clicked.connect(self.stop)
@@ -499,6 +515,7 @@ def compareListMenu(model, gui):
                 dirName = dirName.replace('\\', '/')
                 if dirName != '':
                     self.dir2Edit.setText(dirName)
+                    self.directory.addItem(dirName)
 
             def _browseResultDo():
                 (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, 'Define Analysis Result File', os.getcwd(), '(*.log);;All Files(*.*)')
@@ -516,7 +533,13 @@ def compareListMenu(model, gui):
 
         def _close_(self):
             self.close()
-
+        
+        def remove(self):
+           listItems=self.directory.selectedItems()
+           if not listItems: return        
+           for item in listItems:
+               self.directory.takeItem(self.directory.row(item))
+               
         def run(self):
             if hasattr(gui, '_compareThreadTesting'):
                 if gui._compareThreadTesting.running:
@@ -525,13 +548,26 @@ def compareListMenu(model, gui):
 
             # Get data from GUI
             dir1 = self.dir1Edit.text()
-            dir2 = self.dir2Edit.text()
+            #dir2 = self.dir2Edit.text()
             logFile = self.resultEdit.text()
             tol = float(self.tolEdit.text())
-             
-            # Run the analysis
-            gui._compareThreadTesting = runCompareResultsInDirectories(gui.rootDir, dir1, dir2, tol, logFile)
             
+            listdirs=[]
+            sitems=self.directory.selectedItems()
+            if(len(sitems)!=0):
+               for item in self.directory.selectedItems():        
+                  listdirs.append(item.text())
+            else:
+               for i in xrange(self.directory.count()):
+                 item=self.directory.item(i).text()
+                 listdirs.append(item)
+                 
+            # Run the analysis
+            if (len(listdirs)!=0):
+                gui._compareThreadTesting = runCompareResultsInDirectories(gui.rootDir, dir1, listdirs, tol, logFile)
+            else:
+                print 'Select Directory 2 of results to be added to List of Directory to compare'
+                
         def stop(self):
             if hasattr(gui, '_compareThreadTesting'):
                 if gui._compareThreadTesting.running:
@@ -539,7 +575,8 @@ def compareListMenu(model, gui):
                     print "Try to cancel comparing results files ..."
        
         def regressionreport(self):
-            genregressionreport()
+            logFile = self.resultEdit.text()
+            genregressionreport(logFile)
 
     # Code of function
     control = CompareListControl()
@@ -755,13 +792,13 @@ class simulationThread(QtCore.QThread):
         self.running = False
         
 @counter        
-def runCompareResultsInDirectories(PySimulatorPath, dir1, dir2, tol, logFile):
+def runCompareResultsInDirectories(PySimulatorPath, dir1, listdirs, tol, logFile):
 
     print "Start comparing results ..."
 
     compare = CompareThread(None)
     compare.dir1 = dir1
-    compare.dir2 = dir2
+    compare.listdirs= listdirs
     compare.tol = tol
     compare.logFile = logFile
     compare.stopRequest = False
@@ -776,11 +813,15 @@ class CompareThread(QtCore.QThread):
         super(CompareThread, self).__init__(parent)
         
     def run(self):
-        self.running = True
-        encoding = sys.getfilesystemencoding()
-        dir1 = self.dir1
-        dir2 = self.dir2
-        files1 = os.listdir(dir1)
+      self.running = True
+      encoding = sys.getfilesystemencoding()
+      dir1 = self.dir1
+      listdirs=self.listdirs
+      files1 = os.listdir(dir1) 
+      
+      fileOut = open(self.logFile, 'w')       
+      for z in xrange(len(listdirs)):
+        dir2=listdirs[z]    
         files2 = os.listdir(dir2)
         
         modelName1 = []
@@ -803,11 +844,7 @@ class CompareThread(QtCore.QThread):
                     
         '''create a html result file '''
         filename,fileExtension = os.path.splitext(self.logFile)
-        logfile1=self.logFile.replace(fileExtension,'.html')
-       
-        x=runCompareResultsInDirectories.count       
-                
-        fileOut = open(self.logFile, 'w')       
+        logfile1=self.logFile.replace(fileExtension,'.html')                
         fileOuthtml= open(logfile1,'w')
            
         fileOut.write('Output file from comparison of list of simulation results within PySimulator\n')
@@ -846,7 +883,6 @@ class CompareThread(QtCore.QThread):
                 model2.loadResultFile(file2)
                 compareResults(fileOuthtml,self.logFile,file2,model1, model2, self.tol, fileOut)
                 
-        fileOut.close()
         fileOuthtml.close()
         '''open the html file to check the html tags are correctly closed for proper display of table and add headers'''
         with open(logfile1) as myfile:
@@ -861,180 +897,97 @@ class CompareThread(QtCore.QThread):
            f.write(s)                    
            f.close() 
        
-        ''' Save the data to prepare regression report, total number of directories that can be compared is 6'''
-        if(x==1):
-           CompareThread.data1=readhtmlreport(logfile1)
-           CompareThread.dirname1=dir2
-           
-        if(x==2):   
-           CompareThread.data2=readhtmlreport(logfile1)
-           CompareThread.dirname2=dir2
+        '''Save the data to prepare regression report, if the user press the regression button'''
         
-        if(x==3):  
-           CompareThread.data3=readhtmlreport(logfile1)
-           CompareThread.dirname3=dir2
+        newpath=os.path.dirname(logfile1)
+        name=os.path.basename(logfile1)
+        newname=''.join([str(z),name])
+        np1=os.path.join(newpath,'rfiles').replace('\\','/')
+        np2=os.path.join(np1,newname).replace('\\','/')
         
-        if(x==4):  
-           CompareThread.data4=readhtmlreport(logfile1)
-           CompareThread.dirname4=dir2
-        
-        if(x==5):  
-           CompareThread.data5=readhtmlreport(logfile1)
-           CompareThread.dirname5=dir2
-        
-        if(x==6):  
-           CompareThread.data6=readhtmlreport(logfile1)
-           CompareThread.dirname6=dir2
-        
-        #print "... running the analysis done."
-        import ctypes 
-        ctypes.windll.user32.MessageBoxA(0, "running the analysis done", "Compare Analysis", 0)
-        
-        self.running = False
+        #create a new directory to store the result files for each run, to make parsing easy when user asks for regression chart 
+        if not os.path.exists(np1): 
+           os.mkdir(np1)
+        shutil.copy(logfile1,np2)
+                     
+      #print "... running the analysis done."
+      fileOut.close()
+      import ctypes 
+      ctypes.windll.user32.MessageBoxA(0, "running the analysis done", "Compare Analysis", 0)
+      self.running = False
 
 
-def readhtmlreport(file):
-     f=open(file,'r')
-     data=f.read()
-     f.close()
-     return data   
-
-def selectcolor(datalist):
-    d=datalist.string
-    if(d=='0'):
-      color="#00FF00"
-    else:
-      color="#FF0000"    
-    return color
+def get_column(n,table):
+   result = []
+   for line in table:
+      result.append(line[n])     
+   return result
     
-def genregressionreport():
-    ''' the function is used to parse the html files and collect the table datas from different html files and finally generate single regression chart'''
-    try:
-      l1=[]
-      dir1='&nbsp'
-      d1=BeautifulSoup(CompareThread.data1)
-      l1=d1.find_all('a')
-      dir1=os.path.basename(CompareThread.dirname1)
-    except AttributeError:
-      pass
+def genregressionreport(logfile):
+  ''' the function is used to parse the html files and collect the table datas from different html files and finally generate single regression chart'''
+  dir1=os.path.dirname(logfile)
+  dir2=os.path.join(dir1,'rfiles').replace('\\','/')
+  if(os.path.isdir(dir2)):
+    files=os.listdir(dir2)
+    hreflist=[]
+    dirname=[]
+    for i in xrange(len(files)):
+         os.chdir(dir2)      
+         soup = BeautifulSoup(open(files[i]))
+         data=soup.find_all('td')
+         dir=soup.find_all('th')
+         hreflist.append(data)
+         dirname.append(dir)
     
-    try:
-      l2=[]
-      dir2='&nbsp'
-      d2=BeautifulSoup(CompareThread.data2)
-      l2=d2.find_all('a')
-      dir2=os.path.basename(CompareThread.dirname2)
-    except AttributeError:
-      pass
-    
-    try:
-      l3=[]
-      dir3='&nbsp'
-      d3=BeautifulSoup(CompareThread.data3)
-      l3=d3.find_all('a')
-      dir3=os.path.basename(CompareThread.dirname3)
-    except AttributeError:
-      pass
-     
-    try:
-      l4=[]
-      dir4='&nbsp'
-      d4=BeautifulSoup(CompareThread.data4)
-      l4=d4.find_all('a')
-      dir4=os.path.basename(CompareThread.dirname4)
-    except AttributeError:
-      pass
-   
-    try:
-      l5=[]
-      dir5='&nbsp'
-      d5=BeautifulSoup(CompareThread.data5)
-      l5=d5.find_all('a')
-      dir5=os.path.basename(CompareThread.dirname5)
-    except AttributeError:
-      pass
-    
-    try:
-      l6=[]
-      dir6='&nbsp'
-      d6=BeautifulSoup(CompareThread.data6)
-      l6=d6.find_all('a')
-      dir6=os.path.basename(CompareThread.dirname6)
-    except AttributeError:
-      pass
-        
-    if (len(l1)!=0):
-       f=open('regression.html','w')
-       for i in xrange(len(l1)):
-         try:        
-          if(i==0):   
-             m1='''<body><h1>Regression Report </h1>
+    os.chdir(dir1)
+    filename,fileExtension = os.path.splitext(logfile)
+    logfile1=logfile.replace(fileExtension,'.html')    
+    f=open(logfile1,'w')    
+    m1='''<body><h1>Regression Report </h1>
 <p><font style="background-color:#00FF00">Green</font> cells means success. <font style="background-color:#FF0000">Red</font> cells represents number of variables differed .</p>
-</body>'''          
-             m2='<tr><th>Model</th>'+ '<th>' + dir1 + '</th>' + '<th>' + dir2 + '</th>'+ '<th>' + dir3 + '</th>'+ '<th>' + dir4 + '</th>'+ '<th>' + dir5 + '</th>'+ '<th>' + dir6 + '</th>'+'</tr>'
+</body>'''
+    s='\n'.join(['<html>',m1,'<table>','<tr>','<th>','model','</th>'])
+    f.write(s)
+    f.write('\n')
+           
+    for m in xrange(len(dirname[0])):
+       if(m>0):
+         dname=get_column(m,dirname)   
+         for n in xrange(len(dname)):
+                if(n==(len(dname)-1)):
+                   s=''.join([str(dname[n]),'</tr>'])
+                else:
+                   s=''.join([str(dname[n])])
+                f.write(s)
+                f.write('\n')
+                
+    
+    for i in xrange(len(hreflist[0])):                       
+      if(i%2==0):
+         x=get_column(i,hreflist)
+         x1=x[0].find('a').string             
+         s='\n'.join(['<tr>','<td>',x1,'</td>'])
+         f.write(s)
+         f.write('\n')
+         
+      if(i%2!=0):
+        x=get_column(i,hreflist)
+        for z in xrange(len(x)): 
+            if(z==(len(x)-1)):               
+               s='\n'.join([str(x[z]),'</tr>'])
+            else:
+               s='\n'.join([str(x[z])])            
+            f.write(s)
+            f.write('\n')
             
-             s='\n'.join(['<html>',m1,'<table>',m2])      
-             f.write(s)
-             f.write('\n')     
-        
-          if(i%2==0):
-             h=l1[i].string
-             s='\n'.join(['<tr>','<td>',h,'</td>'])
-             f.write(s)
-             f.write('\n')
-       
-          if(i%2!=0):
-             if(len(l1)!=0):
-               color=selectcolor(l1[i])
-               tdcolor='<td bgcolor='+color+'>'
-               x1='\n'.join([tdcolor,str(l1[i]),'</td>'])
-             else:
-               x1='\n'.join(['<td>','&nbsp','</td>'])
- 
-             if(len(l2)!=0):
-               color=selectcolor(l2[i])
-               tdcolor='<td bgcolor='+color+'>'
-               x2='\n'.join([tdcolor,str(l2[i]),'</td>'])
-             else:
-               x2='\n'.join(['<td>','&nbsp','</td>'])
-               
-             if(len(l3)!=0):
-               color=selectcolor(l3[i])
-               tdcolor='<td bgcolor='+color+'>'
-               x3='\n'.join([tdcolor,str(l3[i]),'</td>'])
-             else:
-               x3='\n'.join(['<td>','&nbsp','</td>'])
-               
-             if(len(l4)!=0):
-               color=selectcolor(l4[i])
-               tdcolor='<td bgcolor='+color+'>'
-               x4='\n'.join([tdcolor,str(l4[i]),'</td>'])
-             else:
-               x4='\n'.join(['<td>','&nbsp','</td>'])
-               
-             if(len(l5)!=0):
-               color=selectcolor(l5[i])
-               tdcolor='<td bgcolor='+color+'>'
-               x5='\n'.join([tdcolor,str(l5[i]),'</td>'])
-             else:
-               x5='\n'.join(['<td>','&nbsp','</td>'])
-               
-             if(len(l6)!=0):
-               color=selectcolor(l6[i])
-               tdcolor='<td bgcolor='+color+'>'
-               x6='\n'.join([tdcolor,str(l6[i]),'</td>'])
-             else:
-               x6='\n'.join(['<td>','&nbsp','</td>'])
-                          
-             s='\n'.join([x1,x2,x3,x4,x5,x6])
-                               
-             f.write(s)
-             f.write('\n')
-         except IndexError:
-             pass        
-       f.close()
-       print "Regression report generated"
-       webbrowser.open('regression.html')
-
-    else:
-       print "Regression report cannot be generated, Run the Compare Analysis First to get the report"
+    if(i==len(hreflist[0])-1):
+         s='\n'.join(['</table>','</html>'])
+         f.write(s)
+         f.write('\n')
+    
+    f.close()
+    print "Regression report generated"
+    webbrowser.open(logfile1)       
+    
+  else:
+    print 'Directory rfiles does not exist, Run the the compare analysis first to get the Regression chart'  
