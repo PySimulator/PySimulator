@@ -380,6 +380,10 @@ def simulateListMenu(model, gui):
             self.closeButton = QtGui.QPushButton("Close", self)
             mainGrid.addWidget(self.closeButton, 7, 2)
             self.closeButton.clicked.connect(self._close_)
+            
+            self.parallelButton = QtGui.QPushButton("Parallel Simulation", self)
+            mainGrid.addWidget(self.parallelButton, 8, 1)
+            self.parallelButton.clicked.connect(self.parallel)
 
             def _browseSetupFileDo():
                 (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open Simulation Setup File', os.getcwd(), '(*.txt);;All Files(*.*)')
@@ -418,7 +422,22 @@ def simulateListMenu(model, gui):
             # Run the simulations
             gui._simThreadTesting = runListSimulation(gui.rootDir, setupFile, resultsDir, simulators, deleteDir)
 
+        def parallel(self):
+            if hasattr(gui, '_simThreadTesting'):
+                if gui._simThreadTesting.running:
+                    print "A list of simulations is still running."
+                    return
 
+            # Get data from GUI
+            setupFile = self.setupFileEdit.text()
+            resultsDir = self.dirResultsEdit.text()
+            simulators = []
+            for item in self.simulator.selectedItems():
+                simulators.append(gui.simulatorPlugins[item.text()])
+            deleteDir = self.deleteDir.isChecked()
+                        
+            # Run parallel simulations
+            gui._simThreadTesting = runParallelSimulation(gui.rootDir, setupFile, resultsDir, simulators, deleteDir)
 
         def stop(self):
             if hasattr(gui, '_simThreadTesting'):
@@ -654,7 +673,8 @@ def runListSimulation(PySimulatorPath, setupFile, resultDir, allSimulators, dele
     # packageName = general[0]
     #config = configobj.ConfigObj(PySimulatorPath.replace('\\', '/') + '/PySimulator.ini')
     config = configobj.ConfigObj(os.path.join(os.path.expanduser("~"), '.config', 'PySimulator', 'PySimulator.ini'), encoding='utf8')
-
+    
+   
     sim = simulationThread(None)
     sim.config = config
     # sim.packageName = packageName
@@ -668,6 +688,117 @@ def runListSimulation(PySimulatorPath, setupFile, resultDir, allSimulators, dele
 
     return sim
 
+def runParallelSimulation(PySimulatorPath, setupFile, resultDir, allSimulators, deleteDir=False):
+    import configobj
+    import csv
+    print "Start running  Parallel simulations ..."
+    f = open(setupFile, 'rb')   
+    line = []
+    reader = csv.reader(f, delimiter=' ', skipinitialspace=True)
+    for a in reader:
+        if len(a) > 0:
+            if not (len(a[0]) > 0 and a[0][0] == '#'):
+                line.append(a[:7])
+    f.close()
+
+    modelList = numpy.zeros((len(line),), dtype=[('fileName', 'U2000'), ('modelName', 'U2000'), ('tStart', 'f8'), ('tStop', 'f8'), ('tol', 'f8'), ('nInterval', 'i4'), ('includeEvents', 'b1')])
+    for i, x in enumerate(line):
+        absPath = x[0].replace('\\', '/')
+        if absPath <> "" and not os.path.isabs(absPath):
+            absPath = os.path.normpath(os.path.join(os.path.split(setupFile)[0], absPath)).replace('\\', '/')
+        if len(x) == 7:
+            modelList[i] = (absPath, x[1], float(x[2]), float(x[3]), float(x[4]), int(x[5]), True if x[6] == 'True' else False)
+        else:
+            modelList['fileName'][i] = absPath
+
+    config = configobj.ConfigObj(os.path.join(os.path.expanduser("~"), '.config', 'PySimulator', 'PySimulator.ini'), encoding='utf8') 
+    
+    sim = simulationParallelThread(None)
+    sim.config = config
+    sim.modelList = modelList
+    sim.allSimulators = allSimulators
+    sim.resultDir = resultDir
+    sim.deleteDir = deleteDir
+    sim.stopRequest = False
+    sim.running = False
+    sim.start()
+
+    return sim
+    
+    
+class simulationParallelThread(QtCore.QThread):
+    ''' Class for the simulation thread '''
+    def __init__(self, parent):
+        super(simulationParallelThread, self).__init__(parent)
+    
+    def run(self):
+        self.running = True
+        z=self.allSimulators
+        for simulator in self.allSimulators:
+            simulationParallelThread.simulatorName = simulator.__name__.rsplit('.', 1)[-1]
+            simulationParallelThread.fullSimulatorResultPath = self.resultDir + '/' + simulationParallelThread.simulatorName
+            if os.path.isdir(simulationParallelThread.fullSimulatorResultPath) and self.deleteDir:
+                for file_object in os.listdir(simulationParallelThread.fullSimulatorResultPath):
+                    file_object_path = os.path.join(simulationParallelThread.fullSimulatorResultPath, file_object)
+                    if os.path.isfile(file_object_path):
+                        os.unlink(file_object_path)
+                    else:
+                        shutil.rmtree(file_object_path)
+
+            if not os.path.isdir(simulationParallelThread.fullSimulatorResultPath):
+                os.makedirs(simulationParallelThread.fullSimulatorResultPath)
+                
+            simulator.prepareSimulationList(self.modelList['fileName'],self.modelList['modelName'], self.config)
+            simulationParallelThread.y=simulator
+            simulationParallelThread.con=self.config
+            from multiprocessing import Pool
+            from multiprocessing.dummy import Pool as ThreadPool                             
+            pool = ThreadPool()
+            import time
+            startTime = time.time()
+            pool.map(parallelsimulation, zip(self.modelList['fileName'],self.modelList['modelName'],self.modelList['tStart'],self.modelList['tStop'],self.modelList['tol'],self.modelList['nInterval'],self.modelList['includeEvents']))
+            pool.close()
+            pool.join()   
+            elapsedTime = time.time() - startTime
+            print elapsedTime         
+            print "Parallel simulation completed"
+            self.running = False
+
+def parallelsimulation(modellists):
+     print 'inside pack'  
+     packname=[]
+     packname.append(modellists[0])     
+     modelname=modellists[1]    
+     tstart=modellists[2]
+     tstop=modellists[3]
+     tolerance=modellists[4]
+     interval=modellists[5]
+     events=modellists[6]
+     
+     simulator=simulationParallelThread.y       
+     config =simulationParallelThread.con
+     try:
+       model = simulator.Model(modelname, packname, config)
+       print 'pack1'
+       resultFileName = simulationParallelThread.fullSimulatorResultPath + '/' + modelname + '.' + model.integrationSettings.resultFileExtension
+       print 'pack2'
+       model.integrationSettings.startTime = tstart
+       model.integrationSettings.stopTime  = tstop
+       model.integrationSettings.errorToleranceRel = tolerance
+       model.integrationSettings.gridPoints = interval
+       model.integrationSettings.gridPointsMode = 'NumberOf'
+       model.integrationSettings.resultFileIncludeEvents = events
+       model.integrationSettings.resultFileName = resultFileName     
+       print 'pack3'
+       print "Simulating %s by %s (result in %s)..." % (modelname,simulationParallelThread.simulatorName,resultFileName)
+       model.simulate()
+       
+       print 'pack4'
+       model.close()
+     except Exception as e:
+       import traceback
+       traceback.print_exc(e,file=sys.stderr)
+       print e
 
 class simulationThread(QtCore.QThread):
     ''' Class for the simulation thread '''
@@ -815,10 +946,14 @@ class CompareThread(QtCore.QThread):
     def run(self):
       self.running = True
       encoding = sys.getfilesystemencoding()
+
+      rdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
+      if os.path.exists(rdir): 
+         shutil.rmtree(rdir)
+         
       dir1 = self.dir1
       listdirs=self.listdirs
-      files1 = os.listdir(dir1) 
-      
+      files1 = os.listdir(dir1)  
       fileOut = open(self.logFile, 'w')       
       for z in xrange(len(listdirs)):
         dir2=listdirs[z]    
