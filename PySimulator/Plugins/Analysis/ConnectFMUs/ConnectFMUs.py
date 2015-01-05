@@ -95,25 +95,19 @@ def ConnectFMUMenu(model, gui):
             self.connectionlist = QtGui.QLabel("Connection List", self)
             mainGrid.addWidget(self.connectionlist, 5, 0, QtCore.Qt.AlignRight)
             self.connectionlist.hide()
-            '''
-            self.componentConnect = QtGui.QListWidget(self)
-            self.componentConnect.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
-            self.componentConnect.setFixedHeight(200)
-            mainGrid.addWidget(self.componentConnect, 5, 1)
-            self.componentConnect.hide() 
-            '''
+            
+            
             self.table = QtGui.QTableWidget(self)
             self.table.setRowCount(0)
             self.table.setColumnCount(2)
-            self.table.setFixedSize(300,200)
             self.table.setHorizontalHeaderLabels(["From","To"])
-
-            mainGrid.addWidget(self.table, 5, 1)
+            mainGrid.addWidget(self.table, 5, 1, 1, 2)
+            #self.table.setFixedSize(250,200)
             self.table.hide() 
             
             self.removeButtonconnect = QtGui.QPushButton("Remove", self)
             self.removeButtonconnect.setFixedSize(90,25)
-            mainGrid.addWidget(self.removeButtonconnect, 5, 2)
+            mainGrid.addWidget(self.removeButtonconnect, 5, 3)
             self.removeButtonconnect.clicked.connect(self.connectremove)
             self.removeButtonconnect.hide()
             
@@ -166,21 +160,24 @@ def ConnectFMUMenu(model, gui):
                  for fmu in root.iter('fmu'):
                      name = fmu.get('path')
                      self.simulator.addItem(name)
-                     
-                 '''
+                 
                  for connection in root.iter('connection'):
                     fid=connection.get('fromFmuId')
                     fvar=connection.get('fromFmuvar')
                     fvarcon=connection.get('fromFmuvarconnection')
-                    fval=connection.get('fromValueReference')                     
+                    fval=connection.get('fromValueReference')
+                    fromtable=''.join([fid,' ',fvar,' ',fvarcon,' ','(',fval,')'])
                     tid=connection.get('toFmuId')
                     tvar=connection.get('toFmuvar')
                     tvarcon=connection.get('toFmuvarconnection')
                     tval=connection.get('toValueReference') 
-                    
-                    s=''.join([fid,' ',fvar,' ',fvarcon,' ','(',fval,')','--->',tid,' ',tvar,' ',tvarcon,' ','(',tval,')'])
-                    self.componentConnect.addItem(s)'''
-        
+                    totable=''.join([tid,' ',tvar,' ',tvarcon,' ','(',tval,')'])
+                    row = self.table.rowCount()
+                    self.table.insertRow(row)
+                    self.table.setItem(row, 0, QtGui.QTableWidgetItem(fromtable))    
+                    self.table.setItem(row, 1, QtGui.QTableWidgetItem(totable))                    
+                    self.table.resizeColumnsToContents()
+       
                 
        def add(self):
             'Get data from GUI'                    
@@ -207,11 +204,9 @@ def ConnectFMUMenu(model, gui):
        
        def previous(self):
             self.combo.clear()
-            #self.componentConnect.clear()
             self.combo1.clear()
             self.combo.hide()
             self.combo1.hide()
-            #self.componentConnect.hide() 
             self.connectButton.hide() 
             self.removeButtonconnect.hide()  
             self.step1Button.hide()  
@@ -278,25 +273,6 @@ def ConnectFMUMenu(model, gui):
              connection.set("toFmuvarconnection",str(y2[2]))
              connection.set("toValueReference",str(y2[3]).replace('(','').replace(')',''))             
              
-           '''     
-           list2=self.componentConnect.count()
-           for i in xrange(list2):
-              item=self.componentConnect.item(i).text()
-              connections = root.find('connections')
-              connection = ET.SubElement(connections, 'connection')
-              h=item.split('--->',1)
-              x1=h[0]
-              x2=h[1]
-              y1=x1.split(' ')
-              y2=x2.split(' ')
-              connection.set("fromFmuId",str(y1[0]))
-              connection.set("fromFmuvar",str(y1[1]))
-              connection.set("fromFmuvarconnection",str(y1[2]))
-              connection.set("fromValueReference",str(y1[3]).replace('(','').replace(')',''))
-              connection.set("toFmuId",str(y2[0]))
-              connection.set("toFmuvar",str(y2[1]))
-              connection.set("toFmuvarconnection",str(y2[2]))
-              connection.set("toValueReference",str(y2[3]).replace('(','').replace(')',''))'''
               
            s=prettify(root)
            xmlstr=s.replace('&quot;','"')
@@ -326,7 +302,6 @@ def ConnectFMUMenu(model, gui):
             self.combo.show()
             self.combo1.show()
             self.connectionlist.show()
-            #self.componentConnect.show() 
             self.connectButton.show()
             self.step1Button.show()  
             self.removeButtonconnect.show()  
@@ -370,15 +345,13 @@ def ConnectFMUMenu(model, gui):
            'connect the selected FMU connections'                    
            cur=self.combo.currentText()
            cur1=self.combo1.currentText()
-           #s=''.join([cur,'--->',cur1])
            row = self.table.rowCount()
            self.table.insertRow(row)
            self.table.setItem(row, 0, QtGui.QTableWidgetItem(cur))
            self.table.setItem(row, 1, QtGui.QTableWidgetItem(cur1))
+           self.table.resizeColumnsToContents()
 
-           #item =QtGui.QListWidgetItem(s)
-           #self.componentConnect.addItem(item)
-     
+           
     # Code of function
     control = ConnectFMU()
     control.show()
