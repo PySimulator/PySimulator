@@ -364,8 +364,10 @@ def simulateListMenu(model, gui):
             mainGrid.addWidget(QtGui.QLabel("Simulators:"), 3, 0, QtCore.Qt.AlignRight)
             self.simulator = QtGui.QListWidget(self)
             self.simulator.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
-            self.simulator.setFixedHeight(70)
-            for x in gui.simulatorPlugins:
+            self.simulator.setFixedHeight(150)
+            allSimulatorPlugins = list(gui.simulatorPlugins.keys())
+            allSimulatorPlugins.sort()
+            for x in allSimulatorPlugins:
                 QtGui.QListWidgetItem(x, self.simulator)
 
             mainGrid.addWidget(self.simulator, 3, 1)

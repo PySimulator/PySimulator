@@ -237,8 +237,11 @@ def Compare(tA, fA, iA, sA, tB, fB, iB, sB, tol=1e-3):
         else:
             tStart = min(tA[0], tB[0])
             tStop = max(tA[-1], tB[-1])
-
-        diff, NfA, NfB, error = normDiff(tA2, fA2, iA, sA, tB2, fB2, iB, sB, tStart, tStop)
+        
+        if tStart == tStop:
+            diff, NfA, NfB, error = normDiffPar(sA * fA2[0, iA], sB * fB2[0, iB])
+        else:
+            diff, NfA, NfB, error = normDiff(tA2, fA2, iA, sA, tB2, fB2, iB, sB, tStart, tStop)
 
     if error:
         return [False]*len(diff), diff / (1 + NfA + NfB), error
