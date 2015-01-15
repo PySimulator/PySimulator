@@ -28,6 +28,7 @@ import Compare
 import numpy
 import os
 import sys
+import time
 import shutil
 from bs4 import BeautifulSoup
 import webbrowser
@@ -35,7 +36,7 @@ from PySide import QtGui, QtCore
 import Plugins.Simulator
 import Plugins.Simulator.SimulatorBase as SimulatorBase
 import Plugins.SimulationResult as SimulationResult
-
+from multiprocessing import Pool
 
 def compareResults(filewritehtml,resultfile,htmlfile,model1, model2, tol=1e-3, fileOutput=sys.stdout):
     def prepareMatrix(t, y):
@@ -674,7 +675,7 @@ def runListSimulation(PySimulatorPath, setupFile, resultDir, allSimulators, dele
     #config = configobj.ConfigObj(PySimulatorPath.replace('\\', '/') + '/PySimulator.ini')
     config = configobj.ConfigObj(os.path.join(os.path.expanduser("~"), '.config', 'PySimulator', 'PySimulator.ini'), encoding='utf8')
     
-   
+    
     sim = simulationThread(None)
     sim.config = config
     # sim.packageName = packageName
@@ -724,8 +725,8 @@ def runParallelSimulation(PySimulatorPath, setupFile, resultDir, allSimulators, 
     sim.start()
 
     return sim
-    
-    
+
+         
 class simulationParallelThread(QtCore.QThread):
     ''' Class for the simulation thread '''
     def __init__(self, parent):
@@ -733,39 +734,55 @@ class simulationParallelThread(QtCore.QThread):
     
     def run(self):
         self.running = True
-        z=self.allSimulators
         for simulator in self.allSimulators:
-            simulationParallelThread.simulatorName = simulator.__name__.rsplit('.', 1)[-1]
-            simulationParallelThread.fullSimulatorResultPath = self.resultDir + '/' + simulationParallelThread.simulatorName
-            if os.path.isdir(simulationParallelThread.fullSimulatorResultPath) and self.deleteDir:
-                for file_object in os.listdir(simulationParallelThread.fullSimulatorResultPath):
-                    file_object_path = os.path.join(simulationParallelThread.fullSimulatorResultPath, file_object)
+            simulatorName = simulator.__name__.rsplit('.', 1)[-1]
+            fullSimulatorResultPath = self.resultDir + '/' + simulatorName
+            if os.path.isdir(fullSimulatorResultPath) and self.deleteDir:
+                for file_object in os.listdir(fullSimulatorResultPath):
+                    file_object_path = os.path.join(fullSimulatorResultPath, file_object)
                     if os.path.isfile(file_object_path):
                         os.unlink(file_object_path)
                     else:
                         shutil.rmtree(file_object_path)
 
-            if not os.path.isdir(simulationParallelThread.fullSimulatorResultPath):
-                os.makedirs(simulationParallelThread.fullSimulatorResultPath)
+            if not os.path.isdir(fullSimulatorResultPath):
+                os.makedirs(fullSimulatorResultPath)
                 
-            simulator.prepareSimulationList(self.modelList['fileName'],self.modelList['modelName'], self.config)
-            simulationParallelThread.y=simulator
-            simulationParallelThread.con=self.config
-            from multiprocessing import Pool
-            from multiprocessing.dummy import Pool as ThreadPool                             
-            pool = ThreadPool()
-            import time
+            '''create a new list of resultpath, config, and simulatorname to be pickled by the multiprocessing pool.map()'''
+            p=[]
+            c=[]
+            n=[]     
+            p.append(fullSimulatorResultPath)
+            c.append(self.config)
+            n.append(simulatorName)
+            
+            resultpath=p*len(self.modelList['modelName'])
+            config=c*len(self.modelList['modelName'])
+            simname=n*len(self.modelList['modelName'])
+            
+            '''create a list of directories for each model and run the simulation in their respective directory to avoid conflicts '''
+            dir=os.getcwd()
+            dirs=[]
+            for z in xrange(len(self.modelList['modelName'])):
+                s=str(self.modelList['modelName'][z])
+                np=os.path.join(dir,s).replace('\\','/')
+                if not os.path.exists(np): 
+                   os.mkdir(np)
+                dirs.append(np)
+            
+            pool=Pool()
             startTime = time.time()
-            pool.map(parallelsimulation, zip(self.modelList['fileName'],self.modelList['modelName'],self.modelList['tStart'],self.modelList['tStop'],self.modelList['tol'],self.modelList['nInterval'],self.modelList['includeEvents']))
+            pool.map(parallelsimulation, zip(self.modelList['fileName'],self.modelList['modelName'],self.modelList['tStart'],self.modelList['tStop'],self.modelList['tol'],self.modelList['nInterval'],self.modelList['includeEvents'],dirs,resultpath,config,simname))
             pool.close()
             pool.join()   
             elapsedTime = time.time() - startTime
             print elapsedTime         
             print "Parallel simulation completed"
             self.running = False
-
+            
+  
 def parallelsimulation(modellists):
-     print 'inside pack'  
+     'unpacks the modelists and run the simuations in parallel using the multiprocessing module'
      packname=[]
      packname.append(modellists[0])     
      modelname=modellists[1]    
@@ -774,14 +791,34 @@ def parallelsimulation(modellists):
      tolerance=modellists[4]
      interval=modellists[5]
      events=modellists[6]
+     dirname=modellists[7]
+     path=modellists[8]
+     config=modellists[9]
+     simulator=modellists[10]
      
-     simulator=simulationParallelThread.y       
-     config =simulationParallelThread.con
+     os.chdir(dirname)
      try:
-       model = simulator.Model(modelname, packname, config)
-       print 'pack1'
-       resultFileName = simulationParallelThread.fullSimulatorResultPath + '/' + modelname + '.' + model.integrationSettings.resultFileExtension
-       print 'pack2'
+       '''load the Simulator Module like this, depending on the simulator selected by the users as the pool.map() cannot pickle module types '''
+       if(simulator=='OpenModelica'):
+           import Plugins.Simulator.OpenModelica.OpenModelica as OpenModelica
+           model=OpenModelica.Model(modelname, packname, config)
+       if(simulator=='Dymola'):
+           import Plugins.Simulator.Dymola.Dymola as Dymola
+           model=Dymola.Model(modelname, packname, config)
+       if(simulator=='FMUSimulator'):
+           import Plugins.Simulator.FMUSimulator.FMUSimulator as FMUSimulator
+           model=FMUSimulator.Model(modelname, packname, config)
+       if(simulator=='FMUSimulatorDLR'):
+           import Plugins.Simulator.FMUSimulatorDLR.FMUSimulatorDLR as FMUSimulatorDLR
+           model=FMUSimulatorDLR.Model(modelname, packname, config)
+       if(simulator=='SimulationX'):
+           import Plugins.Simulator.SimulationX.SimulationX as SimulationX
+           model=SimulationX.Model(modelname, packname, config)
+       if(simulator=='Wolfram'):
+           import Plugins.Simulator.Wolfram.Wolfram as Wolfram
+           model=Wolfram.Model(modelname, packname, config)
+     
+       resultFileName = path + '/' + modelname + '.' + model.integrationSettings.resultFileExtension
        model.integrationSettings.startTime = tstart
        model.integrationSettings.stopTime  = tstop
        model.integrationSettings.errorToleranceRel = tolerance
@@ -789,17 +826,14 @@ def parallelsimulation(modellists):
        model.integrationSettings.gridPointsMode = 'NumberOf'
        model.integrationSettings.resultFileIncludeEvents = events
        model.integrationSettings.resultFileName = resultFileName     
-       print 'pack3'
-       print "Simulating %s by %s (result in %s)..." % (modelname,simulationParallelThread.simulatorName,resultFileName)
+       print "Simulating %s by %s (result in %s)..." % (modelname,simulator,resultFileName)
        model.simulate()
-       
-       print 'pack4'
        model.close()
      except Exception as e:
        import traceback
        traceback.print_exc(e,file=sys.stderr)
        print e
-
+       
 class simulationThread(QtCore.QThread):
     ''' Class for the simulation thread '''
     def __init__(self, parent):
@@ -847,6 +881,7 @@ class simulationThread(QtCore.QThread):
                                 globalPackageList.append(x)
 
                     packageName = []
+
             simulator.prepareSimulationList(globalPackageList, globalModelList, self.config)
             haveCOM = False
 
@@ -910,6 +945,7 @@ class simulationThread(QtCore.QThread):
                             print "WARNING: Simulator " + simulatorName + " cannot handle files ", packageName, " due to unknown file type(s)."
 
                         packageName = []
+                
             except:
                 pass
             finally:
@@ -1126,3 +1162,7 @@ def genregressionreport(logfile):
     
   else:
     print 'Directory rfiles does not exist, Run the the compare analysis first to get the Regression chart'  
+    
+    
+
+
