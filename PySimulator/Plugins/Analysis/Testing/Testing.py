@@ -756,7 +756,7 @@ class simulationThread(QtCore.QThread):
 
                                 Also guard against compilation failures when loading the model
                                 '''
-                                model = simulator.Model(modelName, packageName, self.config)
+                                model = simulator.getNewModel(modelName, packageName, self.config)
 
                                 resultFileName = fullSimulatorResultPath + '/' + modelName + '.' + model.integrationSettings.resultFileExtension
                                 model.integrationSettings.startTime = self.modelList['tStart'][i]

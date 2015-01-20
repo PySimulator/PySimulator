@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-Copyright (C) 2011-2014 German Aerospace Center DLR
+Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
@@ -121,18 +121,20 @@ class TreeVariable():
         self.attribute = attribute  # String
 
 
+def getNewModel(modelName=None, modelFileName=None, config=None):    
+    return Model(modelName, modelFileName, config)
 
 class Model():
     ''' This is the base class for a model of a Simulator plugin
     '''
 
-    def __init__(self, modelName, modelFileName, modelType, config):
+    def __init__(self, modelName, modelFileName, config):
         ''' Constructor initializes some class variables.
             Type of modelName, modelType:  String;     modelFileName: List of Strings
         '''
         self.fileName = modelFileName
         self.name = modelName
-        self.modelType = modelType  # e.g. 'None', 'FMI1.0', 'FMI2.0', 'Dymola', 'OpenModelica'
+        self.modelType = 'None' if modelFileName is None else None  # e.g. 'None', 'FMI1.0', 'FMI2.0', 'Dymola', 'OpenModelica'
         self.integrationSettings = IntegrationSettings()
         self.integrationStatistics = IntegrationStatistics()
         self.integrationResults = IntegrationResults.Results()

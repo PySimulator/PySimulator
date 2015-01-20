@@ -351,7 +351,7 @@ class SimulatorGui(QtGui.QMainWindow):
 
         self._chDir(os.path.dirname(fileName))
         try:
-            model = loaderplugin.Model(modelName, [fileName], self.config)
+            model = loaderplugin.getNewModel(modelName, [fileName], self.config)
             self._newModel(model)
         except Exception as e:
             import traceback
@@ -406,7 +406,7 @@ class SimulatorGui(QtGui.QMainWindow):
         sp = unicode.rsplit(fileName, '.', 1)
         modelName = unicode.rsplit(sp[0], '/', 1)[1]
         try:
-            model = Plugins.Simulator.SimulatorBase.Model(modelName, None, 'None', self.config)
+            model = Plugins.Simulator.SimulatorBase.Model(modelName, None, self.config)
             model.loadResultFile(fileName)
             model.integrationResultFileSemaphore = threading.Semaphore()
             self._newModel(model)
@@ -596,6 +596,9 @@ class SimulatorGui(QtGui.QMainWindow):
         self.models[numberedModelName].pluginData.clear()
 
     def closeEvent(self, event):
+        for model in self.models.itervalues():
+            model.close()
+        
         for pluginName, plugin in self.simulatorPlugins.items():  # and self.analysisPlugins
             try:
                 plugin.closeSimulatorPlugin()

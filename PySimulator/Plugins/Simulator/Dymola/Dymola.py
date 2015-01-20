@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-Copyright (C) 2011-2014 German Aerospace Center DLR
+Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
@@ -43,11 +43,15 @@ modelExtension = ['mo', 'moe', 'exe']
 def closeSimulatorPlugin():
     pass
 
+def getNewModel(modelName=None, modelFileName=None, config=None):    
+    return Model(modelName, modelFileName, config)
+
 class Model(Plugins.Simulator.SimulatorBase.Model):
 
     def __init__(self, modelName, modelFileName, config):
 
-        Plugins.Simulator.SimulatorBase.Model.__init__(self, modelName, modelFileName, 'Dymola', config)
+        Plugins.Simulator.SimulatorBase.Model.__init__(self, modelName, modelFileName, config)
+        self.modelType = 'Dymola'
 
         # A dummy object to get result properties:
         self.integrationResults = DymolaMat.Results('')

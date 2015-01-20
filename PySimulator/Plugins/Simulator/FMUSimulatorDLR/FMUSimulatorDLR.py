@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-Copyright (C) 2011-2014 German Aerospace Center DLR
+Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
@@ -40,11 +40,14 @@ import getpass
 import time
 import os
 import types
+import zipfile
+import xml.etree.ElementTree as etree
 from operator import itemgetter
 
 
 import Plugins.Simulator.FMUSimulator.FMUInterface as FMUInterface
 import Plugins.Simulator.FMUSimulator.FMIDescription as FMIDescription
+import Plugins.Simulator.FMUSimulator.FMUError as FMUError
 import Plugins.Simulator.SimulatorBase
 import Plugins.SimulationResult.IntegrationResults
 import Plugins.SimulationResult.Mtsf.Mtsf as Mtsf
@@ -66,6 +69,33 @@ def closeSimulatorPlugin():
 
 def prepareSimulationList(fileName, name, config):
     pass
+
+def getNewModel(modelName=None, modelFileName=None, config=None):  
+    
+    ''' Open the given fmu-file (read only)'''
+    try:
+        _file = zipfile.ZipFile(modelFileName[0], 'r')         
+    except BaseException as e:
+        raise FMUError.FMUError('Error when reading zip-file.\n' + str(e) + '\n')  
+        
+    ''' Read FMI description file (directly from zip-file)'''
+    try:
+        xmlFile = _file.open('modelDescription.xml')
+    except BaseException as e:
+        raise FMUError.FMUError('Error when reading modelDescription.xml\n' + str(e) + '\n')  
+            
+    try:
+        _document = etree.parse(xmlFile)
+    except BaseException as e:        
+        raise FMUError.FMUError('Error when parsing FMU\'s xml-file.\n' + str(e) + '\n')
+    
+    _docroot = _document.getroot()           
+    fmiVersion = _docroot.get('fmiVersion')        
+    if fmiVersion == "1.0":        
+        return Model(modelName, modelFileName, config)
+    elif fmiVersion == "2.0":
+        raise FMUError.FMUError("FMUs 2.0 not yet supported by FMUSimulator DLR.")
+       
 
 
 class Model(Plugins.Simulator.SimulatorBase.Model):
@@ -98,7 +128,8 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             self.description = self.interface.description
 
         # modelName will not be used, because the modelName of FMIDescription is used
-        Plugins.Simulator.SimulatorBase.Model.__init__(self, self.description.modelName, modelFileName, 'FMU1.0', config)
+        Plugins.Simulator.SimulatorBase.Model.__init__(self, self.description.modelName, modelFileName, config)
+        self.modelType = 'FMU1.0'
 
         # Dummy object to get properties
         self.integrationResults = Mtsf.Results('')
@@ -162,7 +193,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         '''
         self.interface.fmiSetTime(t)
         if self.description.numberOfContinuousStates == 0:
-            dx = numpy.ndarray([1, ])
+            dx = numpy.zeros([1, ])
         else:
             self.interface.fmiSetContinuousStates(x)
             dx = self.interface.fmiGetDerivatives()
@@ -581,7 +612,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
         # Retrieve initial state x
         if self.description.numberOfContinuousStates == 0:
-            x0 = numpy.ndarray([1, ])
+            x0 = numpy.zeros([1, ])
         else:
             x0 = self.interface.fmiGetContinuousStates()
         # x_nominal = numpy.array(self.interface.fmiGetNominalContinuousStates())
@@ -595,7 +626,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
             # Retrieve initial derivatives dx
             if self.description.numberOfContinuousStates == 0:
-                dx0 = numpy.ndarray([1, ])
+                dx0 = numpy.zeros([1, ])
             else:
                 dx0 = self.interface.fmiGetDerivatives()
 

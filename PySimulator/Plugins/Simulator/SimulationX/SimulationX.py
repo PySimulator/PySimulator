@@ -57,10 +57,14 @@ def closeSimulatorPlugin():
 def prepareSimulationList(fileName, name, config):
 	pass
 
+def getNewModel(modelName=None, modelFileName=None, config=None):    
+	return Model(modelName, modelFileName, config)
+
 class Model(Plugins.Simulator.SimulatorBase.Model):
 
 	def __init__(self, modelName, modelFileName, config):
-		Plugins.Simulator.SimulatorBase.Model.__init__(self, modelName, modelFileName, 'SimulationX', config)
+		Plugins.Simulator.SimulatorBase.Model.__init__(self, modelName, modelFileName, config)
+		self.modelType = 'SimulationX'
 
 		sim = None
 		self._doc = None
