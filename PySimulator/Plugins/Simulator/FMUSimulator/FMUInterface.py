@@ -171,17 +171,20 @@ class FMUInterface:
             binaryName += '64/'
         else:
             raise FMUError.FMUError('Unable to detect system architecture or architecture not supported.\n')
+        binaryDirectory = binaryName
         binaryName += modelName
         if platform.system() == 'Linux':
             binaryName += '.so'
         elif platform.system() == 'Windows':
             binaryName += '.dll'
-        return binaryName
+        return binaryName, binaryDirectory
 
     def _InstantiateModel(self):
         ''' unpacks the model binary and loads it into memory
         '''        
-        self._binaryName = os.path.join(self._tempDir, self._assembleBinaryName(self.description.modelIdentifier))       
+        self._binaryName, binaryDirectory = self._assembleBinaryName(self.description.modelIdentifier)
+        self._binaryName = os.path.join(self._tempDir, self._binaryName)
+        binaryDirectory = os.path.join(self._tempDir, binaryDirectory)  
 
         def _Logger(c, instanceName, status, category, message):
             if self._loggingOn:
@@ -207,8 +210,11 @@ class FMUInterface:
 
         ''' Load instance of library into memory '''
         try:
+            cdir = os.getcwdu()
+            os.chdir(binaryDirectory)
             self._libraryHandle = ctypes.cdll.LoadLibrary(self._binaryName)._handle
             self._library = ctypes.CDLL(self._binaryName, handle=self._libraryHandle)
+            os.chdir(cdir)            
         except BaseException as e:
             raise FMUError.FMUError('Error when loading binary from FMU.\n' + str(e) + '\n')
 
