@@ -5,7 +5,7 @@
 Copyright (C) 2011-2014 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
-Copyright (C) 2014 ITI GmbH
+Copyright (C) 2014-2015 ITI GmbH
 All rights reserved.
 
 This file is part of PySimulator.
@@ -57,8 +57,23 @@ def closeSimulatorPlugin():
 def prepareSimulationList(fileName, name, config):
 	pass
 
-def getNewModel(modelName=None, modelFileName=None, config=None):    
+def getNewModel(modelName=None, modelFileName=None, config=None):
 	return Model(modelName, modelFileName, config)
+
+def _isNumeric(s):
+	'''  Check if a string value can be successfully converted to a double value
+	'''
+	if not s:
+		# Empty string
+		return True
+	else:
+		try:
+			float(s)
+			return True
+		except ValueError:
+			return False
+		except TypeError:
+			return False
 
 class Model(Plugins.Simulator.SimulatorBase.Model):
 
@@ -223,21 +238,6 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 		if hasattr(self, '_IntegrationAlgorithmCanProvideStepSizeResults'):
 			del self._IntegrationAlgorithmCanProvideStepSizeResults
 
-	def _isNumeric(self, s):
-		'''  Check if a string value can be successfully converted to a double value
-		'''
-		if not s:
-			# Empty string
-			return True
-		else:
-			try:
-				float(s)
-				return True
-			except ValueError:
-				return False
-			except TypeError:
-				return False
-
 	def setVariableTree(self):
 		''' Generate variable tree
 		'''
@@ -260,108 +260,119 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			self._fillTree(pBaseEntity, doc)
 
 		for pChild in pObject.Children:
+			if pChild.Kind == simType:
+				continue
+			if pChild.GetProperty(simIsBaseClass) or pChild.GetProperty(simIsHidden) or pChild.GetProperty(simIsProtected) or pChild.GetProperty(simIsForCompat):
+				continue
+			childIsASimVariable = pChild.IsA(simVariable)
+			if ((pChild.IsA(simParameter) or pChild.IsA(simGeneralParameter)) and not childIsASimVariable) or (pChild.GetProperty(simIsInput) and childIsASimVariable):
+				# Parameter
+				self._fillTreeParam(pObject, doc, pChild)
+			elif childIsASimVariable:
+				# Result
+				self._fillTreeResult(pObject, doc, pChild)
+			if not pChild.GetProperty(simIsInner) and pChild.GetProperty(simIsOuter):
+				continue
+			childEntityClass = pChild.Class
+			if childEntityClass == simSimObject or childEntityClass == simSimBlock or childEntityClass == simConservConnection or childEntityClass == simFluidConnection or childEntityClass == simModelicaPin:
+				self._fillTree(pChild, doc)
+
+	def _fillTreeParam(self, pObject, doc, pChild):
+		''' Scan a SimulationX parameter object
+		'''
+		dim = pChild.Execute('GetDimension', [])[0]
+		if dim == '':
+			# Scalar dimension
+			childTypeIdent = pChild.Type.Ident
+			if not childTypeIdent == 'BuiltIn.BaseModel.ProtKind' and not childTypeIdent == 'StateSelect' and _isNumeric(pChild.Value):
+				childRelIdent = pChild.GetRelIdent(doc)
+				if (not pChild.Parent == doc and not pObject.Name.find('_base') == 0) or (not childRelIdent == 'iSim' and not childRelIdent == 'tStart' and not childRelIdent == 'tStop'):
+					childValue = pChild.Value
+					childValueEdit = True
+					childUnit = pChild.Unit
+					if childUnit == '-':
+						childUnit = None
+					childVariability = 'fixed'
+					childVariableAttr = ''
+					childComment = pChild.comment
+					if childComment != '':
+						childVariableAttr += 'Description:' + chr(9) + childComment + '\n'
+					childVariableAttr += 'Causality:' + chr(9) + 'parameter' + '\n'
+					childVariableAttr += 'Variability:' + chr(9) + childVariability  # + '\n'
+					self.variableTree.variable[childRelIdent] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent), childValue, childValueEdit, childUnit, childVariability, childVariableAttr)
+		elif _isNumeric(dim):
+			# Fixed vector dimension
+			childTypeIdent = pChild.Type.Ident
+			if not childTypeIdent == 'BuiltIn.BaseModel.ProtKind' and not childTypeIdent == 'StateSelect':
+				childRelIdent = pChild.GetRelIdent(doc)
+				if (not pChild.Parent == doc and not pObject.Name.find('_base') == 0) or (not childRelIdent == 'iSim' and not childRelIdent == 'tStart' and not childRelIdent == 'tStop'):
+					dim = int(dim)
+					childValue = pChild.Value
+					childValue = re.sub('[\{\}\[\] ]', '', childValue)
+					childValue = childValue.replace(';', ',')
+					childValueList = childValue.split(',')
+					if len(childValueList) == dim:
+						childValueEdit = True
+						childUnit = pChild.Unit
+						if childUnit == '-':
+							childUnit = None
+						childVariability = 'fixed'
+						childVariableAttr = ''
+						childComment = pChild.Comment
+						if childComment != '':
+							childVariableAttr += 'Description:' + chr(9) + childComment + '\n'
+						childVariableAttr += 'Causality:' + chr(9) + 'parameter' + '\n'
+						childVariableAttr += 'Variability:' + chr(9) + childVariability  # + '\n'
+						for i in range(1, dim + 1):
+							if _isNumeric(childValueList[i - 1]):
+								self.variableTree.variable[childRelIdent + '[' + str(i) + ']'] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent + '[' + str(i) + ']'), childValueList[i - 1], childValueEdit, childUnit, childVariability, childVariableAttr)
+
+	def _fillTreeResult(self, pObject, doc, pChild):
+		''' Scan a SimulationX result object
+		'''
+		dim = pChild.Execute('GetDimension', [])[0]
+		if dim == '':
+			# Scalar dimension
 			childRelIdent = pChild.GetRelIdent(doc)
-			if not pChild.Kind == simType:
-				if not pChild.GetProperty(simIsBaseClass) and not pChild.GetProperty(simIsHidden) and not pChild.GetProperty(simIsProtected) and not pChild.GetProperty(simIsForCompat):
-					childIsASimVariable = pChild.IsA(simVariable)
-					if ((pChild.IsA(simParameter) or pChild.IsA(simGeneralParameter)) and not childIsASimVariable) or (pChild.GetProperty(simIsInput) and childIsASimVariable):
-						# Parameter
-						dim = pChild.Execute('GetDimension', [])[0]
-						if dim == '':
-							# Scalar dimension
-							childTypeIdent = pChild.Type.Ident
-							if not childTypeIdent == 'BuiltIn.BaseModel.ProtKind' and not childTypeIdent == 'StateSelect' and self._isNumeric(pChild.Value):
-								childRelIdent = pChild.GetRelIdent(doc)
-								if (not pChild.Parent == doc and not pObject.Name.find('_base') == 0) or (not childRelIdent == 'iSim' and not childRelIdent == 'tStart' and not childRelIdent == 'tStop'):
-									childValue = pChild.Value
-									childValueEdit = True
-									childUnit = pChild.Unit
-									if childUnit == '-':
-										childUnit = None
-									childVariability = 'fixed'
-									childVariableAttr = ''
-									childComment = pChild.comment
-									if childComment != '':
-										childVariableAttr += 'Description:' + chr(9) + childComment + '\n'
-									childVariableAttr += 'Causality:' + chr(9) + 'parameter' + '\n'
-									childVariableAttr += 'Variability:' + chr(9) + childVariability  # + '\n'
-									self.variableTree.variable[childRelIdent] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent), childValue, childValueEdit, childUnit, childVariability, childVariableAttr)
-						elif self._isNumeric(dim):
-							# Fixed vector dimension
-							childTypeIdent = pChild.Type.Ident
-							if not childTypeIdent == 'BuiltIn.BaseModel.ProtKind' and not childTypeIdent == 'StateSelect':
-								childRelIdent = pChild.GetRelIdent(doc)
-								if (not pChild.Parent == doc and not pObject.Name.find('_base') == 0) or (not childRelIdent == 'iSim' and not childRelIdent == 'tStart' and not childRelIdent == 'tStop'):
-									dim = int(dim)
-									childValue = pChild.Value
-									childValue = re.sub('[\{\}\[\] ]', '', childValue)
-									childValue = childValue.replace(';', ',')
-									childValueList = childValue.split(',')
-									if len(childValueList) == dim:
-										childValueEdit = True
-										childUnit = pChild.Unit
-										if childUnit == '-':
-											childUnit = None
-										childVariability = 'fixed'
-										childVariableAttr = ''
-										childComment = pChild.Comment
-										if childComment != '':
-											childVariableAttr += 'Description:' + chr(9) + childComment + '\n'
-										childVariableAttr += 'Causality:' + chr(9) + 'parameter' + '\n'
-										childVariableAttr += 'Variability:' + chr(9) + childVariability  # + '\n'
-										for i in range(1, dim + 1):
-											if self._isNumeric(childValueList[i - 1]):
-												self.variableTree.variable[childRelIdent + '[' + str(i) + ']'] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent + '[' + str(i) + ']'), childValueList[i - 1], childValueEdit, childUnit, childVariability, childVariableAttr)
-					elif childIsASimVariable:
-						# Result
-						dim = pChild.Execute('GetDimension', [])[0]
-						if dim == '':
-							# Scalar dimension
-							childRelIdent = pChild.GetRelIdent(doc)
-							if (not pChild.Parent == doc and not pObject.Name.find('_base') == 0) or (not childRelIdent == 't' and not childRelIdent == 'dt' and not childRelIdent == 'solverInfo' and not childRelIdent == 'lambdaHomotopy'):
-								childValue = None
-								childValueEdit = False
-								childUnit = pChild.Unit
-								if childUnit == '-':
-									childUnit = None
-								if (pChild.GetProperty(simIsDiscrete)):
-									childVariability = 'discrete'
-								else:
-									childVariability = 'continuous'
-								childVariableAttr = ''
-								childComment = pChild.Comment
-								if childComment != '' :
-									childVariableAttr += 'Description:' + chr(9) + childComment + '\n'
-								childVariableAttr += 'Causality:' + chr(9) + 'state' + '\n'
-								childVariableAttr += 'Variability:' + chr(9) + childVariability  # + '\n'
-								self.variableTree.variable[childRelIdent] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent), childValue, childValueEdit, childUnit, childVariability, childVariableAttr)
-						elif self._isNumeric(dim):
-							# Fixed vector dimension
-							childRelIdent = pChild.GetRelIdent(doc)
-							if (not pChild.Parent == doc and not pObject.Name.find('_base') == 0) or (not childRelIdent == 't' and not childRelIdent == 'dt' and not childRelIdent == 'solverInfo' and not childRelIdent == 'lambdaHomotopy'):
-								dim = int(dim)
-								childValue = None
-								childValueEdit = False
-								childUnit = pChild.Unit
-								if childUnit == '-':
-									childUnit = None
-								if (pChild.GetProperty(simIsDiscrete)):
-									childVariability = 'discrete'
-								else:
-									childVariability = 'continuous'
-								childVariableAttr = ''
-								childComment = pChild.Comment
-								if childComment != '':
-									childVariableAttr += 'Description:' + chr(9) + childComment + '\n'
-								childVariableAttr += 'Causality:' + chr(9) + 'state' + '\n'
-								childVariableAttr += 'Variability:' + chr(9) + childVariability  # + '\n'
-								for i in range(1, dim + 1):
-									self.variableTree.variable[childRelIdent + '[' + str(i) + ']'] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent + '[' + str(i) + ']'), childValue, childValueEdit, childUnit, childVariability, childVariableAttr)
-					childIsOuter = pChild.GetProperty(simIsOuter)
-					if not childIsOuter or (childIsOuter and pChild.GetProperty(simIsInner)):
-						childEntityClass = pChild.Class
-						if childEntityClass == simSimObject or childEntityClass == simSimBlock or childEntityClass == simConservConnection or childEntityClass == simFluidConnection or childEntityClass == simModelicaPin:
-							self._fillTree(pChild, doc)
+			if (not pChild.Parent == doc and not pObject.Name.find('_base') == 0) or (not childRelIdent == 't' and not childRelIdent == 'dt' and not childRelIdent == 'solverInfo' and not childRelIdent == 'lambdaHomotopy'):
+				childValue = None
+				childValueEdit = False
+				childUnit = pChild.Unit
+				if childUnit == '-':
+					childUnit = None
+				if (pChild.GetProperty(simIsDiscrete)):
+					childVariability = 'discrete'
+				else:
+					childVariability = 'continuous'
+				childVariableAttr = ''
+				childComment = pChild.Comment
+				if childComment != '' :
+					childVariableAttr += 'Description:' + chr(9) + childComment + '\n'
+				childVariableAttr += 'Causality:' + chr(9) + 'state' + '\n'
+				childVariableAttr += 'Variability:' + chr(9) + childVariability  # + '\n'
+				self.variableTree.variable[childRelIdent] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent), childValue, childValueEdit, childUnit, childVariability, childVariableAttr)
+		elif _isNumeric(dim):
+			# Fixed vector dimension
+			childRelIdent = pChild.GetRelIdent(doc)
+			if (not pChild.Parent == doc and not pObject.Name.find('_base') == 0) or (not childRelIdent == 't' and not childRelIdent == 'dt' and not childRelIdent == 'solverInfo' and not childRelIdent == 'lambdaHomotopy'):
+				dim = int(dim)
+				childValue = None
+				childValueEdit = False
+				childUnit = pChild.Unit
+				if childUnit == '-':
+					childUnit = None
+				if (pChild.GetProperty(simIsDiscrete)):
+					childVariability = 'discrete'
+				else:
+					childVariability = 'continuous'
+				childVariableAttr = ''
+				childComment = pChild.Comment
+				if childComment != '':
+					childVariableAttr += 'Description:' + chr(9) + childComment + '\n'
+				childVariableAttr += 'Causality:' + chr(9) + 'state' + '\n'
+				childVariableAttr += 'Variability:' + chr(9) + childVariability  # + '\n'
+				for i in range(1, dim + 1):
+					self.variableTree.variable[childRelIdent + '[' + str(i) + ']'] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent + '[' + str(i) + ']'), childValue, childValueEdit, childUnit, childVariability, childVariableAttr)
 
 	def getReachedSimulationTime(self):
 		''' Read the current simulation time during a simulation
@@ -453,7 +464,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 				value = doc.Parameters(name[0:i]).Value
 				n = name[i:]
 				n = re.sub('[\[\]]', '', n)
-				if self._isNumeric(n):
+				if _isNumeric(n):
 					n = int(n)
 					value = re.sub('[\{\}\[\] ]', '', value)
 					value = value.replace(';', ',')
@@ -500,7 +511,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 						if childValue == '':
 							childValue = 0
 						paramValue.append(childValue)
-				elif self._isNumeric(dim):
+				elif _isNumeric(dim):
 					# Fixed vector dimension
 					dim = int(dim)
 					childValue = re.sub('[\{\}\[\] ]', '', childValue)
@@ -508,7 +519,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 					childValueList = childValue.split(',')
 					if len(childValueList) == dim:
 						for i in range(1, dim + 1):
-							if self._isNumeric(childValueList[i - 1]):
+							if _isNumeric(childValueList[i - 1]):
 								childCompName = childRelIdent + '[' + str(i) + ']'
 								if not childCompName in paramName:
 									paramName.append(childCompName)
