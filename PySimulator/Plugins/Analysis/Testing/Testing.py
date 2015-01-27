@@ -38,7 +38,7 @@ import Plugins.Simulator.SimulatorBase as SimulatorBase
 import Plugins.SimulationResult as SimulationResult
 from multiprocessing import Pool
 
-def compareResults(filewritehtml,resultfile,htmlfile,model1, model2, tol=1e-3, fileOutput=sys.stdout):
+def compareResults(dircount,filewritehtml,resultfile,htmlfile,model1, model2, tol=1e-3, fileOutput=sys.stdout):
     def prepareMatrix(t, y):
         if t is None or y is None:
             print "Not supported to prepare None-vector/matrix."
@@ -163,7 +163,7 @@ def compareResults(filewritehtml,resultfile,htmlfile,model1, model2, tol=1e-3, f
                               c2 = var2[z].column
                               l1.append(c1)
                               l2.append(c2)
-                           generatehtml(f1,f2,diff,l1,l2,htmlfile,resultfile)
+                           generatehtml(f1,f2,diff,l1,l2,htmlfile,resultfile,dircount)
                                       
 #    if len(allNamesOnce1) > 0:
 #        print "The following variables are not contained in file " + model2.integrationResults.fileName + ":"
@@ -193,26 +193,18 @@ def compareResults(filewritehtml,resultfile,htmlfile,model1, model2, tol=1e-3, f
 
     print "... done."
     ''' Function call to generate the overview report'''
-    htmloverview(filewritehtml,resultfile,htmlfile,diff)
+    htmloverview(filewritehtml,resultfile,htmlfile,diff,dircount)
 
     return
 
 
-def counter(func):
-    def tmp(*args, **kwargs):
-        tmp.count += 1
-        return func(*args, **kwargs)
-    tmp.count = 0
-    return tmp   
-
-
-def htmloverview(fileouthtml,resultfile,file,diff):
+def htmloverview(fileouthtml,resultfile,file,diff,dircount):
     '''This function is used to present the users with the overall comparison report of different models, The report includes, for each model the number of variables 
        differed, and a link is provided to inspect the differed variables, if there are no differed variables then no link is provided '''
     os.getcwd()
-    modelname=os.path.basename(file).replace('.mat',' ')
-    x=runCompareResultsInDirectories.count       
-    modelname1=modelname+'res'+str(x)
+    filename,fileExtension = os.path.splitext(file)
+    modelname=os.path.basename(file).replace(fileExtension,' ')
+    modelname1=modelname+'res'+str(dircount)
     p=os.path.dirname(resultfile)
     os.chdir(p)
     filename=os.path.join(p,modelname1.replace(' ',''))
@@ -260,12 +252,12 @@ def checkrows(model):
    return model
     
     
-def generatehtml(model1,model2,namesBoth,col1var,col2var,htmlfile,resultfile):
+def generatehtml(model1,model2,namesBoth,col1var,col2var,htmlfile,resultfile,dircount):
     '''This function is used to fetch the array of data from mat files and create the html graph for the differed variables which can be viewed in browser'''
-    #get the modelname of the file                   
-    report=os.path.basename(str(htmlfile)).replace('.mat',' ')
-    x=runCompareResultsInDirectories.count       
-    err=report+'res'+str(x)
+    #get the modelname of the file
+    filename,fileExtension = os.path.splitext(htmlfile)
+    report=os.path.basename(str(htmlfile)).replace(fileExtension,' ')
+    err=report+'res'+str(dircount)
     report1='\''+report+'\''
     #create a new directory for the result_files which differ
     path=os.path.dirname(os.path.abspath(str(resultfile)))
@@ -771,12 +763,12 @@ class simulationParallelThread(QtCore.QThread):
                 dirs.append(np)
             
             pool=Pool()
-            startTime = time.time()
+            #startTime = time.time()
             pool.map(parallelsimulation, zip(self.modelList['fileName'],self.modelList['modelName'],self.modelList['tStart'],self.modelList['tStop'],self.modelList['tol'],self.modelList['nInterval'],self.modelList['includeEvents'],dirs,resultpath,config,simname))
             pool.close()
             pool.join()   
-            elapsedTime = time.time() - startTime
-            print elapsedTime         
+            #elapsedTime = time.time() - startTime
+            #print elapsedTime         
             print "Parallel simulation completed"
             self.running = False
             
@@ -881,7 +873,6 @@ class simulationThread(QtCore.QThread):
                                 globalPackageList.append(x)
 
                     packageName = []
-
             simulator.prepareSimulationList(globalPackageList, globalModelList, self.config)
             haveCOM = False
 
@@ -945,7 +936,6 @@ class simulationThread(QtCore.QThread):
                             print "WARNING: Simulator " + simulatorName + " cannot handle files ", packageName, " due to unknown file type(s)."
 
                         packageName = []
-                
             except:
                 pass
             finally:
@@ -954,11 +944,11 @@ class simulationThread(QtCore.QThread):
                         pythoncom.CoUninitialize()  # Close the COM library on the current thread
                     except:
                         pass
-
+                        
         print "... running the list of simulations done."
         self.running = False
         
-@counter        
+        
 def runCompareResultsInDirectories(PySimulatorPath, dir1, listdirs, tol, logFile):
 
     print "Start comparing results ..."
@@ -991,8 +981,8 @@ class CompareThread(QtCore.QThread):
       listdirs=self.listdirs
       files1 = os.listdir(dir1)  
       fileOut = open(self.logFile, 'w')       
-      for z in xrange(len(listdirs)):
-        dir2=listdirs[z]    
+      for dircount in xrange(len(listdirs)):
+        dir2=listdirs[dircount]    
         files2 = os.listdir(dir2)
         
         modelName1 = []
@@ -1052,7 +1042,7 @@ class CompareThread(QtCore.QThread):
                 model1.loadResultFile(file1)
                 model2 = SimulatorBase.Model(None, None, None, None)
                 model2.loadResultFile(file2)
-                compareResults(fileOuthtml,self.logFile,file2,model1, model2, self.tol, fileOut)
+                compareResults(dircount,fileOuthtml,self.logFile,file2,model1, model2, self.tol, fileOut)
                 
         fileOuthtml.close()
         '''open the html file to check the html tags are correctly closed for proper display of table and add headers'''
@@ -1072,7 +1062,7 @@ class CompareThread(QtCore.QThread):
         
         newpath=os.path.dirname(logfile1)
         name=os.path.basename(logfile1)
-        newname=''.join([str(z),name])
+        newname=''.join([str(dircount),name])
         np1=os.path.join(newpath,'rfiles').replace('\\','/')
         np2=os.path.join(np1,newname).replace('\\','/')
         
