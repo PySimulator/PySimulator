@@ -763,12 +763,9 @@ class simulationParallelThread(QtCore.QThread):
                 dirs.append(np)
             
             pool=Pool()
-            #startTime = time.time()
             pool.map(parallelsimulation, zip(self.modelList['fileName'],self.modelList['modelName'],self.modelList['tStart'],self.modelList['tStop'],self.modelList['tol'],self.modelList['nInterval'],self.modelList['includeEvents'],dirs,resultpath,config,simname))
             pool.close()
             pool.join()   
-            #elapsedTime = time.time() - startTime
-            #print elapsedTime         
             print "Parallel simulation completed"
             self.running = False
             
