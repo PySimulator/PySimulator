@@ -41,7 +41,7 @@ import platform
 import re
 import tempfile
 import zipfile
-import os
+
 import numpy
 
 from FMIDescription import FMIDescription
@@ -211,7 +211,6 @@ class FMUInterface:
 
         ''' Load instance of library into memory '''
         try:
-            os.chdir(os.path.dirname(self._tmpfile.name))
             self._libraryHandle = ctypes.cdll.LoadLibrary(self._tmpfile.name)._handle
             self._library = ctypes.CDLL(self._tmpfile.name, handle=self._libraryHandle)
         except BaseException as e:
