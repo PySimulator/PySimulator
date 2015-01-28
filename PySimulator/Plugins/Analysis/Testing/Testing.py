@@ -37,7 +37,7 @@ import Plugins.Simulator.SimulatorBase as SimulatorBase
 import Plugins.SimulationResult as SimulationResult
 
 
-def compareResults(filewritehtml,resultfile,htmlfile,model1, model2, tol=1e-3, fileOutput=sys.stdout):
+def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout, filewritehtml=None,resultfile=None,htmlfile=None):
     def prepareMatrix(t, y):
         if t is None or y is None:
             print "Not supported to prepare None-vector/matrix."
@@ -101,9 +101,9 @@ def compareResults(filewritehtml,resultfile,htmlfile,model1, model2, tol=1e-3, f
                 t1, f1 = prepareMatrix(t1, f1)
             for j in xrange(model2.integrationResults.nTimeSeries):
                 if len(timeSeries2Names[j]) > 0:
-                    check1= set(timeSeries1Names[i])
-                    check2= set(timeSeries2Names[j])
-                    namesBothSub = list(set(timeSeries1Names[i]) & set(timeSeries2Names[j]))
+                    check1 = set(timeSeries1Names[i])
+                    check2 = set(timeSeries2Names[j])
+                    namesBothSub = list(check1 & check2)
     
                     # These variable names are considered in the following:
                     if len(namesBothSub) > 0:
@@ -121,7 +121,7 @@ def compareResults(filewritehtml,resultfile,htmlfile,model1, model2, tol=1e-3, f
                             k = k + 1
                                           
                         t2 = model2.integrationResults.timeSeries[j].independentVariable
-                        f2 = model2.integrationResults.timeSeries[i].data
+                        f2 = model2.integrationResults.timeSeries[j].data
                         
                         if model2.integrationResults.timeSeries[j].interpolationMethod == "constant" and t2 is not None:
                             if pMatrix2[j] is None:
@@ -130,10 +130,10 @@ def compareResults(filewritehtml,resultfile,htmlfile,model1, model2, tol=1e-3, f
                             else:
                                 t2 = pMatrix2[j][0]
                                 f2 = pMatrix2[j][1]
-                        result = [var for var in namesBothSub if 'Time' in var] 
+                        #result = [var for var in namesBothSub if 'Time' in var]
                         
                         identical, estTol, error = Compare.Compare(t1, f1, i1, s1, t2, f2, i2, s2, tol)
-                                  
+                              
                         if error:
                             message = u"Error during comparison of results."
                             fileOutput.write(message + u"\n")
@@ -152,18 +152,20 @@ def compareResults(filewritehtml,resultfile,htmlfile,model1, model2, tol=1e-3, f
                                 message = u"Results for " + namesBothSub[m] + u" are NOT identical within the tolerance " + unicode(tol) + u"; estimated Tolerance = " + unicode(estTol[m])
                                 diff.append(namesBothSub[m])
                                 fileOutput.write(message + u"\n")
-                        
+                    
                         '''Pass the numpy matrix data to generate the html graph in the browser'''        
-                        if (len(diff)!=0):
-                           l2=[]
-                           l1=[]
-                           for z in diff:
-                              c1 = var1[z].column
-                              c2 = var2[z].column
-                              l1.append(c1)
-                              l2.append(c2)
-                           generatehtml(f1,f2,diff,l1,l2,htmlfile,resultfile)
-                                      
+                        if htmlfile is not None:
+                            if (len(diff)!=0):
+                                l2=[]
+                                l1=[]
+                                for z in diff:
+                                    c1 = var1[z].column
+                                    c2 = var2[z].column
+                                    l1.append(c1)
+                                    l2.append(c2)
+                                generatehtml(f1,f2,diff,l1,l2,htmlfile,resultfile)
+                        
+                                  
 #    if len(allNamesOnce1) > 0:
 #        print "The following variables are not contained in file " + model2.integrationResults.fileName + ":"
 #    for variableName in allNamesOnce1:
@@ -192,7 +194,8 @@ def compareResults(filewritehtml,resultfile,htmlfile,model1, model2, tol=1e-3, f
 
     print "... done."
     ''' Function call to generate the overview report'''
-    htmloverview(filewritehtml,resultfile,htmlfile,diff)
+    if htmlfile is not None:
+        htmloverview(filewritehtml,resultfile,htmlfile,diff)
 
     return
 
@@ -649,7 +652,7 @@ def runListSimulation(PySimulatorPath, setupFile, resultDir, allSimulators, dele
         if absPath <> "" and not os.path.isabs(absPath):
             absPath = os.path.normpath(os.path.join(os.path.split(setupFile)[0], absPath)).replace('\\', '/')
         if len(x) == 7:
-            modelList[i] = (absPath, x[1], float(x[2]), float(x[3]), float(x[4]), int(x[5]), True if x[6] == 'True' else False)
+            modelList[i] = (absPath, x[1], float(x[2]), float(x[3]), float(x[4]), int(x[5]), True if x[6].lower() == 'true' else False)
         else:
             modelList['fileName'][i] = absPath
 
@@ -816,6 +819,16 @@ class CompareThread(QtCore.QThread):
         
     def run(self):
       self.running = True
+      
+      try:
+        import pydevd
+        pydevd.connected = True
+        pydevd.settrace(suspend=False)
+      except:
+        # do nothing, since error message only indicates we are not in debug mode
+        pass
+      
+      
       encoding = sys.getfilesystemencoding()
       dir1 = self.dir1
       listdirs=self.listdirs
@@ -830,7 +843,7 @@ class CompareThread(QtCore.QThread):
         fileName1 = []
         for fileName in files1:
             splits = fileName.rsplit('.', 1)
-            print splits
+            #print splits
             if len(splits) > 1:
                 if splits[1] in SimulationResult.fileExtension:
                     modelName1.append(splits[0])
@@ -879,11 +892,11 @@ class CompareThread(QtCore.QThread):
 
                 file1 = dir1 + '/' + fileName1[index]
                 file2 = dir2 + '/' + fileName2[i]
-                model1 = SimulatorBase.Model(None, None, None, None)
+                model1 = SimulatorBase.Model(None, None, None)
                 model1.loadResultFile(file1)
-                model2 = SimulatorBase.Model(None, None, None, None)
+                model2 = SimulatorBase.Model(None, None, None)
                 model2.loadResultFile(file2)
-                compareResults(fileOuthtml,self.logFile,file2,model1, model2, self.tol, fileOut)
+                compareResults(model1, model2, self.tol, fileOut, fileOuthtml,self.logFile,file2)
                 
         fileOuthtml.close()
         '''open the html file to check the html tags are correctly closed for proper display of table and add headers'''
