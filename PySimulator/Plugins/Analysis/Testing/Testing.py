@@ -512,10 +512,7 @@ def compareListMenu(model, gui):
             mainGrid.addWidget(self.closeButton, 7, 2)
             self.closeButton.clicked.connect(self._close_)
             
-            self.RegressionButton = QtGui.QPushButton("Regression Chart", self)
-            mainGrid.addWidget(self.RegressionButton, 8, 1)
-            self.RegressionButton.clicked.connect(self.regressionreport)
-
+            
             def _browseDir1Do():
                 dirName = QtGui.QFileDialog().getExistingDirectory(self, 'Open Directory of Results', os.getcwd())
                 dirName = dirName.replace('\\', '/')
@@ -585,10 +582,6 @@ def compareListMenu(model, gui):
                 if gui._compareThreadTesting.running:
                     gui._compareThreadTesting.stopRequest = True
                     print "Try to cancel comparing results files ..."
-       
-        def regressionreport(self):
-            logFile = self.resultEdit.text()
-            genregressionreport(logFile)
 
     # Code of function
     control = CompareListControl()
@@ -1068,10 +1061,16 @@ class CompareThread(QtCore.QThread):
            os.mkdir(np1)
         shutil.copy(logfile1,np2)
                      
-      #print "... running the analysis done."
       fileOut.close()
-      import ctypes 
-      ctypes.windll.user32.MessageBoxA(0, "running the analysis done", "Compare Analysis", 0)
+      print "... Running the analysis done."
+      #import ctypes 
+      #ctypes.windll.user32.MessageBoxA(0, "running the analysis done", "Compare Analysis", 0)
+      if(len(listdirs)>1):
+          genregressionreport(self.logFile)
+      else:
+          print "Comparison report generated"
+          webbrowser.open(logfile1)       
+
       self.running = False
 
 
@@ -1148,7 +1147,7 @@ def genregressionreport(logfile):
     webbrowser.open(logfile1)       
     
   else:
-    print 'Directory rfiles does not exist, Run the the compare analysis first to get the Regression chart'  
+    print 'Regression Report failed'  
     
     
 
