@@ -46,7 +46,7 @@ import shutil
 
 import numpy
 
-from FMIDescription import FMIDescription
+from FMIDescription1 import FMIDescription
 import FMUError
 
 
