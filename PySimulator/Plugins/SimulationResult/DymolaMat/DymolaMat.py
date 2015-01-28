@@ -97,7 +97,8 @@ class Results(IntegrationResults.Results):
         name = fileData["name"]
         description = fileData["description"]
         dataInfo = fileData["dataInfo"]
-        data = [ fileData["data_1"], fileData["data_2"][:, :-1] ]
+        #data = [ fileData["data_1"], fileData["data_2"][:, :-1] ]
+        data = [ fileData["data_1"], fileData["data_2"] ]
 
         # Transpose the data, if necessary
         if len(Aclass) > 3 and Aclass[3] == "binTrans":
