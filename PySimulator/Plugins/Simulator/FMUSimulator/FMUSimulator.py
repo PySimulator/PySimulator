@@ -528,6 +528,9 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         def finalize(solver):
             ''' Function that is called at the end of the simulation
             '''
+            if solver is not None and 'Discrete' in self.integrationResults._mtsf.results.series:
+                # Write discrete Variables
+                writeResults('Discrete', solver.t)
             # Terminate simulation in model
             self.interface.fmiTerminate()
             self.interface.freeModelInstance()
@@ -553,11 +556,11 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             self.interface.fmiSetTime(solver.t)
             if not self.description.numberOfContinuousStates == 0:
                 self.interface.fmiSetContinuousStates(solver.y)
-
+            
             # handle_result(solver, solver.t, solver.y) here if your solver does not call it by itself(Assimulo does)
 
             # Do the event updates
-            eventInfo = self.interface.fmiEventUpdate(fmiFalse)
+            eventInfo = self.interface.fmiEventUpdate(False)
             if eventInfo.upcomingTimeEvent == fmiTrue:
                 simulator.nextTimeEvent = eventInfo.nextEventTime
             else:
@@ -569,9 +572,8 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             if eventInfo.terminateSimulation == fmiTrue:
                 print("terminated by model ... ")
                 # Raise exception to abort simulation...
-                finalize(None)
-                raise(Plugins.Simulator.SimulatorBase.Stopping)
-
+                finalize(solver)
+                raise(Plugins.Simulator.SimulatorBase.Stopping)          
 
             # handle_result(solver, solver.t, solver.y) here if your solver does not call it by itself(Assimulo does)
 
