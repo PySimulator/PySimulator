@@ -189,8 +189,7 @@ def compareResults(dircount,filewritehtml,resultfile,htmlfile,model1, model2, to
         fileOutput.write(message + u"\n")
     message = u"Maximum estimated tolerance = " + unicode(maxEstTol)
     # print message
-    fileOutput.write(message + u"\n")
-
+    fileOutput.write(message + u"\n")    
     print "... done."
     ''' Function call to generate the overview report'''
     htmloverview(filewritehtml,resultfile,htmlfile,diff,dircount)
@@ -1033,7 +1032,11 @@ class CompareThread(QtCore.QThread):
                 model2 = SimulatorBase.Model(None, None, None, None)
                 model2.loadResultFile(file2)
                 compareResults(dircount,fileOuthtml,self.logFile,file2,model1, model2, self.tol, fileOut)
-                
+        
+        fileOut.write('\n')    
+        fileOut.write("******* Compare Analysis Completed   *******" + u"\n")
+        fileOut.write('\n')    
+        
         fileOuthtml.close()
         '''open the html file to check the html tags are correctly closed for proper display of table and add headers'''
         with open(logfile1) as myfile:
@@ -1122,8 +1125,8 @@ def genregressionreport(logfile):
     for i in xrange(len(hreflist[0])):                       
       if(i%2==0):
          x=get_column(i,hreflist)
-         x1=x[0].find('a').string             
-         s='\n'.join(['<tr>','<td>',x1,'</td>'])
+         x1=x[0].find('a')  
+         s='\n'.join(['<tr>','<td>',str(x1),'</td>'])
          f.write(s)
          f.write('\n')
          
