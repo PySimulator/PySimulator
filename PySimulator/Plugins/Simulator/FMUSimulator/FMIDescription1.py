@@ -201,6 +201,8 @@ class FMIDescription:
                 self._parseDefaultExperiment(child)
             elif child.tag == 'ModelVariables':
                 self._parseModelVariables(child)
+            elif child.tag == 'Implementation':
+                print("Warning: It seems that FMU 1.0 contains a model for CoSimulation. CoSimulation for FMI 1.0 is not supported here. Maybe the FMU also contains functions for Model Exchange.")
             else:
                 print('Unknown tag in FMI Model: %s\n' % child.tag)
 

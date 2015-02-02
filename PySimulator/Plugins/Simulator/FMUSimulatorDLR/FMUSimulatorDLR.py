@@ -129,7 +129,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
         # modelName will not be used, because the modelName of FMIDescription is used
         Plugins.Simulator.SimulatorBase.Model.__init__(self, self.description.modelName, modelFileName, config)
-        self.modelType = 'FMU1.0 Model Exchange'
+        self.modelType = 'FMU 1.0 Model Exchange in FMUSimulatorDLR'
 
         # Dummy object to get properties
         self.integrationResults = Mtsf.Results('')

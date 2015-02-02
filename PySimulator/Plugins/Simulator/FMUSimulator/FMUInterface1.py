@@ -152,7 +152,10 @@ class FMUInterface:
 
         self._InstantiateModel()
         self._file.close()
-        self._createCInterface()
+        try:
+            self._createCInterface()
+        except:
+            raise FMUError.FMUError('Cannot find all interface functions for Model Exchange in the FMU binary. CoSimulation for FMI 1.0 is not supported here.\n')
 
     def _assembleBinaryName(self, modelName):
         ''' Creates the path within the fmu-file for the binary according to current architecture

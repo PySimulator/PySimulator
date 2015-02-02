@@ -76,7 +76,9 @@ def getNewModel(modelName=None, modelFileName=None, config=None):
         import FMUSimulator1        
         return FMUSimulator1.Model(modelName, modelFileName, config)
     elif fmiVersion == "2.0":
-        #import FMUSimulator2
-        #return FMUSimulator2.Model(modelName, modelFileName, config)
-        raise FMUError.FMUError("FMUs 2.0 not yet supported by FMUSimulator.")
+        try:
+            import FMUSimulator2
+        except:
+            raise FMUError.FMUError("FMUs 2.0 not yet supported by FMUSimulator.")        
+        return FMUSimulator2.Model(modelName, modelFileName, config)
 

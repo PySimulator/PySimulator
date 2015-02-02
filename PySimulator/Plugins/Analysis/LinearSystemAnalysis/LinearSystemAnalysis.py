@@ -39,7 +39,7 @@ def linearizeToMAT(model, gui):
     if model is None:
         print("No model selected!")
         return
-    if model.modelType != 'FMU1.0 Model Exchange':
+    if 'FMU 1.0 Model Exchange' not in model.modelType:
         print("Error: Selected model must be an FMU 1.0 Model Exchange!\n")
         return
     try:
@@ -58,7 +58,7 @@ def linearizeAndShowABCD(model, gui):
     if model is None:
         print("No model selected!")
         return
-    if model.modelType != 'FMU1.0 Model Exchange':
+    if 'FMU 1.0 Model Exchange' not in model.modelType:
         print("Error: Selected model must be an FMU 1.0 Model Exchange!\n")
         return
     # try:

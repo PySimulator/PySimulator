@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-Copyright (C) 2011-2014 German Aerospace Center DLR
+Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
@@ -232,6 +232,7 @@ class IntegratorControl(QtGui.QDialog):
         self.plot.toggled.connect(_plotOnlineChanged)
 
         self.SimulationFinished.connect(self.triggerdResultUpdate)
+        
 
     def _algoChanged(self, item):
         if self.models[self.currentNumberedModelName].getIntegrationAlgorithmHasFixedStepSize(self.algorithm.currentText()):
@@ -325,8 +326,8 @@ class IntegratorControl(QtGui.QDialog):
         self.algorithm.currentIndexChanged.disconnect()
         self.algorithm.clear()
         self._itemList = model.getAvailableIntegrationAlgorithms()
-        self.algorithm.addItems(self._itemList)
         self.algorithm.currentIndexChanged.connect(self._algoChanged)
+        self.algorithm.addItems(self._itemList)        
         self.algorithm.setCurrentIndex(self._itemList.index(model.integrationSettings.algorithmName))
         self.errorTol.setText(str(model.integrationSettings.errorToleranceRel))
         self.stepSize.setText(str(model.integrationSettings.fixedStepSize))

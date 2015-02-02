@@ -212,7 +212,7 @@ class Model():
         raise NameError('Not implemented.')
 
 
-    def setVariableTree(self):
+    def setVariableTree(self, results=None):
         ''' This implementation uses the integration result to generate a variable tree.
             It is the default implementation for generating the variable tree when loading only a result file (not a model) into PySimulator.
             Normally, Simulator plugins overload this function and provide their own functions for variable trees of MODELS.
@@ -220,9 +220,13 @@ class Model():
             The function generates an instance of the class VariableTree and stores it in self.variableTree.
             It transforms ResultVariables to TreeVariables.
         '''
+        
+        if results is None:
+            results = self.integrationResults
+                
         # Generate variable tree from result file information
-        variables = self.integrationResults.getVariables()
-        fileInfos = self.integrationResults.getFileInfos()
+        variables = results.getVariables()
+        fileInfos = results.getFileInfos()
         fileInfosList = [(x, y) for x, y in fileInfos.iteritems()]
         fileInfosList.sort()
         lenList = [len(x) for x in fileInfos.keys()]
