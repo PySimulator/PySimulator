@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 '''
-Copyright (C) 2011-2014 German Aerospace Center DLR
+Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
+Copyright (C) 2014-2015 Open Source Modelica Consortium
 All rights reserved.
 
 This file is part of PySimulator.
@@ -27,6 +28,7 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 import Compare
 import numpy
 import os
+import time
 import sys
 import shutil
 from bs4 import BeautifulSoup
@@ -35,9 +37,9 @@ from PySide import QtGui, QtCore
 import Plugins.Simulator
 import Plugins.Simulator.SimulatorBase as SimulatorBase
 import Plugins.SimulationResult as SimulationResult
+from multiprocessing import Pool
 
-
-def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout, filewritehtml=None,resultfile=None,htmlfile=None):
+def compareResults(model1, model2, dircount, tol=1e-3, fileOutput=sys.stdout, filewritehtml=None,resultfile=None,htmlfile=None):
     def prepareMatrix(t, y):
         if t is None or y is None:
             print "Not supported to prepare None-vector/matrix."
@@ -130,7 +132,6 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout, filewritehtm
                             else:
                                 t2 = pMatrix2[j][0]
                                 f2 = pMatrix2[j][1]
-                        #result = [var for var in namesBothSub if 'Time' in var]
                         
                         identical, estTol, error = Compare.Compare(t1, f1, i1, s1, t2, f2, i2, s2, tol)
                               
@@ -163,7 +164,7 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout, filewritehtm
                                     c2 = var2[z].column
                                     l1.append(c1)
                                     l2.append(c2)
-                                generatehtml(f1,f2,diff,l1,l2,htmlfile,resultfile)
+                                generatehtml(f1,f2,diff,l1,l2,htmlfile,resultfile,dircount)
                         
                                   
 #    if len(allNamesOnce1) > 0:
@@ -195,26 +196,17 @@ def compareResults(model1, model2, tol=1e-3, fileOutput=sys.stdout, filewritehtm
     print "... done."
     ''' Function call to generate the overview report'''
     if htmlfile is not None:
-        htmloverview(filewritehtml,resultfile,htmlfile,diff)
+        htmloverview(filewritehtml,resultfile,htmlfile,diff,dircount)
 
     return
 
-
-def counter(func):
-    def tmp(*args, **kwargs):
-        tmp.count += 1
-        return func(*args, **kwargs)
-    tmp.count = 0
-    return tmp   
-
-
-def htmloverview(fileouthtml,resultfile,file,diff):
+def htmloverview(fileouthtml,resultfile,file,diff,dircount):
     '''This function is used to present the users with the overall comparison report of different models, The report includes, for each model the number of variables 
        differed, and a link is provided to inspect the differed variables, if there are no differed variables then no link is provided '''
     os.getcwd()
-    modelname=os.path.basename(file).replace('.mat',' ')
-    x=runCompareResultsInDirectories.count       
-    modelname1=modelname+'res'+str(x)
+    filename,fileExtension = os.path.splitext(file)
+    modelname=os.path.basename(file).replace(fileExtension,' ')
+    modelname1=modelname+'res'+str(dircount)
     p=os.path.dirname(resultfile)
     os.chdir(p)
     filename=os.path.join(p,modelname1.replace(' ',''))
@@ -262,12 +254,12 @@ def checkrows(model):
    return model
     
     
-def generatehtml(model1,model2,namesBoth,col1var,col2var,htmlfile,resultfile):
+def generatehtml(model1,model2,namesBoth,col1var,col2var,htmlfile,resultfile,dircount):
     '''This function is used to fetch the array of data from mat files and create the html graph for the differed variables which can be viewed in browser'''
     #get the modelname of the file                   
-    report=os.path.basename(str(htmlfile)).replace('.mat',' ')
-    x=runCompareResultsInDirectories.count       
-    err=report+'res'+str(x)
+    filename,fileExtension = os.path.splitext(htmlfile)
+    report=os.path.basename(str(htmlfile)).replace(fileExtension,' ')      
+    err=report+'res'+str(dircount)
     report1='\''+report+'\''
     #create a new directory for the result_files which differ
     path=os.path.dirname(os.path.abspath(str(resultfile)))
@@ -385,6 +377,10 @@ def simulateListMenu(model, gui):
             self.closeButton = QtGui.QPushButton("Close", self)
             mainGrid.addWidget(self.closeButton, 7, 2)
             self.closeButton.clicked.connect(self._close_)
+                       
+            self.parallelButton = QtGui.QPushButton("Parallel Simulation", self)
+            mainGrid.addWidget(self.parallelButton, 8, 1)
+            self.parallelButton.clicked.connect(self.parallel)
 
             def _browseSetupFileDo():
                 (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open Simulation Setup File', os.getcwd(), '(*.txt);;All Files(*.*)')
@@ -423,6 +419,22 @@ def simulateListMenu(model, gui):
             # Run the simulations
             gui._simThreadTesting = runListSimulation(gui.rootDir, setupFile, resultsDir, simulators, deleteDir)
 
+        def parallel(self):
+            if hasattr(gui, '_simThreadTesting'):
+                if gui._simThreadTesting.running:
+                    print "A list of simulations is still running."
+                    return
+
+            # Get data from GUI
+            setupFile = self.setupFileEdit.text()
+            resultsDir = self.dirResultsEdit.text()
+            simulators = []
+            for item in self.simulator.selectedItems():
+                simulators.append(gui.simulatorPlugins[item.text()])
+            deleteDir = self.deleteDir.isChecked()
+                        
+            # Run parallel simulations
+            gui._simThreadTesting = runParallelSimulation(gui.rootDir, setupFile, resultsDir, simulators, deleteDir)
 
 
         def stop(self):
@@ -505,10 +517,6 @@ def compareListMenu(model, gui):
             mainGrid.addWidget(self.closeButton, 7, 2)
             self.closeButton.clicked.connect(self._close_)
             
-            self.RegressionButton = QtGui.QPushButton("Regression Chart", self)
-            mainGrid.addWidget(self.RegressionButton, 8, 1)
-            self.RegressionButton.clicked.connect(self.regressionreport)
-
             def _browseDir1Do():
                 dirName = QtGui.QFileDialog().getExistingDirectory(self, 'Open Directory of Results', os.getcwd())
                 dirName = dirName.replace('\\', '/')
@@ -579,10 +587,6 @@ def compareListMenu(model, gui):
                     gui._compareThreadTesting.stopRequest = True
                     print "Try to cancel comparing results files ..."
        
-        def regressionreport(self):
-            logFile = self.resultEdit.text()
-            genregressionreport(logFile)
-
     # Code of function
     control = CompareListControl()
     control.show()
@@ -672,6 +676,151 @@ def runListSimulation(PySimulatorPath, setupFile, resultDir, allSimulators, dele
     sim.start()
 
     return sim
+
+def runParallelSimulation(PySimulatorPath, setupFile, resultDir, allSimulators, deleteDir=False):
+    import configobj
+    import csv
+    print "Start running  Parallel simulations ..."
+    f = open(setupFile, 'rb')   
+    line = []
+    reader = csv.reader(f, delimiter=' ', skipinitialspace=True)
+    for a in reader:
+        if len(a) > 0:
+            if not (len(a[0]) > 0 and a[0][0] == '#'):
+                line.append(a[:7])
+    f.close()
+
+    modelList = numpy.zeros((len(line),), dtype=[('fileName', 'U2000'), ('modelName', 'U2000'), ('tStart', 'f8'), ('tStop', 'f8'), ('tol', 'f8'), ('nInterval', 'i4'), ('includeEvents', 'b1')])
+    for i, x in enumerate(line):
+        absPath = x[0].replace('\\', '/')
+        if absPath <> "" and not os.path.isabs(absPath):
+            absPath = os.path.normpath(os.path.join(os.path.split(setupFile)[0], absPath)).replace('\\', '/')
+        if len(x) == 7:
+            modelList[i] = (absPath, x[1], float(x[2]), float(x[3]), float(x[4]), int(x[5]), True if x[6] == 'True' else False)
+        else:
+            modelList['fileName'][i] = absPath
+
+    config = configobj.ConfigObj(os.path.join(os.path.expanduser("~"), '.config', 'PySimulator', 'PySimulator.ini'), encoding='utf8') 
+    
+    sim = simulationParallelThread(None)
+    sim.config = config
+    sim.modelList = modelList
+    sim.allSimulators = allSimulators
+    sim.resultDir = resultDir
+    sim.deleteDir = deleteDir
+    sim.stopRequest = False
+    sim.running = False
+    sim.start()
+
+    return sim
+
+         
+class simulationParallelThread(QtCore.QThread):
+    ''' Class for the simulation thread '''
+    def __init__(self, parent):
+        super(simulationParallelThread, self).__init__(parent)
+    
+    def run(self):
+        self.running = True
+        for simulator in self.allSimulators:
+            simulatorName = simulator.__name__.rsplit('.', 1)[-1]
+            fullSimulatorResultPath = self.resultDir + '/' + simulatorName
+            if os.path.isdir(fullSimulatorResultPath) and self.deleteDir:
+                for file_object in os.listdir(fullSimulatorResultPath):
+                    file_object_path = os.path.join(fullSimulatorResultPath, file_object)
+                    if os.path.isfile(file_object_path):
+                        os.unlink(file_object_path)
+                    else:
+                        shutil.rmtree(file_object_path)
+
+            if not os.path.isdir(fullSimulatorResultPath):
+                os.makedirs(fullSimulatorResultPath)
+                
+            '''create a new list of resultpath, config, and simulatorname to be pickled by the multiprocessing pool.map()'''
+            p=[]
+            c=[]
+            n=[]     
+            p.append(fullSimulatorResultPath)
+            c.append(self.config)
+            n.append(simulatorName)
+            
+            resultpath=p*len(self.modelList['modelName'])
+            config=c*len(self.modelList['modelName'])
+            simname=n*len(self.modelList['modelName'])
+            
+            '''create a list of directories for each model and run the simulation in their respective directory to avoid conflicts '''
+            dir=os.getcwd()
+            dirs=[]
+            for z in xrange(len(self.modelList['modelName'])):
+                s=str(self.modelList['modelName'][z])
+                np=os.path.join(dir,s).replace('\\','/')
+                if not os.path.exists(np): 
+                   os.mkdir(np)
+                dirs.append(np)
+            
+            pool=Pool()
+            #startTime = time.time() 
+            pool.map(parallelsimulation, zip(self.modelList['fileName'],self.modelList['modelName'],self.modelList['tStart'],self.modelList['tStop'],self.modelList['tol'],self.modelList['nInterval'],self.modelList['includeEvents'],dirs,resultpath,config,simname))
+            pool.close()
+            pool.join()
+            #elapsedTime = time.time() - startTime
+            #print elapsedTime           
+            print "Parallel simulation completed"
+            self.running = False
+            
+  
+def parallelsimulation(modellists):
+     'unpacks the modelists and run the simuations in parallel using the multiprocessing module'
+     packname=[]
+     packname.append(modellists[0])     
+     modelname=modellists[1]    
+     tstart=modellists[2]
+     tstop=modellists[3]
+     tolerance=modellists[4]
+     interval=modellists[5]
+     events=modellists[6]
+     dirname=modellists[7]
+     path=modellists[8]
+     config=modellists[9]
+     simulator=modellists[10]
+     
+     os.chdir(dirname)
+     try:
+       '''load the Simulator Module like this, depending on the simulator selected by the users as the pool.map() cannot pickle module types '''
+       if(simulator=='OpenModelica'):
+           import Plugins.Simulator.OpenModelica.OpenModelica as OpenModelica
+           model=OpenModelica.getNewModel(modelname, packname, config)
+       if(simulator=='Dymola'):
+           import Plugins.Simulator.Dymola.Dymola as Dymola
+           model=Dymola.getNewModel(modelname, packname, config)
+       if(simulator=='FMUSimulator'):
+           import Plugins.Simulator.FMUSimulator.FMUSimulator as FMUSimulator
+           model=FMUSimulator.getNewModel(modelname, packname, config)
+       if(simulator=='FMUSimulatorDLR'):
+           import Plugins.Simulator.FMUSimulatorDLR.FMUSimulatorDLR as FMUSimulatorDLR
+           model=FMUSimulatorDLR.getNewModel(modelname, packname, config)
+       if(simulator=='SimulationX'):
+           import Plugins.Simulator.SimulationX.SimulationX as SimulationX
+           model=SimulationX.getNewModel(modelname, packname, config)
+       if(simulator=='Wolfram'):
+           import Plugins.Simulator.Wolfram.Wolfram as Wolfram
+           model=Wolfram.getNewModel(modelname, packname, config)
+     
+       resultFileName = path + '/' + modelname + '.' + model.integrationSettings.resultFileExtension
+       model.integrationSettings.startTime = tstart
+       model.integrationSettings.stopTime  = tstop
+       model.integrationSettings.errorToleranceRel = tolerance
+       model.integrationSettings.gridPoints = interval
+       model.integrationSettings.gridPointsMode = 'NumberOf'
+       model.integrationSettings.resultFileIncludeEvents = events
+       model.integrationSettings.resultFileName = resultFileName     
+       print "Simulating %s by %s (result in %s)..." % (modelname,simulator,resultFileName)
+       model.simulate()
+       model.close()
+     except Exception as e:
+       import traceback
+       traceback.print_exc(e,file=sys.stderr)
+       print e
 
 
 class simulationThread(QtCore.QThread):
@@ -796,7 +945,7 @@ class simulationThread(QtCore.QThread):
         print "... running the list of simulations done."
         self.running = False
         
-@counter        
+
 def runCompareResultsInDirectories(PySimulatorPath, dir1, listdirs, tol, logFile):
 
     print "Start comparing results ..."
@@ -830,13 +979,18 @@ class CompareThread(QtCore.QThread):
       
       
       encoding = sys.getfilesystemencoding()
+      
+      rdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
+      if os.path.exists(rdir): 
+         shutil.rmtree(rdir)
+         
       dir1 = self.dir1
       listdirs=self.listdirs
       files1 = os.listdir(dir1) 
       
       fileOut = open(self.logFile, 'w')       
-      for z in xrange(len(listdirs)):
-        dir2=listdirs[z]    
+      for dircount in xrange(len(listdirs)):
+        dir2=listdirs[dircount]    
         files2 = os.listdir(dir2)
         
         modelName1 = []
@@ -896,9 +1050,13 @@ class CompareThread(QtCore.QThread):
                 model1.loadResultFile(file1)
                 model2 = SimulatorBase.Model(None, None, None)
                 model2.loadResultFile(file2)
-                compareResults(model1, model2, self.tol, fileOut, fileOuthtml,self.logFile,file2)
-                
+                compareResults(model1, model2, dircount, self.tol, fileOut, fileOuthtml,self.logFile,file2)
+        
+        fileOut.write('\n')    
+        fileOut.write("******* Compare Analysis Completed   *******" + u"\n")
+        fileOut.write('\n')                   
         fileOuthtml.close()
+     
         '''open the html file to check the html tags are correctly closed for proper display of table and add headers'''
         with open(logfile1) as myfile:
            data=myfile.read()
@@ -916,7 +1074,7 @@ class CompareThread(QtCore.QThread):
         
         newpath=os.path.dirname(logfile1)
         name=os.path.basename(logfile1)
-        newname=''.join([str(z),name])
+        newname=''.join([str(dircount),name])
         np1=os.path.join(newpath,'rfiles').replace('\\','/')
         np2=os.path.join(np1,newname).replace('\\','/')
         
@@ -929,6 +1087,13 @@ class CompareThread(QtCore.QThread):
       fileOut.close()
       import ctypes 
       ctypes.windll.user32.MessageBoxA(0, "running the analysis done", "Compare Analysis", 0)
+      
+      if(len(listdirs)>1):
+          genregressionreport(self.logFile)
+      else:
+          print "Comparison report generated"
+          webbrowser.open(logfile1)       
+          
       self.running = False
 
 
@@ -980,8 +1145,8 @@ def genregressionreport(logfile):
     for i in xrange(len(hreflist[0])):                       
       if(i%2==0):
          x=get_column(i,hreflist)
-         x1=x[0].find('a').string             
-         s='\n'.join(['<tr>','<td>',x1,'</td>'])
+         x1=x[0].find('a')           
+         s='\n'.join(['<tr>','<td>',str(x1),'</td>'])
          f.write(s)
          f.write('\n')
          
@@ -1005,4 +1170,4 @@ def genregressionreport(logfile):
     webbrowser.open(logfile1)       
     
   else:
-    print 'Directory rfiles does not exist, Run the the compare analysis first to get the Regression chart'  
+    print 'Regression Report failed'  
