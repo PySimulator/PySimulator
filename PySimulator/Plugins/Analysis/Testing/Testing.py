@@ -27,6 +27,7 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 import Compare
 import numpy
 import os
+import time
 import sys
 import shutil
 from bs4 import BeautifulSoup
@@ -35,7 +36,7 @@ from PySide import QtGui, QtCore
 import Plugins.Simulator
 import Plugins.Simulator.SimulatorBase as SimulatorBase
 import Plugins.SimulationResult as SimulationResult
-
+from multiprocessing import Pool
 
 def compareResults(model1, model2, dircount, tol=1e-3, fileOutput=sys.stdout, filewritehtml=None,resultfile=None,htmlfile=None):
     def prepareMatrix(t, y):
@@ -757,12 +758,12 @@ class simulationParallelThread(QtCore.QThread):
                 dirs.append(np)
             
             pool=Pool()
-            startTime = time.time() 
+            #startTime = time.time() 
             pool.map(parallelsimulation, zip(self.modelList['fileName'],self.modelList['modelName'],self.modelList['tStart'],self.modelList['tStop'],self.modelList['tol'],self.modelList['nInterval'],self.modelList['includeEvents'],dirs,resultpath,config,simname))
             pool.close()
             pool.join()
-            elapsedTime = time.time() - startTime
-            print elapsedTime           
+            #elapsedTime = time.time() - startTime
+            #print elapsedTime           
             print "Parallel simulation completed"
             self.running = False
             
@@ -943,7 +944,7 @@ class simulationThread(QtCore.QThread):
         print "... running the list of simulations done."
         self.running = False
         
-@counter        
+
 def runCompareResultsInDirectories(PySimulatorPath, dir1, listdirs, tol, logFile):
 
     print "Start comparing results ..."
