@@ -90,7 +90,10 @@ class SimulatorGui(QtGui.QMainWindow):
         menu = QtGui.QMenuBar()
         subMenu = menu.addMenu('File')
         openModelMenu = subMenu.addMenu("Open Model")
-        for key, value in self.simulatorPlugins.items():
+        simulatorKeys = list(self.simulatorPlugins.keys())
+        simulatorKeys.sort()            
+        for key in simulatorKeys:
+            value = self.simulatorPlugins[key]
             image = None
             if hasattr(value, 'iconImage'):
                 image = self.rootDir + "/Icons/" + value.iconImage
@@ -106,7 +109,10 @@ class SimulatorGui(QtGui.QMainWindow):
         self.plotMenuCallbacks = []
         self.variableMenuCallbacks = []
         self.modelMenuCallbacks = []
-        for pluginName, plugin in self.analysisPlugins.items():
+        analysisKeys = list(self.analysisPlugins.keys())
+        analysisKeys.sort()
+        for pluginName in analysisKeys:
+            plugin = self.analysisPlugins[pluginName]
             try:
                 self.plotMenuCallbacks.append(plugin.getPlotCallbacks())
             except:
@@ -121,7 +127,8 @@ class SimulatorGui(QtGui.QMainWindow):
                 pass
 
         pluginsMenu = menu.addMenu("Plugins")
-        for pluginName, plugin in self.analysisPlugins.items():
+        for pluginName in analysisKeys:
+            plugin = self.analysisPlugins[pluginName]
             try:
                 if len(plugin.getModelCallbacks()) > 0:
                     pluginMenu = pluginsMenu.addMenu(pluginName)
@@ -135,7 +142,8 @@ class SimulatorGui(QtGui.QMainWindow):
         self._modelbar = QtGui.QToolBar('Menu bar', self)
         self.addToolBar(QtCore.Qt.TopToolBarArea, self._modelbar)
         # self._modelbar.setIconSize(QtCore.QSize(18, 18))
-        for key, value in self.simulatorPlugins.items():
+        for key in simulatorKeys:
+            value = self.simulatorPlugins[key]
             image = None
             if hasattr(value, 'iconImage'):
                 image = self.rootDir + "/Icons/" + value.iconImage
@@ -349,7 +357,7 @@ class SimulatorGui(QtGui.QMainWindow):
             sp = unicode.rsplit(fileName, '.', 1)
             modelName = unicode.rsplit(sp[0], '/', 1)[1]
 
-        self._chDir(os.path.dirname(fileName))
+        #self._chDir(os.path.dirname(fileName))
         try:
             model = loaderplugin.getNewModel(modelName, [fileName], self.config)
             self._newModel(model)
@@ -417,7 +425,7 @@ class SimulatorGui(QtGui.QMainWindow):
                 print e
 
         self.setEnabled(True)
-        self._chDir(os.path.dirname(fileName))
+        #self._chDir(os.path.dirname(fileName))
 
     def _openResultFileMenu(self):
         ''' Load a Result file '''

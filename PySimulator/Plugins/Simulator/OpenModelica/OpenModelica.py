@@ -55,7 +55,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
     def __init__(self, modelName, modelFileName, config):
 
         Plugins.Simulator.SimulatorBase.Model.__init__(self, modelName, modelFileName, config)
-        self.modelType = 'OpenModelica'
+        self.modelType = 'Modelica model in OpenModelica'
         self._omc = OMCSession()
         self.onlyResultFile = False
         self.integrationSettings.resultFileExtension = 'mat'
