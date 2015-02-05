@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 '''
@@ -176,8 +176,12 @@ SimVariantsOutputFormatXML = 1
 SimVariantsOutputFormatModel = 2
 
 # SimCalculationMode
+SimCalculationModeCurrent = -1
 SimCalculationModeTransient = 0
 SimCalculationModeEquilibration = 1
+SimCalculationModeSteadyState = 2
+SimCalculationModeAnimation = 3
+SimCalculationModeFaultTree = 4
 
 # SimTraceMsgType
 SimTraceMsgTypeInfo = 0
@@ -224,6 +228,20 @@ simTypeDefaultEditable = 2
 simCodeExportProjectWithoutSolver = 0
 simCodeExportProjectEmbeddedSolver = 1
 simCodeExportProjectSFunction = 2
+simCodeExportProjectFMIModelExchange = 3
+simCodeExportProjectFMICoSimulation = 4
+simCodeExportProjectSimpack = 5
+simCodeExportProjectScaleRT = 6
+simCodeExportProjectExternalModel = 7
+simCodeExportProjectDSpace1006 = 8
+simCodeExportProjectNIVeriStand = 9
+simCodeExportProjectNILabVIEW = 10
+simCodeExportProjectLenzeDSD = 11
+simCodeExportProjectVehicleSim = 12
+simCodeExportProjectEtasLabcar = 13
+simCodeExportProjectAutomationStudio = 14
+simCodeExportProjectFMIModelExchange20 = 15
+simCodeExportProjectFMICoSimulation20 = 16
 
 # SimCodeExportSaveOutputsApproach
 simCodeExportSaveOutputsEqidistant = 0
@@ -250,3 +268,18 @@ simFailureRefined = 2
 simFailureBoth = 3
 simFailureConnOr = 4
 simFailureConnAnd = 5
+
+# SimSolver
+simSolverBDF = 0
+simSolverMEBDF = 1
+simSolverCVODE = 2
+simSolverFixedStep = 3
+
+# SimFrozenResultMode
+simFrozenResultModeCurve = 0
+simFrozenResultModeHistory = 1
+
+# SimFMUType
+simFMUTypeDefault = -1
+simFMUTypeModelExchange = 0
+simFMUTypeCoSimulation = 1

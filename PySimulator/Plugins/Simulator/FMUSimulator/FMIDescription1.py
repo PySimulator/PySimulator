@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-Copyright (C) 2011-2014 German Aerospace Center DLR
+Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
@@ -201,6 +201,8 @@ class FMIDescription:
                 self._parseDefaultExperiment(child)
             elif child.tag == 'ModelVariables':
                 self._parseModelVariables(child)
+            elif child.tag == 'Implementation':
+                print("Warning: It seems that FMU 1.0 contains a model for CoSimulation. CoSimulation for FMI 1.0 is not supported here. Maybe the FMU also contains functions for Model Exchange.")
             else:
                 print('Unknown tag in FMI Model: %s\n' % child.tag)
 

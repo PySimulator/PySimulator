@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-Copyright (C) 2011-2014 German Aerospace Center DLR
+Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
@@ -41,9 +41,12 @@ import platform
 import re
 import tempfile
 import zipfile
+import os
+import shutil
+
 import numpy
 
-from FMIDescription import FMIDescription
+from FMIDescription1 import FMIDescription
 import FMUError
 
 
@@ -117,9 +120,14 @@ class FMUInterface:
         '''
         self._loggingOn = loggingOn
 
+        self._tempDir = tempfile.mkdtemp()     
+
         ''' Open the given fmu-file (read only)'''
         try:
-            self._file = zipfile.ZipFile(fileName, 'r')
+            self._file = zipfile.ZipFile(fileName, 'r')                  
+            self._file.extractall(self._tempDir)
+            self._file.close()
+            
         except BaseException as e:
             raise FMUError.FMUError('Error when reading zip-file.\n' + str(e) + '\n')
 
@@ -132,18 +140,22 @@ class FMUInterface:
 
         ''' Read FMI description file (directly from zip-file)'''
         try:
-            xmlFileName = self._file.open('modelDescription.xml')
+            xmlFileHandle = open(os.path.join(self._tempDir,'modelDescription.xml'))
         except BaseException as e:
             raise FMUError.FMUError('Error when reading modelDescription.xml\n' + str(e) + '\n')
-        self.description = FMIDescription(xmlFileName, self)
-
+        
+        self.description = FMIDescription(xmlFileHandle, self)
+        
         ''' Just a little sanity check - standard definition says file name and FMU-name have to be the same '''
         if re.match(r'.*/(.*?).fmu$', fileName).group(1) != self.description.modelIdentifier:
             raise FMUError.FMUError('FMU file corrupted!\nFile name and model identifier differ: ' + re.match(r'.*/(.*?).fmu$', fileName).group(1) + ' vs. ' + self.description.modelIdentifier + '\n')
 
         self._InstantiateModel()
         self._file.close()
-        self._createCInterface()
+        try:
+            self._createCInterface()
+        except:
+            raise FMUError.FMUError('Cannot find all interface functions for Model Exchange in the FMU binary. CoSimulation for FMI 1.0 is not supported here.\n')
 
     def _assembleBinaryName(self, modelName):
         ''' Creates the path within the fmu-file for the binary according to current architecture
@@ -162,29 +174,20 @@ class FMUInterface:
             binaryName += '64/'
         else:
             raise FMUError.FMUError('Unable to detect system architecture or architecture not supported.\n')
-        binaryName += self.description.modelIdentifier
+        binaryDirectory = binaryName
+        binaryName += modelName
         if platform.system() == 'Linux':
             binaryName += '.so'
         elif platform.system() == 'Windows':
             binaryName += '.dll'
-        return binaryName
+        return binaryName, binaryDirectory
 
     def _InstantiateModel(self):
         ''' unpacks the model binary and loads it into memory
-        '''
-        ''' create an temporary file (thereby file creation, deletion, access etc is handled automatically) and
-            extracts the library from the .fmu-file there
-        '''
-        self._binaryName = self._assembleBinaryName(self.description.modelIdentifier)
-        self._tmpfile = tempfile.NamedTemporaryFile(suffix='.dll' if platform.system() == 'Windows' else '.so', delete=False)
-        try:
-            binFile = self._file.read(self._binaryName)
-        except BaseException as e:
-            raise FMUError.FMUError("Error when reading binary file from FMU.\n" + str(e) + '\n')
-        self._tmpfile.file.write(binFile)
-        self._tmpfile.file.close()
-
-
+        '''        
+        self._binaryName, binaryDirectory = self._assembleBinaryName(self.description.modelIdentifier)
+        self._binaryName = os.path.join(self._tempDir, self._binaryName)
+        binaryDirectory = os.path.join(self._tempDir, binaryDirectory)  
 
         def _Logger(c, instanceName, status, category, message):
             if self._loggingOn:
@@ -210,8 +213,11 @@ class FMUInterface:
 
         ''' Load instance of library into memory '''
         try:
-            self._libraryHandle = ctypes.cdll.LoadLibrary(self._tmpfile.name)._handle
-            self._library = ctypes.CDLL(self._tmpfile.name, handle=self._libraryHandle)
+            cdir = os.getcwdu()
+            os.chdir(binaryDirectory)
+            self._libraryHandle = ctypes.cdll.LoadLibrary(self._binaryName)._handle
+            self._library = ctypes.CDLL(self._binaryName, handle=self._libraryHandle)
+            os.chdir(cdir)            
         except BaseException as e:
             raise FMUError.FMUError('Error when loading binary from FMU.\n' + str(e) + '\n')
 
@@ -229,9 +235,9 @@ class FMUInterface:
     def free(self):
         ''' Call FMU destructor before being destructed. Just cleaning up. '''
         if hasattr(self, '_library'):
-            self.freeModelInstance()
-            self._tmpfile.close()
+            self.freeModelInstance()            
             _ctypes.FreeLibrary(self._libraryHandle)
+        shutil.rmtree(self._tempDir)
 
     def freeModelInstance(self):
         ''' Call FMU destructor before being destructed. Just cleaning up. '''

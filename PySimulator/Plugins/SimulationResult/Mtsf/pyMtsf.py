@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-Copyright (C) 2011-2014 German Aerospace Center DLR
+Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 and BAUSCH-GALL GmbH, Munich
@@ -464,7 +464,7 @@ class MTSF:
         if len(self.units) == 0:
             return
 
-        maxLenTypeName = self._getMaxLength([x.name for x in self.units])
+        #maxLenTypeName = self._getMaxLength([x.name for x in self.units])
         numpyDataType = numpy.dtype({'names': ['name', 'factor',
                                               'offset', 'mode'],
                                'formats': [h5py.special_dtype(vlen=unicode),
@@ -515,8 +515,8 @@ class MTSF:
     def WriteModelVariables(self):
         scalarVariables = self.modelVariable
         # Get maximum length of string vectors
-        maxLenName = self._getMaxLength(scalarVariables.keys())
-        maxLenDescription = self._getMaxLength([x.description for x in scalarVariables.values()])
+        #maxLenName = self._getMaxLength(scalarVariables.keys())
+        #maxLenDescription = self._getMaxLength([x.description for x in scalarVariables.values()])
         # Create dtype object
         numpyDataType = numpy.dtype({'names': ['name', 'simpleTypeRow',
                                               'causality', 'variability',

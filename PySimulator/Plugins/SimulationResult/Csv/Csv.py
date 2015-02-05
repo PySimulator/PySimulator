@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-Copyright (C) 2011-2014 German Aerospace Center DLR
+Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
@@ -37,10 +37,10 @@ class Results(IntegrationResults.Results):
         First column: Independent variable, e.g. Time
         Example:
 
-        Time;Mechanical.Inertia.J;y;Mechnical.Inertia.w
-        0.0;20.0;3.6820238572822689e-4;0.0
-        0.1;20.0;6.7829872398723383e-4;0.7293789273984797e-2
-        0.2;20.0;4.0290389058209473e-3;0.7823794579232536e-1
+        Time,Mechanical.Inertia.J,y,Mechnical.Inertia.w
+        0.0,20.0,3.6820238572822689e-4,0.0
+        0.1,20.0,6.7829872398723383e-4,0.7293789273984797e-2
+        0.2,20.0,4.0290389058209473e-3,0.7823794579232536e-1
 
     '''
     def __init__(self, fileName):

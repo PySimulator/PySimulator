@@ -33,7 +33,8 @@ setuptools.setup(
         "numpy>=1.6",
         #    "Cython>=0.15",
         "scipy",
-        "H5py"
+        "H5py",
+        "beautifulsoup4>=4.3.2"
         ],
 
     author="Deutsches Zentrum fuer Luft- und Raumfahrt e.V. - DLR (German Aerospace Center); Institute for System Dynamics and Control",

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-Copyright (C) 2011-2014 German Aerospace Center DLR
+Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
@@ -242,7 +242,7 @@ class SimulatorGui(QtGui.QMainWindow):
         iconLabel = QtGui.QLabel()
         iconLabel.setPixmap(pixmap)
         layout.addWidget(iconLabel, 0, 0)
-        layout.addWidget(QtGui.QLabel("Copyright (C) 2011-2014 German Aerospace Center DLR (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),\nInstitute of System Dynamics and Control. All rights reserved.\n\nPySimulator is free software: You can redistribute it and/or modify\nit under the terms of the GNU Lesser General Public License as published by\nthe Free Software Foundation, either version 3 of the License, or\n(at your option) any later version.\n\nPySimulator is distributed in the hope that it will be useful,\nbut WITHOUT ANY WARRANTY; without even the implied warranty of\nMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the\nGNU Lesser General Public License for more details.\n\nYou should have received a copy of the GNU Lesser General Public License\nalong with PySimulator. If not, see www.gnu.org/licenses."), 1, 0)
+        layout.addWidget(QtGui.QLabel("Copyright (C) 2011-2015 German Aerospace Center DLR (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),\nInstitute of System Dynamics and Control. All rights reserved.\n\nPySimulator is free software: You can redistribute it and/or modify\nit under the terms of the GNU Lesser General Public License as published by\nthe Free Software Foundation, either version 3 of the License, or\n(at your option) any later version.\n\nPySimulator is distributed in the hope that it will be useful,\nbut WITHOUT ANY WARRANTY; without even the implied warranty of\nMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the\nGNU Lesser General Public License for more details.\n\nYou should have received a copy of the GNU Lesser General Public License\nalong with PySimulator. If not, see www.gnu.org/licenses."), 1, 0)
         layout.addWidget(QtGui.QLabel("PySimulator Version: " + str(version)), 2, 0)
         button = QtGui.QPushButton("OK")
         button.clicked.connect(widget.close)
@@ -351,7 +351,7 @@ class SimulatorGui(QtGui.QMainWindow):
 
         self._chDir(os.path.dirname(fileName))
         try:
-            model = loaderplugin.Model(modelName, [fileName], self.config)
+            model = loaderplugin.getNewModel(modelName, [fileName], self.config)
             self._newModel(model)
         except Exception as e:
             import traceback
@@ -406,7 +406,7 @@ class SimulatorGui(QtGui.QMainWindow):
         sp = unicode.rsplit(fileName, '.', 1)
         modelName = unicode.rsplit(sp[0], '/', 1)[1]
         try:
-            model = Plugins.Simulator.SimulatorBase.Model(modelName, None, 'None', self.config)
+            model = Plugins.Simulator.SimulatorBase.Model(modelName, None, self.config)
             model.loadResultFile(fileName)
             model.integrationResultFileSemaphore = threading.Semaphore()
             self._newModel(model)
@@ -596,6 +596,9 @@ class SimulatorGui(QtGui.QMainWindow):
         self.models[numberedModelName].pluginData.clear()
 
     def closeEvent(self, event):
+        for model in self.models.itervalues():
+            model.close()
+        
         for pluginName, plugin in self.simulatorPlugins.items():  # and self.analysisPlugins
             try:
                 plugin.closeSimulatorPlugin()
