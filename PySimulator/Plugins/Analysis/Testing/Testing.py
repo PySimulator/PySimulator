@@ -39,7 +39,7 @@ import Plugins.Simulator.SimulatorBase as SimulatorBase
 import Plugins.SimulationResult as SimulationResult
 from multiprocessing import Pool
 
-def compareResults(model1, model2, dircount, tol=1e-3, fileOutput=sys.stdout, filewritehtml=None,resultfile=None,htmlfile=None):
+def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdout, filewritehtml=None,resultfile=None,htmlfile=None):
     def prepareMatrix(t, y):
         if t is None or y is None:
             print "Not supported to prepare None-vector/matrix."
@@ -464,26 +464,26 @@ def compareListMenu(model, gui):
 
             mainGrid = QtGui.QGridLayout(self)
 
-            dir1 = QtGui.QLabel("Directory 1 of results:", self)
+            dir1 = QtGui.QLabel("Baseline results:", self)
             mainGrid.addWidget(dir1, 0, 0, QtCore.Qt.AlignRight)
             self.dir1Edit = QtGui.QLineEdit("", self)
             mainGrid.addWidget(self.dir1Edit, 0, 1)
             browseDir1 = QtGui.QPushButton("Select", self)
             mainGrid.addWidget(browseDir1, 0, 2)
            
-            dir2 = QtGui.QLabel("Directory 2 of results:", self)
-            mainGrid.addWidget(dir2, 1, 0, QtCore.Qt.AlignRight)
-            self.dir2Edit = QtGui.QLineEdit("", self)
-            mainGrid.addWidget(self.dir2Edit, 1, 1)
+            #dir2 = QtGui.QLabel("Directory 2 of results:", self)
+            #mainGrid.addWidget(dir2, 1, 0, QtCore.Qt.AlignRight)
+            #self.dir2Edit = QtGui.QLineEdit("", self)
+            #mainGrid.addWidget(self.dir2Edit, 1, 1)
             browseDir2 = QtGui.QPushButton("Select", self)
             mainGrid.addWidget(browseDir2, 1, 2)
            
-            self.listdir = QtGui.QLabel("List of Directory:", self)
-            mainGrid.addWidget(self.listdir , 2, 0, QtCore.Qt.AlignRight)
+            self.listdir = QtGui.QLabel("List of Directories:", self)
+            mainGrid.addWidget(self.listdir , 1, 0, QtCore.Qt.AlignRight)
             self.directory = QtGui.QListWidget(self)
             self.directory.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
             self.directory.setFixedHeight(80)
-            mainGrid.addWidget(self.directory, 2, 1)
+            mainGrid.addWidget(self.directory, 1, 1, 2, 1)
             
             self.removeButton = QtGui.QPushButton("Remove", self)
             mainGrid.addWidget(self.removeButton, 2, 2)
@@ -527,7 +527,7 @@ def compareListMenu(model, gui):
                 dirName = QtGui.QFileDialog().getExistingDirectory(self, 'Open Directory of Results', os.getcwd())
                 dirName = dirName.replace('\\', '/')
                 if dirName != '':
-                    self.dir2Edit.setText(dirName)
+                    #self.dir2Edit.setText(dirName)
                     self.directory.addItem(dirName)
 
             def _browseResultDo():
@@ -542,7 +542,7 @@ def compareListMenu(model, gui):
             self.tolEdit.setText('1e-3')
             self.resultEdit.setText(os.getcwd().replace('\\', '/') + '/CompareAnalysis.log')
             self.dir1Edit.setText(os.getcwd().replace('\\', '/'))
-            self.dir2Edit.setText(os.getcwd().replace('\\', '/'))
+            #self.dir2Edit.setText(os.getcwd().replace('\\', '/'))
 
         def _close_(self):
             self.close()
@@ -646,17 +646,18 @@ def runListSimulation(PySimulatorPath, setupFile, resultDir, allSimulators, dele
     for a in reader:
         if len(a) > 0:
             if not (len(a[0]) > 0 and a[0][0] == '#'):
-                # if len(a) >= 7:
-                line.append(a[:7])
+                if a[0] != '':
+                    line.append(a)
+                
     f.close()
 
-    modelList = numpy.zeros((len(line),), dtype=[('fileName', 'U2000'), ('modelName', 'U2000'), ('tStart', 'f8'), ('tStop', 'f8'), ('tol', 'f8'), ('nInterval', 'i4'), ('includeEvents', 'b1')])
+    modelList = numpy.zeros((len(line),), dtype=[('fileName', 'U2000'), ('modelName', 'U2000'), ('subDirectory', 'U2000'), ('tStart', 'f8'), ('tStop', 'f8'), ('tol', 'f8'), ('stepSize', 'f8'), ('nInterval', 'i4'), ('includeEvents', 'b1')])
     for i, x in enumerate(line):
         absPath = x[0].replace('\\', '/')
         if absPath <> "" and not os.path.isabs(absPath):
             absPath = os.path.normpath(os.path.join(os.path.split(setupFile)[0], absPath)).replace('\\', '/')
-        if len(x) == 7:
-            modelList[i] = (absPath, x[1], float(x[2]), float(x[3]), float(x[4]), int(x[5]), True if x[6].lower() == 'true' else False)
+        if len(x) >= 9:
+            modelList[i] = (absPath, x[1], x[2], float(x[3]), float(x[4]), float(x[5]), float(x[6]), int(x[7]), True if x[8].lower() == 'true' else False)
         else:
             modelList['fileName'][i] = absPath
 
@@ -681,22 +682,23 @@ def runParallelSimulation(PySimulatorPath, setupFile, resultDir, allSimulators, 
     import configobj
     import csv
     print "Start running  Parallel simulations ..."
-    f = open(setupFile, 'rb')   
     line = []
     reader = csv.reader(f, delimiter=' ', skipinitialspace=True)
     for a in reader:
         if len(a) > 0:
             if not (len(a[0]) > 0 and a[0][0] == '#'):
-                line.append(a[:7])
+                if a[0] != '':
+                    line.append(a)
+                
     f.close()
 
-    modelList = numpy.zeros((len(line),), dtype=[('fileName', 'U2000'), ('modelName', 'U2000'), ('tStart', 'f8'), ('tStop', 'f8'), ('tol', 'f8'), ('nInterval', 'i4'), ('includeEvents', 'b1')])
+    modelList = numpy.zeros((len(line),), dtype=[('fileName', 'U2000'), ('modelName', 'U2000'), ('subDirectory', 'U2000'), ('tStart', 'f8'), ('tStop', 'f8'), ('tol', 'f8'), ('stepSize', 'f8'), ('nInterval', 'i4'), ('includeEvents', 'b1')])
     for i, x in enumerate(line):
         absPath = x[0].replace('\\', '/')
         if absPath <> "" and not os.path.isabs(absPath):
             absPath = os.path.normpath(os.path.join(os.path.split(setupFile)[0], absPath)).replace('\\', '/')
-        if len(x) == 7:
-            modelList[i] = (absPath, x[1], float(x[2]), float(x[3]), float(x[4]), int(x[5]), True if x[6] == 'True' else False)
+        if len(x) >= 9:
+            modelList[i] = (absPath, x[1], x[2], float(x[3]), float(x[4]), float(x[5]), float(x[6]), int(x[7]), True if x[8].lower() == 'true' else False)
         else:
             modelList['fileName'][i] = absPath
 
@@ -830,6 +832,15 @@ class simulationThread(QtCore.QThread):
 
     def run(self):
         self.running = True
+        
+        try:
+            import pydevd
+            pydevd.connected = True
+            pydevd.settrace(suspend=False)
+        except:
+            # do nothing, since error message only indicates we are not in debug mode
+            pass
+        
 
         for simulator in self.allSimulators:
             simulatorName = simulator.__name__.rsplit('.', 1)[-1]
@@ -841,9 +852,6 @@ class simulationThread(QtCore.QThread):
                         os.unlink(file_object_path)
                     else:
                         shutil.rmtree(file_object_path)
-
-            if not os.path.isdir(fullSimulatorResultPath):
-                os.makedirs(fullSimulatorResultPath)
 
             packageName = []
             globalModelList = []
@@ -910,10 +918,18 @@ class simulationThread(QtCore.QThread):
                                 '''
                                 model = simulator.getNewModel(modelName, packageName, self.config)
 
-                                resultFileName = fullSimulatorResultPath + '/' + modelName + '.' + model.integrationSettings.resultFileExtension
+                                if self.modelList['subDirectory'][i] is not '':
+                                    resultDir = fullSimulatorResultPath + '/' + self.modelList['subDirectory'][i]
+                                    if not os.path.isdir(resultDir):
+                                        os.makedirs(resultDir)
+                                else:
+                                    resultDir = fullSimulatorResultPath
+
+                                resultFileName = resultDir + '/' + modelName + '.' + model.integrationSettings.resultFileExtension
                                 model.integrationSettings.startTime = self.modelList['tStart'][i]
                                 model.integrationSettings.stopTime = self.modelList['tStop'][i]
                                 model.integrationSettings.errorToleranceRel = self.modelList['tol'][i]
+                                model.integrationSettings.fixedStepSize = self.modelList['stepSize'][i]
                                 model.integrationSettings.gridPoints = self.modelList['nInterval'][i] + 1
                                 model.integrationSettings.gridPointsMode = 'NumberOf'
                                 model.integrationSettings.resultFileIncludeEvents = self.modelList['includeEvents'][i]
@@ -1085,8 +1101,8 @@ class CompareThread(QtCore.QThread):
                      
       #print "... running the analysis done."
       fileOut.close()
-      import ctypes 
-      ctypes.windll.user32.MessageBoxA(0, "running the analysis done", "Compare Analysis", 0)
+      #import ctypes 
+      #ctypes.windll.user32.MessageBoxA(0, "running the analysis done", "Compare Analysis", 0)
       
       if(len(listdirs)>1):
           genregressionreport(self.logFile)
