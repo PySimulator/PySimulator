@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-Copyright (C) 2011-2013 German Aerospace Center DLR
+Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
@@ -72,16 +72,17 @@ class Results(IntegrationResults.Results):
         data = numpy.loadtxt(csvfile, delimiter=';')
         csvfile.close()
         self.fileInfo['Rows'] = str(data.shape[0])
-        self.fileInfo['Columns'] = str(data.shape[1])
 
         self._isParameter = len(self._name) * [False]
         if numpy.ndim(data) > 1:
+            self.fileInfo['Columns'] = str(data.shape[1])
             self.timeSeries.append(IntegrationResults.TimeSeries(data[:, 0], data[:, 1:], "linear"))
 
             self._name = self._name[1:]  # delete 'Time'
             self._unit = self._unit[1:]  # delete unit of 'Time'
             self._isParameter = self._isParameter[1:]  # delete isParameter of 'Time'
         else:
+            self.fileInfo['Columns'] = 1
             data = numpy.reshape(data, (len(data), 1))
             self.timeSeries.append(IntegrationResults.TimeSeries(data, data, "linear"))
 
