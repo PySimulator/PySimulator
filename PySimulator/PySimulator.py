@@ -562,7 +562,7 @@ class SimulatorGui(QtGui.QMainWindow):
         ''' Handles to add a new given model into the framework '''
         # Set the numbered model name
         self.setNumberedStuff(model)
-        # Set default values for GUI realted topics
+        # Set default values for GUI related topics
         model.integrationSettings.plotOnline_isChecked = True
         model.integrationSettings.duplicateModel_isChecked = False
         model.integrationStatistics.finished = True
