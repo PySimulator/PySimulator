@@ -35,7 +35,7 @@ def ConnectFMUMenu(model, gui):
            
             mainGrid = QtGui.QGridLayout(self)
             
-            self.xmlFile = QtGui.QLabel("Load XML", self)
+            self.xmlFile = QtGui.QLabel("Load XML:", self)
             mainGrid.addWidget(self.xmlFile, 0, 0, QtCore.Qt.AlignRight)
             self.xmlFileEdit = QtGui.QLineEdit("", self)
             mainGrid.addWidget(self.xmlFileEdit, 0, 1)
@@ -43,27 +43,17 @@ def ConnectFMUMenu(model, gui):
             self.xmlSetupFile = QtGui.QPushButton("Select", self)
             mainGrid.addWidget(self.xmlSetupFile, 0, 2)
             self.xmlSetupFile.clicked.connect(self.display)
-
-            
-            self.File = QtGui.QLabel("Load file", self)
-            mainGrid.addWidget(self.File, 1, 0, QtCore.Qt.AlignRight)
-            self.setupFileEdit = QtGui.QLineEdit("", self)
-            mainGrid.addWidget(self.setupFileEdit, 1, 1)
+                        
+            self.fmulabel = QtGui.QLabel("List of FMUs:", self)
+            mainGrid.addWidget(self.fmulabel, 1, 0, QtCore.Qt.AlignRight)
+            self.simulator = QtGui.QListWidget(self)
+            self.simulator.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+            #self.simulator.setFixedHeight(100)
+            mainGrid.addWidget(self.simulator, 1, 1, 2, 1)
             
             self.browseSetupFile = QtGui.QPushButton("Select", self)
             mainGrid.addWidget(self.browseSetupFile, 1, 2)
             
-            
-            self.addButton = QtGui.QPushButton("Add", self)
-            mainGrid.addWidget(self.addButton, 1, 3)
-            self.addButton.clicked.connect(self.add)
-            
-            self.fmulabel = QtGui.QLabel("FMUs", self)
-            mainGrid.addWidget(self.fmulabel, 2, 0, QtCore.Qt.AlignRight)
-            self.simulator = QtGui.QListWidget(self)
-            self.simulator.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
-            self.simulator.setFixedHeight(70)
-            mainGrid.addWidget(self.simulator, 2, 1)
             
             self.removeButton = QtGui.QPushButton("Remove", self)
             mainGrid.addWidget(self.removeButton, 2, 2)
@@ -72,18 +62,18 @@ def ConnectFMUMenu(model, gui):
             self.parseButton = QtGui.QPushButton("Next", self)
             mainGrid.addWidget(self.parseButton, 3, 2)
             self.parseButton.clicked.connect(self.next)
-                    
-            self.variablelist = QtGui.QLabel("Select Variables", self)
+                        
+            self.variablelist = QtGui.QLabel("Select Connections:", self)
             mainGrid.addWidget(self.variablelist, 4, 0, QtCore.Qt.AlignRight)
             self.variablelist.hide()
             
             self.combo = QtGui.QComboBox()
-            self.combo.setFixedSize(250,20)
+            self.combo.setFixedSize(240,20)
             mainGrid.addWidget(self.combo, 4, 1)
             self.combo.hide()
             
             self.combo1 = QtGui.QComboBox()
-            self.combo1.setFixedSize(250,20)
+            self.combo1.setFixedSize(240,20)
             mainGrid.addWidget(self.combo1, 4, 2)
             self.combo1.hide()
 
@@ -92,7 +82,7 @@ def ConnectFMUMenu(model, gui):
             self.connectButton.clicked.connect(self.connect)
             self.connectButton.hide()  
             
-            self.connectionlist = QtGui.QLabel("Connection List", self)
+            self.connectionlist = QtGui.QLabel("Connection List:", self)
             mainGrid.addWidget(self.connectionlist, 5, 0, QtCore.Qt.AlignRight)
             self.connectionlist.hide()
             
@@ -106,40 +96,54 @@ def ConnectFMUMenu(model, gui):
             self.table.hide() 
             
             self.removeButtonconnect = QtGui.QPushButton("Remove", self)
-            self.removeButtonconnect.setFixedSize(90,25)
+            #self.removeButtonconnect.setFixedSize(90,25)
             mainGrid.addWidget(self.removeButtonconnect, 5, 3)
             self.removeButtonconnect.clicked.connect(self.connectremove)
             self.removeButtonconnect.hide()
             
+            self.paramlist = QtGui.QLabel("Parameter List:", self)
+            mainGrid.addWidget(self.paramlist, 6, 0, QtCore.Qt.AlignRight)
+            self.paramlist.hide()
+                       
+            self.paramtable = QtGui.QTableWidget(self)
+            self.paramtable.setRowCount(0)
+            self.paramtable.setColumnCount(3)
+            self.paramtable.setHorizontalHeaderLabels(["FMU","Variable","Value"])
+            mainGrid.addWidget(self.paramtable, 6, 1, 1, 2)
+            self.paramtable.hide()          
+            
             self.SaveFile = QtGui.QLabel("Save File", self)
-            mainGrid.addWidget(self.SaveFile, 6, 0, QtCore.Qt.AlignRight)
+            mainGrid.addWidget(self.SaveFile, 7, 0, QtCore.Qt.AlignRight)
             self.SaveFileEdit = QtGui.QLineEdit("", self)
-            mainGrid.addWidget(self.SaveFileEdit, 6, 1)
+            mainGrid.addWidget(self.SaveFileEdit, 7, 1)
             self.SaveFile.hide()
             self.SaveFileEdit.hide()
             
             self.saveButton = QtGui.QPushButton("Select", self)
-            self.saveButton.setFixedSize(90,25)
-            mainGrid.addWidget(self.saveButton, 6, 2)
+            #self.saveButton.setFixedSize(90,25)
+            mainGrid.addWidget(self.saveButton, 7, 2)
             self.saveButton.hide()
  
             self.step1Button = QtGui.QPushButton("Previous", self)
-            self.step1Button.setFixedSize(90,25)
-            mainGrid.addWidget(self.step1Button, 7, 1)
+            #self.step1Button.setFixedSize(90,25)
+            mainGrid.addWidget(self.step1Button, 8, 0)
             self.step1Button.clicked.connect(self.previous)
             self.step1Button.hide()  
             
             self.FinishButton = QtGui.QPushButton("Finish", self)
-            self.FinishButton.setFixedSize(90,25)
-            mainGrid.addWidget(self.FinishButton, 7, 2)
+            #self.FinishButton.setFixedSize(90,25)
+            mainGrid.addWidget(self.FinishButton, 7, 3)
             self.FinishButton.clicked.connect(self.finish)
             self.FinishButton.hide() 
 
             
             def browseFile():
                 (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open File', os.getcwd(), '(*.fmu)')
+                fileName = fileName.replace('\\', '/')
                 if fileName != '':
-                    self.setupFileEdit.setText(fileName)
+                    #self.setupFileEdit.setText(fileName)
+                    self.simulator.addItem(fileName)
+
             
             self.browseSetupFile.clicked.connect(browseFile)
             
@@ -178,13 +182,6 @@ def ConnectFMUMenu(model, gui):
                     self.table.setItem(row, 1, QtGui.QTableWidgetItem(totable))                    
                     self.table.resizeColumnsToContents()
        
-                
-       def add(self):
-            'Get data from GUI'                    
-            self.setupFile = self.setupFileEdit.text() 
-            item =QtGui.QListWidgetItem(self.setupFile)
-            self.simulator.addItem(item)
-            self.simulator.show() 
        
        def remove(self):
            'Remove FMUS from List'                    
@@ -203,6 +200,13 @@ def ConnectFMUMenu(model, gui):
            
        
        def previous(self):
+  
+            for i in reversed(range(self.table.rowCount())):
+                 self.table.removeRow(i)
+                 
+            for j in reversed(range(self.paramtable.rowCount())):
+                 self.paramtable.removeRow(j)
+                 
             self.combo.clear()
             self.combo1.clear()
             self.combo.hide()
@@ -217,11 +221,10 @@ def ConnectFMUMenu(model, gui):
             self.SaveFileEdit.hide()
             self.saveButton.hide()
             self.table.hide()
+            self.paramtable.hide()
+            self.paramlist.hide()
             
-            self.File.show()
-            self.setupFileEdit.show()
             self.browseSetupFile.show()
-            self.addButton.show()
             self.fmulabel.show()
             self.simulator.show()
             self.removeButton.show()
@@ -285,10 +288,8 @@ def ConnectFMUMenu(model, gui):
     
             
        def next(self):
-            self.File.hide()
-            self.setupFileEdit.hide()
+
             self.browseSetupFile.hide()
-            self.addButton.hide()
             self.fmulabel.hide()
             self.simulator.hide()
             self.removeButton.hide()
@@ -298,6 +299,8 @@ def ConnectFMUMenu(model, gui):
             self.xmlSetupFile.hide()
             
             self.table.show()
+            self.paramlist.show()
+            self.paramtable.show()
             self.variablelist.show()
             self.combo.show()
             self.combo1.show()
@@ -330,6 +333,7 @@ def ConnectFMUMenu(model, gui):
                for variable in root.iter('ScalarVariable'):
                  cname = variable.get('causality')
                  varname = variable.get('name')
+                 parname=variable.get('variability')
                  valueref=variable.get('valueReference')
                  if (cname=='input'):
                     s=''.join([str(i),' ',modelname,'.',varname,' ',cname,' ','(',valueref,')'])
@@ -339,7 +343,16 @@ def ConnectFMUMenu(model, gui):
                     s=''.join([str(i),' ',modelname,'.',varname,' ',cname,' ','(',valueref,')'])
                     self.combo.addItem(s)
                     self.combo1.addItem(s)
-                                 
+                 if (parname=='parameter'):
+                    for x in variable.iter('Real'):
+                       #print modelname, varname, x.get('start')
+                       row = self.paramtable.rowCount()
+                       self.paramtable.insertRow(row)
+                       self.paramtable.setItem(row, 0, QtGui.QTableWidgetItem(modelname))
+                       self.paramtable.setItem(row, 1, QtGui.QTableWidgetItem(varname))
+                       self.paramtable.setItem(row, 2, QtGui.QTableWidgetItem(x.get('start')))
+                       self.paramtable.resizeColumnsToContents()
+                       
             
        def connect(self):
            'connect the selected FMU connections'                    
