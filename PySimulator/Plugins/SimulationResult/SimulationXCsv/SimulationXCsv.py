@@ -82,9 +82,9 @@ class Results(IntegrationResults.Results):
             self._unit = self._unit[1:]  # delete unit of 'Time'
             self._isParameter = self._isParameter[1:]  # delete isParameter of 'Time'
         else:
-            self.fileInfo['Columns'] = 1
+            self.fileInfo['Columns'] = '1'
             data = numpy.reshape(data, (len(data), 1))
-            self.timeSeries.append(IntegrationResults.TimeSeries(data, data, "linear"))
+            self.timeSeries.append(IntegrationResults.TimeSeries(data[:, 0], data, "linear"))
 
 
         # Load parameters
