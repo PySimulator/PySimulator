@@ -554,7 +554,7 @@ class simulationThread(QtCore.QThread):
         try:
             '''
             Do the numerical integration in a try branch
-            to avoid loosing the thread when an intended exception is raised
+            to avoid losing the thread when an intended exception is raised
             '''
             try:
                 import pydevd

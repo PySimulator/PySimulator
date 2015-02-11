@@ -223,7 +223,7 @@ def convertFromFmi(fmuFilename, fmi=None):
                 seriesIndex = allSeriesNames.index('Continuous')
 
             causality = fmiVariable.causality
-            # Due to FMI 1.0; in vers. 2.0 this should not be neccessary
+            # Due to FMI 1.0; in vers. 2.0 this should not be necessary
             if causality is None:
                 causality = 'local'
             if variability == 'parameter':
