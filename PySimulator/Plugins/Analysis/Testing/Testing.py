@@ -682,6 +682,8 @@ def runParallelSimulation(PySimulatorPath, setupFile, resultDir, allSimulators, 
     import configobj
     import csv
     print "Start running  Parallel simulations ..."
+    f = open(setupFile, 'rb')
+
     line = []
     reader = csv.reader(f, delimiter=' ', skipinitialspace=True)
     for a in reader:
@@ -691,7 +693,6 @@ def runParallelSimulation(PySimulatorPath, setupFile, resultDir, allSimulators, 
                     line.append(a)
                 
     f.close()
-
     modelList = numpy.zeros((len(line),), dtype=[('fileName', 'U2000'), ('modelName', 'U2000'), ('subDirectory', 'U2000'), ('tStart', 'f8'), ('tStop', 'f8'), ('tol', 'f8'), ('stepSize', 'f8'), ('nInterval', 'i4'), ('includeEvents', 'b1')])
     for i, x in enumerate(line):
         absPath = x[0].replace('\\', '/')
@@ -759,32 +760,37 @@ class simulationParallelThread(QtCore.QThread):
                 if not os.path.exists(np): 
                    os.mkdir(np)
                 dirs.append(np)
+                
+            #check the subdirectory for empty strings and replace it with 'N' for passing to pool.map(), as it cannot process empty list of strings to multiprocess module
+            subdirlist= ["N" if not x else x for x in self.modelList['subDirectory']]
             
             pool=Pool()
             #startTime = time.time() 
-            pool.map(parallelsimulation, zip(self.modelList['fileName'],self.modelList['modelName'],self.modelList['tStart'],self.modelList['tStop'],self.modelList['tol'],self.modelList['nInterval'],self.modelList['includeEvents'],dirs,resultpath,config,simname))
+            pool.map(parallelsimulation, zip(self.modelList['fileName'],self.modelList['modelName'],subdirlist,self.modelList['tStart'],self.modelList['tStop'],self.modelList['tol'],self.modelList['stepSize'],self.modelList['nInterval'],self.modelList['includeEvents'],dirs,resultpath,config,simname))
             pool.close()
             pool.join()
             #elapsedTime = time.time() - startTime
             #print elapsedTime           
-            print "Parallel simulation completed"
-            self.running = False
+        print "Parallel simulation completed"
+        self.running = False
             
   
 def parallelsimulation(modellists):
      'unpacks the modelists and run the simuations in parallel using the multiprocessing module'
      packname=[]
      packname.append(modellists[0])     
-     modelname=modellists[1]    
-     tstart=modellists[2]
-     tstop=modellists[3]
-     tolerance=modellists[4]
-     interval=modellists[5]
-     events=modellists[6]
-     dirname=modellists[7]
-     path=modellists[8]
-     config=modellists[9]
-     simulator=modellists[10]
+     modelname=modellists[1]
+     subdir=modellists[2]     
+     tstart=modellists[3]
+     tstop=modellists[4]
+     tolerance=modellists[5]
+     stepsize=modellists[6]
+     interval=modellists[7]
+     events=modellists[8]
+     dirname=modellists[9]
+     path=modellists[10]
+     config=modellists[11]
+     simulator=modellists[12]
      
      os.chdir(dirname)
      try:
@@ -798,20 +804,27 @@ def parallelsimulation(modellists):
        if(simulator=='FMUSimulator'):
            import Plugins.Simulator.FMUSimulator.FMUSimulator as FMUSimulator
            model=FMUSimulator.getNewModel(modelname, packname, config)
-       if(simulator=='FMUSimulatorDLR'):
-           import Plugins.Simulator.FMUSimulatorDLR.FMUSimulatorDLR as FMUSimulatorDLR
-           model=FMUSimulatorDLR.getNewModel(modelname, packname, config)
        if(simulator=='SimulationX'):
            import Plugins.Simulator.SimulationX.SimulationX as SimulationX
            model=SimulationX.getNewModel(modelname, packname, config)
        if(simulator=='Wolfram'):
            import Plugins.Simulator.Wolfram.Wolfram as Wolfram
            model=Wolfram.getNewModel(modelname, packname, config)
-     
-       resultFileName = path + '/' + modelname + '.' + model.integrationSettings.resultFileExtension
+             
+       if (subdir == 'N'):
+          resultDir = path        
+       else:
+          resultDir = path + '/' + subdir
+          if not os.path.isdir(resultDir):
+              os.makedirs(resultDir)
+          
+
+       
+       resultFileName = resultDir + '/' + modelname + '.' + model.integrationSettings.resultFileExtension
        model.integrationSettings.startTime = tstart
        model.integrationSettings.stopTime  = tstop
        model.integrationSettings.errorToleranceRel = tolerance
+       model.integrationSettings.fixedStepSize = stepsize
        model.integrationSettings.gridPoints = interval
        model.integrationSettings.gridPointsMode = 'NumberOf'
        model.integrationSettings.resultFileIncludeEvents = events
