@@ -46,10 +46,10 @@ def ConnectFMUMenu(model, gui):
                         
             self.fmulabel = QtGui.QLabel("List of FMUs:", self)
             mainGrid.addWidget(self.fmulabel, 1, 0, QtCore.Qt.AlignRight)
-            self.simulator = QtGui.QListWidget(self)
-            self.simulator.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
-            #self.simulator.setFixedHeight(100)
-            mainGrid.addWidget(self.simulator, 1, 1, 2, 1)
+            self.fmu = QtGui.QListWidget(self)
+            self.fmu.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+            #self.fmu.setFixedHeight(100)
+            mainGrid.addWidget(self.fmu, 1, 1, 2, 1)
             
             self.browseSetupFile = QtGui.QPushButton("Select", self)
             mainGrid.addWidget(self.browseSetupFile, 1, 2)
@@ -142,7 +142,7 @@ def ConnectFMUMenu(model, gui):
                 fileName = fileName.replace('\\', '/')
                 if fileName != '':
                     #self.setupFileEdit.setText(fileName)
-                    self.simulator.addItem(fileName)
+                    self.fmu.addItem(fileName)
 
             
             self.browseSetupFile.clicked.connect(browseFile)
@@ -163,7 +163,7 @@ def ConnectFMUMenu(model, gui):
                  root = tree.getroot()
                  for fmu in root.iter('fmu'):
                      name = fmu.get('path')
-                     self.simulator.addItem(name)
+                     self.fmu.addItem(name)
                  
                  for connection in root.iter('connection'):
                     fid=connection.get('fromFmuId')
@@ -185,12 +185,12 @@ def ConnectFMUMenu(model, gui):
        
        def remove(self):
            'Remove FMUS from List'                    
-           #cur=self.simulator.currentItem().text()
-           listItems=self.simulator.selectedItems()
+           #cur=self.fmu.currentItem().text()
+           listItems=self.fmu.selectedItems()
            if not listItems: return        
            for item in listItems:
-               self.simulator.takeItem(self.simulator.row(item))
-           self.simulator.show() 
+               self.fmu.takeItem(self.fmu.row(item))
+           self.fmu.show() 
            
            
        def connectremove(self):
@@ -226,7 +226,7 @@ def ConnectFMUMenu(model, gui):
             
             self.browseSetupFile.show()
             self.fmulabel.show()
-            self.simulator.show()
+            self.fmu.show()
             self.removeButton.show()
             self.parseButton.show()
             self.xmlFileEdit.show()
@@ -239,21 +239,37 @@ def ConnectFMUMenu(model, gui):
 <connectedFmus>
 <fmus>
 </fmus>
+
 <connections>
 </connections>
 </connectedFmus>'''
            root = ET.fromstring(template)
                       
                       
-           list1=self.simulator.count()
+           list1=self.fmu.count()
            for i in xrange(list1):
-              item=self.simulator.item(i).text()
+              item=self.fmu.item(i).text()
+              name=os.path.basename(item).replace('fmu','').replace('.','')
               fmus = root.find('fmus')
               fmu = ET.SubElement(fmus,'fmu')
               fmu.set("fmuId",str(i))               
               fmu.set("name",os.path.basename(item).replace('.fmu','')) 
               fmu.set("path",item)
-              
+              parameters=ET.SubElement(fmu,'parameters')
+
+              for row in range(self.paramtable.rowCount()):
+                fmuname = self.paramtable.item(row,0).text()
+                if(name==fmuname):
+                   parameter=ET.SubElement(parameters,'parameter')                           
+                   for column in range(self.paramtable.columnCount()):
+                      if(column==1):
+                         parname = self.paramtable.item(row,column).text()
+                         parameter.set("name",parname)
+                      if(column==2):
+                         parvalue = self.paramtable.item(row,column).text()
+                         parameter.set("value",parvalue)
+                         
+                      
            for row in range(self.table.rowCount()):
              connections = root.find('connections')
              connection = ET.SubElement(connections, 'connection')
@@ -291,7 +307,7 @@ def ConnectFMUMenu(model, gui):
 
             self.browseSetupFile.hide()
             self.fmulabel.hide()
-            self.simulator.hide()
+            self.fmu.hide()
             self.removeButton.hide()
             self.parseButton.hide()
             self.xmlFileEdit.hide()
@@ -314,9 +330,9 @@ def ConnectFMUMenu(model, gui):
             self.saveButton.show()
 
             'Parse FMUs from the List'                    
-            x=self.simulator.count()
+            x=self.fmu.count()
             for i in xrange(x):
-               y=self.simulator.item(i).text()
+               y=self.fmu.item(i).text()
                modelname=os.path.basename(y).replace('.fmu','')
                try:
                   file = zipfile.ZipFile(y, 'r')
