@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-Copyright (C) 2011-2014 German Aerospace Center DLR
+Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
@@ -43,11 +43,15 @@ modelExtension = ['mo', 'moe', 'exe']
 def closeSimulatorPlugin():
     pass
 
+def getNewModel(modelName=None, modelFileName=None, config=None):    
+    return Model(modelName, modelFileName, config)
+
 class Model(Plugins.Simulator.SimulatorBase.Model):
 
     def __init__(self, modelName, modelFileName, config):
 
-        Plugins.Simulator.SimulatorBase.Model.__init__(self, modelName, modelFileName, 'Dymola', config)
+        Plugins.Simulator.SimulatorBase.Model.__init__(self, modelName, modelFileName, config)
+        self.modelType = 'Modelica model in Dymola'
 
         # A dummy object to get result properties:
         self.integrationResults = DymolaMat.Results('')
@@ -63,15 +67,16 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
         self.integrationSettings.algorithmName = self._availableIntegrationAlgorithms[0]
 
-        # Compile model, generate initialization file (including all variable names) and read this file
+        # Compile model, generate initialization file (including all variable names)
         self._compileModel()
-        subprocess.call((self.fileNameExec + ' -ib dsin.mat').encode(sys.getfilesystemencoding()))
-        self._initialResult = DymolaMat.loadDymolaInit(os.path.abspath('.') + '/dsin.mat')
+        subprocess.call((self.fileNameExec + ' -ib dsin.mat').encode(sys.getfilesystemencoding()))        
 
 
     def setVariableTree(self):
         ''' Generate variable tree from initialization file
         '''
+        self._initialResult = DymolaMat.loadDymolaInit(os.path.abspath('.') + '/dsin.mat')
+        
         for i in xrange(len(self._initialResult.name)):
             if   self._initialResult.value[i, 4] == 1:
                 causality = 'parameter'

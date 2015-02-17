@@ -2,10 +2,9 @@
 # -*- coding: utf-8 -*-
 
 '''
-Copyright (C) 2011-2014 German Aerospace Center DLR
+Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
-and BAUSCH-GALL GmbH, Munich
 All rights reserved.
 
 This file is licensed under the "BSD New" license
@@ -40,7 +39,7 @@ import os
 from operator import itemgetter
 
 import pyMtsf
-from Plugins.Simulator.FMUSimulator.FMIDescription1 import FMIDescription
+from Plugins.Simulator.FMUSimulator.FMIDescription2 import FMIDescription
 
 
 
@@ -74,7 +73,7 @@ def convertFromFmi(fmuFilename, fmi=None):
 
     # Load FMIDescription if necessary
     if fmi is None:
-        fmuFile = zipfile.ZipFile(os.getcwd() + u'\\' + fmuFilename + u'.fmu', 'r')
+        fmuFile = zipfile.ZipFile(os.path.join(os.getcwd(), fmuFilename + u'.fmu'), 'r')
         fmi = FMIDescription(fmuFile.open('modelDescription.xml'))
 
     # Prepare some variables
@@ -85,31 +84,29 @@ def convertFromFmi(fmuFilename, fmi=None):
     enumerationsMatrix = []
     variable['Time'] = pyMtsf.ScalarModelVariable('Continuous Time', 'input', 0, 'continuous', allSeriesNames.index('Continuous'), pyMtsf.StandardCategoryNames.index(pyMtsf.CategoryMapping['Real']), None, 0)
     variable['TimeDiscrete'] = pyMtsf.ScalarModelVariable('Discrete Time at events', 'input', 0, 'discrete', allSeriesNames.index('Discrete'), pyMtsf.StandardCategoryNames.index(pyMtsf.CategoryMapping['Real']), None, 0)
-
-    # Alias
-    for var in fmi.scalarVariables.values():
-        if var.alias is None or var.alias.lower() == "noalias":
-            var.alias = 'NOAlias'  # To guarantee that this variable is the first
-                                    # one in sorted order
-    referenceList = [(x, y.valueReference, y.alias) for x, y in fmi.scalarVariables.iteritems()]
-    referenceList.sort(key=itemgetter(2))
-    referenceList.sort(key=itemgetter(1))
-
-    for index in xrange(len(referenceList)):
-        variableName = referenceList[index][0]
-        if referenceList[index][2] in ['alias', 'negatedAlias']:
+    
+    
+    # Searching aliases
+    referenceList = [(x, fmi.scalarVariables[x].valueReference) for x in fmi.scalarVariables.keys()]
+    referenceList.sort(key = itemgetter(1))
+    alias = dict()    
+    if len(referenceList) > 1:
+        origin = None
+        alias[referenceList[0][0]] = None
+        for index in xrange(len(referenceList)-1):
+            variableName = referenceList[index][0]
             valueReference = referenceList[index][1]
-            prevValueReference = referenceList[index - 1][1]
-            if prevValueReference != valueReference:
-                raise ValueError("No original variable found for alias " + variableName)
-            if referenceList[index - 1][2] == "NOAlias":
-                originName = referenceList[index - 1][0]
+            nextVariableName = referenceList[index+1][0]
+            nextValueReference = referenceList[index+1][1]
+            if valueReference == nextValueReference:
+                if origin is None:
+                    origin = variableName
+                alias[nextVariableName] = origin 
             else:
-                originName = fmi.scalarVariables[referenceList[index - 1][0]].aliasName
-            fmi.scalarVariables[variableName].aliasName = originName
-        else:
-            fmi.scalarVariables[variableName].aliasName = None
-
+                origin = None
+                alias[nextVariableName] = None
+        
+    '''
     # Types and display units
     uniqueSimpleType = []
     for fmiVariableName, fmiVariable in fmi.scalarVariables.iteritems():
@@ -118,14 +115,16 @@ def convertFromFmi(fmuFilename, fmi=None):
         if fmi.units.has_key(type.unit):
             for displayUnitName, displayUnit in fmi.units[type.unit].iteritems():
                 if displayUnitName != type.unit:
-                    unitList.append(displayUnitName + '{:.16e}'.format(displayUnit.gain) + '{:.16e}'.format(displayUnit.offset))
+                    unitList.append(displayUnitName + '{:.16e}'.format(displayUnit.factor) + '{:.16e}'.format(displayUnit.offset))
             # unitList.sort()
-        dataType = type.type
+        dataType = type.basicType
         enumerations = ''
         if dataType == 'Enumeration':
             enumerations = ''.join([_None2Str(x[0]) + _None2Str(x[1]) for x in type.item])
         uniqueSimpleType.append((fmiVariableName, type, _None2Str(type.name) + str(pyMtsf.DataType[dataType]) + _None2Str(type.quantity) + str(type.relativeQuantity), ''.join(unitList), enumerations))
-
+    
+   
+    
     # Simple Types
     uniqueSimpleType.sort(key=itemgetter(3))
     uniqueSimpleType.sort(key=itemgetter(2))
@@ -201,38 +200,47 @@ def convertFromFmi(fmuFilename, fmi=None):
                     enumerationsMatrix.append(pyMtsf.Enumeration(enum[0], j, enum[1], firstEntry))
                 simpleTypes[k].unitOrEnumerationRow = startRow
 
+    '''
+    
+    simpleTypes.append(pyMtsf.SimpleType('Real', pyMtsf.DataType['Real'], 'Real', False, -1, ''))
+    simpleTypes.append(pyMtsf.SimpleType('Integer', pyMtsf.DataType['Integer'], 'Integer', False, -1, ''))
+    simpleTypes.append(pyMtsf.SimpleType('Boolean', pyMtsf.DataType['Boolean'], 'Boolean', False, -1, ''))
+    
+
     # Iterate over all fmi-variables
     for fmiVariableName, fmiVariable in fmi.scalarVariables.iteritems():
-        variableType = fmiVariable.type.type
+        variableType = fmiVariable.type.basicType
         if variableType != "String":  # Do not support strings
-            variability = fmiVariable.variability
-
-            aliasNegated = 0
-            aliasName = fmiVariable.aliasName
-            if aliasName is not None:
-                if fmiVariable.alias == 'negatedAlias':
-                    aliasNegated = 1
-                # Due to possibly insufficient information in xml-file
-                variability = fmi.scalarVariables[aliasName].variability
+            aliasNegated = 0 # Not supported in FMI 2.0            
+            aliasName = alias[fmiVariableName]           
+                        
             categoryIndex = pyMtsf.StandardCategoryNames.index(pyMtsf.CategoryMapping[variableType])
-            if variability in ['constant', 'parameter']:
-                seriesIndex = allSeriesNames.index('Fixed')
-            elif variability == 'discrete':
+            
+            variability = fmiVariable.variability
+            if variability == 'tunable':
+                variability = 'fixed'
+            if variability in ['constant', 'fixed']:
+                seriesIndex = allSeriesNames.index('Fixed')                
+            elif variability in ['discrete']:
                 seriesIndex = allSeriesNames.index('Discrete')
             else:
                 seriesIndex = allSeriesNames.index('Continuous')
 
             causality = fmiVariable.causality
-            # Due to FMI 1.0; in vers. 2.0 this should not be necessary
-            if causality is None:
-                causality = 'local'
-            if variability == 'parameter':
+            if causality == 'calculatedParameter':
                 causality = 'parameter'
-                variability = 'fixed'
-            if causality in ['internal', 'none']:
-                causality = 'local'
-
-            simpleTypeRow = rowIndex[fmiVariableName]
+            if causality == 'independent':
+                causality = 'option'
+                       
+            if variableType == 'Real':
+                simpleTypeRow = 0
+            elif variableType == 'Integer':
+                simpleTypeRow = 1
+            elif variableType == 'Boolean':
+                simpleTypeRow = 2
+            elif variableType == 'Enumeration':
+                simpleTypeRow = 1  # Integer
+            
             variable[fmiVariableName] = pyMtsf.ScalarModelVariable(fmiVariable.description,
                                                     causality,
                                                     simpleTypeRow,
@@ -252,71 +260,11 @@ def convertFromFmi(fmuFilename, fmi=None):
     variable['Time'].simpleTypeRow = len(simpleTypes) - 1
     variable['TimeDiscrete'].simpleTypeRow = len(simpleTypes) - 1
 
-    modelDescription = pyMtsf.ModelDescription(fmi.modelName, fmi.description, fmi.author, fmi.version, fmi.generationTool, fmi.generationDateAndTime, fmi.variableNamingConvention)
+    modelDescription = pyMtsf.ModelDescription(_None2Str(fmi.modelName), _None2Str(fmi.description), _None2Str(fmi.author), _None2Str(fmi.version), _None2Str(fmi.generationTool), _None2Str(fmi.generationDateAndTime), fmi.variableNamingConvention)
     modelVariables = pyMtsf.ModelVariables(variable, StandardSeriesForFmi, pyMtsf.StandardCategoryNames)
 
     return modelDescription, modelVariables, simpleTypes, units, enumerationsMatrix
 
 
 
-
-if __name__ == '__main__':
-
-    import time
-    import numpy
-
-    nPoints = 60
-    BlockSize = 100
-
-    # Prepare information from FMU
-    name_fmu_file = u'Examples/fullRobot'
-    (modelDescription, modelVariables, simpleTypes, units, enumerations) = convertFromFmi(name_fmu_file)
-    modelVariables.allSeries[1].initialRows = nPoints * BlockSize  # Continuous
-    # Phase 1 of result file generation
-    resultFileName = name_fmu_file + unicode(nPoints) + u'.mtsf'
-    experimentSetup = pyMtsf.ExperimentSetup(startTime=0.0, stopTime=4.78, algorithm="Dassl",
-                        relativeTolerance=1e-7, author="", description="Test experiment",
-                        generationDateAndTime=time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime()),
-                        generationTool="Python", machine=os.getenv('COMPUTERNAME'),
-                        cpuTime="")
-
-    startTime = time.clock()
-    # Create result object
-    mtsf = pyMtsf.MTSF(resultFileName, modelDescription, modelVariables, experimentSetup, simpleTypes, units, enumerations)
-
-    # Some aliases
-    realParameter = mtsf.results.series['Fixed'].category[pyMtsf.CategoryMapping['Real']]
-    # integerParameter = mtsf.results.series['Fixed'].category[CategoryMapping['Integer']]
-    booleanParameter = mtsf.results.series['Fixed'].category[pyMtsf.CategoryMapping['Boolean']]
-    realContinuous = mtsf.results.series['Continuous'].category[pyMtsf.CategoryMapping['Real']]
-    realDiscrete = mtsf.results.series['Discrete'].category[pyMtsf.CategoryMapping['Real']]
-    # integerDiscrete = mtsf.results.series['Discrete'].category[CategoryMapping['Integer']]
-    booleanDiscrete = mtsf.results.series['Discrete'].category[pyMtsf.CategoryMapping['Boolean']]
-
-    # *************************************
-    # Phase 2 of result file generation
-    print "Write Data ..."
-    realParameter.writeData(numpy.random.rand(1, realParameter.nColumn) * 2e5 - 1e5)
-    # integerParameter.writeData(numpy.floor(0.5+numpy.random.rand(1,integerParameter.nColumn)*2e5-1e5).astype(int))
-    booleanParameter.writeData(numpy.floor(0.5 + numpy.random.rand(1, booleanParameter.nColumn)).astype(int))
-
-    for i in range(nPoints):
-        # write continuous
-        realContinuous.writeData(numpy.random.rand(BlockSize, realContinuous.nColumn) * 2e5 - 1e5)
-        # write discrete
-        # booleanDiscrete.writeData(numpy.floor(0.5+numpy.random.rand(2, booleanDiscrete.nColumn)).astype(int))
-        # realDiscrete.writeData(numpy.random.rand(2, realDiscrete.nColumn)*2e5 - 1e5)
-        # integerDiscrete.writeData(numpy.floor(0.5+numpy.random.rand(2, integerDiscrete.nColumn)*2e5-1e5).astype(int))
-        # write String
-        # mtsf.series['Continuous'].categories['H5T_C_S1'].writeData(numpy.ones((1,k_str),dtype=numpy.str_))
-
-    # Write times:
-    # realContinuous.member[0].dataset[:,0] = numpy.linspace(0,1,realContinuous.member[0].dataset.shape[0])
-    # realDiscrete.member[0].dataset[:,0] = numpy.linspace(0,1,realDiscrete.member[0].dataset.shape[0])
-    print "Data written."
-
-    # ****************************************
-    # Phase 3 of result file generation
-    mtsf.close()
-    print  "Elapsed time = " + format(time.clock() - startTime, '0.2f') + " s."
 

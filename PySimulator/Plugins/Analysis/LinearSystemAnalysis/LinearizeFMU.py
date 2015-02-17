@@ -52,7 +52,7 @@ class LinearizeFMU:
             print myLin.D
         '''
         if FMUModel is None:
-            self.fmu = FMUSimulator.Model(modelName=None, modelFileName=FMUfileName, config=self.config, loggingOn=False)
+            self.fmu = FMUSimulator.getNewModel(modelName=None, modelFileName=FMUfileName, config=self.config)
         else:
             self.fmu = FMUModel
 

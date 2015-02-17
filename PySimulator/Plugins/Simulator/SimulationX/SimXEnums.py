@@ -176,8 +176,12 @@ SimVariantsOutputFormatXML = 1
 SimVariantsOutputFormatModel = 2
 
 # SimCalculationMode
+SimCalculationModeCurrent = -1
 SimCalculationModeTransient = 0
 SimCalculationModeEquilibration = 1
+SimCalculationModeSteadyState = 2
+SimCalculationModeAnimation = 3
+SimCalculationModeFaultTree = 4
 
 # SimTraceMsgType
 SimTraceMsgTypeInfo = 0

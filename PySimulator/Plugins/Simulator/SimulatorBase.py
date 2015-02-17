@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-Copyright (C) 2011-2014 German Aerospace Center DLR
+Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
@@ -121,18 +121,20 @@ class TreeVariable():
         self.attribute = attribute  # String
 
 
+def getNewModel(modelName=None, modelFileName=None, config=None):    
+    return Model(modelName, modelFileName, config)
 
 class Model():
     ''' This is the base class for a model of a Simulator plugin
     '''
 
-    def __init__(self, modelName, modelFileName, modelType, config):
+    def __init__(self, modelName, modelFileName, config):
         ''' Constructor initializes some class variables.
             Type of modelName, modelType:  String;     modelFileName: List of Strings
         '''
         self.fileName = modelFileName
         self.name = modelName
-        self.modelType = modelType  # e.g. 'None', 'FMI1.0', 'FMI2.0', 'Dymola', 'OpenModelica'
+        self.modelType = 'None' if modelFileName is None else None  # e.g. 'None', 'FMI1.0', 'FMI2.0', 'Dymola', 'OpenModelica'
         self.integrationSettings = IntegrationSettings()
         self.integrationStatistics = IntegrationStatistics()
         self.integrationResults = IntegrationResults.Results()
@@ -210,7 +212,7 @@ class Model():
         raise NameError('Not implemented.')
 
 
-    def setVariableTree(self):
+    def setVariableTree(self, results=None):
         ''' This implementation uses the integration result to generate a variable tree.
             It is the default implementation for generating the variable tree when loading only a result file (not a model) into PySimulator.
             Normally, Simulator plugins overload this function and provide their own functions for variable trees of MODELS.
@@ -218,9 +220,13 @@ class Model():
             The function generates an instance of the class VariableTree and stores it in self.variableTree.
             It transforms ResultVariables to TreeVariables.
         '''
+        
+        if results is None:
+            results = self.integrationResults
+                
         # Generate variable tree from result file information
-        variables = self.integrationResults.getVariables()
-        fileInfos = self.integrationResults.getFileInfos()
+        variables = results.getVariables()
+        fileInfos = results.getFileInfos()
         fileInfosList = [(x, y) for x, y in fileInfos.iteritems()]
         fileInfosList.sort()
         lenList = [len(x) for x in fileInfos.keys()]

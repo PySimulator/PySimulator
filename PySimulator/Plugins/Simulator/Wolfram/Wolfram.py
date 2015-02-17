@@ -35,11 +35,15 @@ simulationProgressData = 0.0
 def closeSimulationPlugin():
     pass
 
+def getNewModel(modelName=None, modelFileName=None, config=None):    
+    return Model(modelName, modelFileName, config)
+
 class Model(Plugins.Simulator.SimulatorBase.Model):
 
     def __init__(self, modelName, modelFileName, config):
 
-        Plugins.Simulator.SimulatorBase.Model.__init__(self, modelName, modelFileName, 'Wolfram', config)
+        Plugins.Simulator.SimulatorBase.Model.__init__(self, modelName, modelFileName, config)
+        self.modelType = 'Modelica model in Wolfram'
 
         self.onlyResultFile = False
         self.integrationSettings.resultFileExtension = 'mat'

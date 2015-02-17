@@ -157,7 +157,7 @@ class StateSpace:
                               numpy.hstack((self.C[yj:yj + 1, :], self.D[yj:yj + 1, ui:ui + 1]))))
 
         # When calculating the zeros, a warning is printed for zeros at infinity
-        # since a divison by zero occurs resulting in a zero of "nan+nanj".
+        # since a division by zero occurs resulting in a zero of "nan+nanj".
         # The following context suppresses this warning
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")

@@ -84,13 +84,13 @@ class VariablesBrowser(QtGui.QTreeWidget):
             return
         item = self.itemAt(point)
 
-        # Seperate by case:
+        # Separate by case:
         # After right click on an item:
         if 'variable' in vars(item):
             menu = QtGui.QMenu(self)
             model = self.parent.models[item.modelName]
             if not model.integrationResults.isAvailable:
-                menu.addAction("(Only Availabe after Simulation)", None)
+                menu.addAction("(Only Available after Simulation)", None)
                 menu.addSeparator()
                 menu.setDisabled(True)
                 variable = None

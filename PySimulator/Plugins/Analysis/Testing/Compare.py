@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-Copyright (C) 2011-2014 German Aerospace Center DLR
+Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 All rights reserved.
@@ -74,46 +74,62 @@ def normDiff(tAIn, fAIn, iA, sA, tBIn, fBIn, iB, sB, t1, t2):
     # Linear extrapolation where necessary
     if t1 < tA[1]:
         if tA[1] == tA[2]:
+            '''
             for i in xrange(nSignals):
                 if fA[1, iA[i]] <> fA[2, iA[i]]:
-                    print "Extrapolation for fA on left border of time grid not possible due to discontinuity in column " + str(iA[i]) + " for index " + str(i)
-                    error = True
-                    break
+                    #print "Extrapolation for fA on left border of time grid not possible due to discontinuity in column " + str(iA[i]) + " for index " + str(i)
+                    #error = True
+                    #break
+                    fA[0, iA[i]] = fA[1, iA[i]]
                 else:
                     fA[0, iA[i]] = fA[1, iA[i]]
+            '''
+            fA[0, iA] = fA[1, iA]
         else:
             fA[0, iA] = fA[1, iA] + (fA[2, iA] - fA[1, iA]) * (tA[0] - tA[1]) / (tA[2] - tA[1])
     if t1 < tB[1]:
         if tB[1] == tB[2]:
+            '''
             for i in xrange(nSignals):
                 if fB[1, iB[i]] <> fB[2, iB[i]]:
-                    print "Extrapolation for fB on left border of time grid not possible due to discontinuity in column " + str(iB[i]) + " for index " + str(i)
-                    error = True
-                    break
+                    #print "Extrapolation for fB on left border of time grid not possible due to discontinuity in column " + str(iB[i]) + " for index " + str(i)
+                    #error = True
+                    #break
+                    fB[0, iB[i]] = fB[1, iB[i]]
                 else:
                     fB[0, iB[i]] = fB[1, iB[i]]
+            '''
+            fB[0, iB] = fB[1, iB]
         else:
             fB[0, iB] = fB[1, iB] + (fB[2, iB] - fB[1, iB]) * (tB[0] - tB[1]) / (tB[2] - tB[1])
     if t2 > tA[-2]:
         if tA[-2] == tA[-3]:
+            '''
             for i in xrange(nSignals):
                 if fA[-2, iA[i]] <> fA[-3, iA[i]]:
-                    print "Extrapolation for fA on right border of time grid not possible due to discontinuity in column " + str(iA[i]) + " for index " + str(i)
-                    error = True
-                    break
+                    #print "Extrapolation for fA on right border of time grid not possible due to discontinuity in column " + str(iA[i]) + " for index " + str(i)
+                    #error = True
+                    #break
+                    fA[-1, iA[i]] = fA[-2, iA[i]]
                 else:
                     fA[-1, iA[i]] = fA[-3, iA[i]]
+            '''
+            fA[-1, iA] = fA[-2, iA]
         else:
             fA[-1, iA] = fA[-3, iA] + (fA[-2, iA] - fA[-3, iA]) * (tA[-1] - tA[-3]) / (tA[-2] - tA[-3])
     if t2 > tB[-2]:
         if tB[-2] == tB[-3]:
+            '''
             for i in xrange(nSignals):
                 if fB[-2, iB[i]] <> fB[-3, iB[i]]:
-                    print "Extrapolation for fB on right border of time grid not possible due to discontinuity in column " + str(iB[i]) + " for index " + str(i)
-                    error = True
-                    break
+                    #print "Extrapolation for fB on right border of time grid not possible due to discontinuity in column " + str(iB[i]) + " for index " + str(i)
+                    #error = True
+                    #break
+                    fB[-1, iB[i]] = fB[-2, iB[i]]
                 else:
                     fB[-1, iB[i]] = fB[-3, iB[i]]
+            '''
+            fB[-1, iB] = fB[-2, iB]
         else:
             fB[-1, iB] = fB[-3, iB] + (fB[-2, iB] - fB[-3, iB]) * (tB[-1] - tB[-3]) / (tB[-2] - tB[-3])
 
@@ -237,8 +253,11 @@ def Compare(tA, fA, iA, sA, tB, fB, iB, sB, tol=1e-3):
         else:
             tStart = min(tA[0], tB[0])
             tStop = max(tA[-1], tB[-1])
-
-        diff, NfA, NfB, error = normDiff(tA2, fA2, iA, sA, tB2, fB2, iB, sB, tStart, tStop)
+        
+        if tStart == tStop:
+            diff, NfA, NfB, error = normDiffPar(sA * fA2[0, iA], sB * fB2[0, iB])
+        else:
+            diff, NfA, NfB, error = normDiff(tA2, fA2, iA, sA, tB2, fB2, iB, sB, tStart, tStop)
 
     if error:
         return [False]*len(diff), diff / (1 + NfA + NfB), error

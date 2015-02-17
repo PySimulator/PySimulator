@@ -263,7 +263,7 @@ def test2(model, checkedModel):
 from PySide import QtGui
 import os
 def saveAsCSV(model, variable, data, unit):
-    (fileName, extension) = QtGui.QFileDialog().getSaveFileName(None, 'Save Variable as CSV', os.getcwd(), "Comma Seperated Value (*.csv)")
+    (fileName, extension) = QtGui.QFileDialog().getSaveFileName(None, 'Save Variable as CSV', os.getcwd(), "Comma Separated Value (*.csv)")
     if not fileName:
         return
     print "Saving trajectory of {model}.{variable}[{unit}] to {file}".format(model=model.name, variable=variable, unit=unit, file=fileName)

@@ -39,8 +39,8 @@ def linearizeToMAT(model, gui):
     if model is None:
         print("No model selected!")
         return
-    if model.modelType != 'FMU1.0':
-        print("Error: Selected model must be an FMU !\n")
+    if 'FMU 1.0 Model Exchange' not in model.modelType:
+        print("Error: Selected model must be an FMU 1.0 Model Exchange!\n")
         return
     try:
         matFileName = model.fileName[-1][:-4] + '_lin.mat'
@@ -58,8 +58,8 @@ def linearizeAndShowABCD(model, gui):
     if model is None:
         print("No model selected!")
         return
-    if model.modelType != 'FMU1.0':
-        print("Error: Selected model must be an FMU 1.0!\n")
+    if 'FMU 1.0 Model Exchange' not in model.modelType:
+        print("Error: Selected model must be an FMU 1.0 Model Exchange!\n")
         return
     # try:
     linSys = LinearizeFMU(FMUModel=model)
