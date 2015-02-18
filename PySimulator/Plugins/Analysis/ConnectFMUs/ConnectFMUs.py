@@ -332,10 +332,9 @@ def ConnectFMUMenu(model, gui):
                        fmuname=y1[1].split(".",1)[0]    
                        if (column==0):
                            col0 = [s for s in checkfmus if fmuname in s]
-                           print col0
                        if (column==1):
                            col1 = [s for s in checkfmus if fmuname in s]
-                           print col1
+
                   if(len(col0)==0 or len(col1)==0):
                      #print 'rownumber', row
                      rownumbers.append(row)
