@@ -37,6 +37,9 @@ For documentation of general Simulator plugins, see also SimulatorBase.py
 import zipfile
 import xml.etree.ElementTree as etree
 import FMUError
+import FMUSimulator1
+import FMUSimulator2
+
 
 
 iconImage = 'simulatorFMUSimulator.ico'
@@ -73,12 +76,7 @@ def getNewModel(modelName=None, modelFileName=None, config=None):
     _docroot = _document.getroot()           
     fmiVersion = _docroot.get('fmiVersion')        
     if fmiVersion == "1.0":
-        import FMUSimulator1        
         return FMUSimulator1.Model(modelName, modelFileName, config)
     elif fmiVersion == "2.0":
-        try:
-            import FMUSimulator2
-        except:
-            raise FMUError.FMUError("FMUs 2.0 not yet supported by FMUSimulator.")        
         return FMUSimulator2.Model(modelName, modelFileName, config)
 
