@@ -107,8 +107,8 @@ def ConnectFMUMenu(model, gui):
                        
             self.paramtable = QtGui.QTableWidget(self)
             self.paramtable.setRowCount(0)
-            self.paramtable.setColumnCount(3)
-            self.paramtable.setHorizontalHeaderLabels(["FMU","Variable","Value"])
+            self.paramtable.setColumnCount(4)
+            self.paramtable.setHorizontalHeaderLabels(["FMU","Variable","Type","Value"])
             mainGrid.addWidget(self.paramtable, 6, 1, 1, 2)
             self.paramtable.hide()          
             
@@ -200,13 +200,15 @@ def ConnectFMUMenu(model, gui):
            
        
        def previous(self):
-  
+            ## Show only the widgets of step1 and also delete the contents of widgets for proper update of data if the user adds or removes a FMU ##
+            '''' 
             for i in reversed(range(self.table.rowCount())):
-                 self.table.removeRow(i)
+                 self.table.removeRow(i)'''
                  
             for j in reversed(range(self.paramtable.rowCount())):
                  self.paramtable.removeRow(j)
                  
+            ### Hide the following widgets ###     
             self.combo.clear()
             self.combo1.clear()
             self.combo.hide()
@@ -224,6 +226,8 @@ def ConnectFMUMenu(model, gui):
             self.paramtable.hide()
             self.paramlist.hide()
             
+            ### Show the following widgets ###
+            
             self.browseSetupFile.show()
             self.fmulabel.show()
             self.fmu.show()
@@ -234,6 +238,7 @@ def ConnectFMUMenu(model, gui):
             self.xmlSetupFile.show()
             
        def finish(self):
+           ## Parse the data from the GUI and write to XML ##
            logFile = self.SaveFileEdit.text()
            template='''<?xml version="1.0" encoding="utf-8"?>
 <connectedFmus>
@@ -247,6 +252,8 @@ def ConnectFMUMenu(model, gui):
                       
                       
            list1=self.fmu.count()
+           
+           ## Parse the data from self.fmu widget and self.paramtable and write to <fmus> tag in xml##
            for i in xrange(list1):
               item=self.fmu.item(i).text()
               name=os.path.basename(item).replace('fmu','').replace('.','')
@@ -266,10 +273,13 @@ def ConnectFMUMenu(model, gui):
                          parname = self.paramtable.item(row,column).text()
                          parameter.set("name",parname)
                       if(column==2):
+                         partype = self.paramtable.item(row,column).text()
+                         parameter.set("type",partype)                  
+                      if(column==3):
                          parvalue = self.paramtable.item(row,column).text()
                          parameter.set("value",parvalue)
                          
-                      
+           ## Parse the data from self.table widget and write to the <connection> tag in xml ##             
            for row in range(self.table.rowCount()):
              connections = root.find('connections')
              connection = ET.SubElement(connections, 'connection')
@@ -304,7 +314,39 @@ def ConnectFMUMenu(model, gui):
     
             
        def next(self):
-
+       
+            #### update the connection table if the user goes for previous step and removes fmus from the list###
+            count=self.table.rowCount()            
+            if (count!=0):
+              x=self.fmu.count()
+              checkfmus=[]
+              for i in xrange(x):
+                 y=self.fmu.item(i).text()
+                 modelname=os.path.basename(y).replace('.fmu','').replace('.','')
+                 checkfmus.append(modelname)
+              rownumbers=[]
+              for row in range(self.table.rowCount()):
+                  for column in range(self.table.columnCount()):
+                       item = self.table.item(row,column).text()
+                       y1=item.split(' ')
+                       fmuname=y1[1].split(".",1)[0]    
+                       if (column==0):
+                           col0 = [s for s in checkfmus if fmuname in s]
+                           print col0
+                       if (column==1):
+                           col1 = [s for s in checkfmus if fmuname in s]
+                           print col1
+                  if(len(col0)==0 or len(col1)==0):
+                     #print 'rownumber', row
+                     rownumbers.append(row)
+                     
+              if(len(rownumbers)!=0):
+              
+                 for i in reversed(range(self.table.rowCount())):
+                     if i in rownumbers:
+                         self.table.removeRow(i)
+                    
+            ## hide the following widgets ##
             self.browseSetupFile.hide()
             self.fmulabel.hide()
             self.fmu.hide()
@@ -314,6 +356,7 @@ def ConnectFMUMenu(model, gui):
             self.xmlFile.hide()
             self.xmlSetupFile.hide()
             
+            ## show the following widgets ##
             self.table.show()
             self.paramlist.show()
             self.paramtable.show()
@@ -329,7 +372,7 @@ def ConnectFMUMenu(model, gui):
             self.SaveFileEdit.show()            
             self.saveButton.show()
 
-            'Parse FMUs from the List'                    
+            ## Parse FMUs from the List ##                   
             x=self.fmu.count()
             for i in xrange(x):
                y=self.fmu.item(i).text()
@@ -366,18 +409,20 @@ def ConnectFMUMenu(model, gui):
                        self.paramtable.insertRow(row)
                        self.paramtable.setItem(row, 0, QtGui.QTableWidgetItem(modelname))
                        self.paramtable.setItem(row, 1, QtGui.QTableWidgetItem(varname))
-                       self.paramtable.setItem(row, 2, QtGui.QTableWidgetItem(x.get('start')))
+                       self.paramtable.setItem(row, 2, QtGui.QTableWidgetItem('Real'))  
+                       self.paramtable.setItem(row, 3, QtGui.QTableWidgetItem(x.get('start')))
                        self.paramtable.resizeColumnsToContents()
                        
             
        def connect(self):
-           'connect the selected FMU connections'                    
+           ##connect the selected FMU connections##                    
            cur=self.combo.currentText()
            cur1=self.combo1.currentText()
            row = self.table.rowCount()
            self.table.insertRow(row)
            self.table.setItem(row, 0, QtGui.QTableWidgetItem(cur))
            self.table.setItem(row, 1, QtGui.QTableWidgetItem(cur1))
+           self.table.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
            self.table.resizeColumnsToContents()
 
            
