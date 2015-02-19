@@ -12,63 +12,46 @@ from xml.dom import minidom
 def getModelCallbacks():
     return [["Select list of FMUS...", ConnectFMUMenu]]
 
-class ParametersPage(QtGui.QWidget):
+class FMU:
 
-    def __init__(self, fmuFile):
-        QtGui.QWidget.__init__(self)
+    def __init__(self, name, location):
+        self._name = name
+        self._location = location
+        self._parameters = []
+        self._inputs = []
+        self._outputs = []
+        try:
+            self._fmuFile = zipfile.ZipFile(location, 'r')
+        except:
+            print "Error opening the FMU file %s" % location
+            return
+        try:
+            self._xmlFile = self._fmuFile.open('modelDescription.xml')
+        except:
+            print "Error opening the modelDescription.xml file of FMU %s" % location
+            return
 
-        self._parametersTableWidget = QtGui.QTableWidget()
-        self._parametersTableWidget.setColumnCount(3)
-        self._parametersTableWidget.setHorizontalHeaderLabels([self.tr("Type"), self.tr("Name"), self.tr("Value")])
-        # set the widget layout
-        self._mainLayout = QtGui.QGridLayout()
-        self._mainLayout.setContentsMargins(0, 0, 0, 0)
-        self._mainLayout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
-        self._mainLayout.addWidget(self._parametersTableWidget, 0, 0)
-        self.setLayout(self._mainLayout)
-
-class ParametersWidget(QtGui.QWidget):
-
-    def __init__(self, connectFMUDialog):
-        QtGui.QWidget.__init__(self)
-
-        self._connectFMUDialog = connectFMUDialog
-        # xml setup file
-        self._selectFmuLabel = QtGui.QLabel(self.tr("Select FMU:"))
-        self._FMUsComboBox = QtGui.QComboBox()
-        self._FMUsComboBox.setModel(self._connectFMUDialog._selectFMUsWidget._fmusListModel)
-        self._FMUsComboBox.currentIndexChanged.connect(self.currentFMUChanged)
-        self._parametersStackedWidget = QtGui.QStackedWidget()
-        # next and cancel buttons
-        self._previousButton = QtGui.QPushButton(self.tr("Previous"))
-        self._previousButton.clicked.connect(self.showSelectFMUsWidget)
-        self._nextButton = QtGui.QPushButton(self.tr("Next"))
-        self._nextButton.clicked.connect(self.showConnectionsWidget)
-        self._cancelButton = QtGui.QPushButton(self.tr("Cancel"))
-        self._cancelButton.clicked.connect(self._connectFMUDialog.reject)
-        # add the buttons to button box
-        self._navigationButtonBox = QtGui.QDialogButtonBox(QtCore.Qt.Horizontal)
-        self._navigationButtonBox.addButton(self._previousButton, QtGui.QDialogButtonBox.ActionRole)
-        self._navigationButtonBox.addButton(self._nextButton, QtGui.QDialogButtonBox.ActionRole)
-        self._navigationButtonBox.addButton(self._cancelButton, QtGui.QDialogButtonBox.ActionRole)
-        # set the widget layout
-        self._mainLayout = QtGui.QGridLayout()
-        self._mainLayout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
-        self._mainLayout.setColumnStretch(1, 1);
-        self._mainLayout.addWidget(self._selectFmuLabel, 0, 0)
-        self._mainLayout.addWidget(self._FMUsComboBox, 0, 1)
-        self._mainLayout.addWidget(self._parametersStackedWidget, 1, 0, 1, 2)
-        self._mainLayout.addWidget(self._navigationButtonBox, 2, 0, 1, 2, QtCore.Qt.AlignRight)
-        self.setLayout(self._mainLayout)
-
-    def currentFMUChanged(self, index):
-        self._parametersStackedWidget.setCurrentIndex(index)
-
-    def showSelectFMUsWidget(self):
-        self._connectFMUDialog._stackedWidget.setCurrentWidget(self._connectFMUDialog._selectFMUsWidget)
-
-    def showConnectionsWidget(self):
-        self._connectFMUDialog._stackedWidget.setCurrentWidget(self._connectFMUDialog.thirdPageWidget)
+        modelDescriptionTree = ET.parse(self._xmlFile)
+        root = modelDescriptionTree.getroot()
+        for variable in root.iter('ScalarVariable'):
+#            varCausality = variable.get('causality')
+            varName = variable.get('name')
+            varDescription = variable.get('description')
+            varVariability = variable.get('variability')
+#            valueref = variable.get('valueReference')
+            if (varVariability == 'parameter'):
+                for varType in variable.iter('Real'):
+                    parameter = {'type':'Real', 'name':varName, 'value':varType.get('start') ,'description': varDescription}
+                    self._parameters.append(parameter)
+                for varType in variable.iter('Integer'):
+                    parameter = {'type':'Integer', 'name':varName, 'value':varType.get('start') ,'description': varDescription}
+                    self._parameters.append(parameter)
+                for varType in variable.iter('Boolean'):
+                    parameter = {'type':'Boolean', 'name':varName, 'value':varType.get('start') ,'description': varDescription}
+                    self._parameters.append(parameter)
+                for varType in variable.iter('String'):
+                    parameter = {'type':'String', 'name':varName, 'value':varType.get('start') ,'description': varDescription}
+                    self._parameters.append(parameter)
 
 class FMUsListModel(QtCore.QAbstractListModel):
 
@@ -82,14 +65,14 @@ class FMUsListModel(QtCore.QAbstractListModel):
     def data(self, index, role=QtCore.Qt.DisplayRole):
         if index.isValid() is True:
             if role == QtCore.Qt.DisplayRole:
-                return self.fmus[index.row()]['name']
+                return self.fmus[index.row()]._name
             elif role == QtCore.Qt.ToolTipRole:
-                return self.fmus[index.row()]['location']
+                return self.fmus[index.row()]._location
         return None
 
     def addFMU(self, fileName):
         fmuFileInfo = QtCore.QFileInfo(fileName)
-        fmu = {'name':fmuFileInfo.baseName(), 'location':fmuFileInfo.absoluteFilePath()}
+        fmu = FMU(fmuFileInfo.baseName(), fmuFileInfo.absoluteFilePath())
         if not fmu in self.fmus:
             row = self.rowCount()
             self.beginInsertRows(QtCore.QModelIndex(), row, row)
@@ -98,7 +81,8 @@ class FMUsListModel(QtCore.QAbstractListModel):
 
     def removeFMU(self, row):
         self.beginRemoveRows(QtCore.QModelIndex(), row, row)
-        self.fmus.pop(row)
+        fmu = self.fmus.pop(row)
+        del fmu
         self.endRemoveRows()
 
 class SelectFMUsWidget(QtGui.QWidget):
@@ -181,8 +165,11 @@ class SelectFMUsWidget(QtGui.QWidget):
         for fileName in fileNames:
             fileName = fileName.replace('\\', '/')
             if fileName != '':
+                # add the FMU to FMUsListModel
                 self._fmusListModel.addFMU(fileName)
-                parametersPage = ParametersPage(fileName)
+                # create a ParametersPage for FMU
+                parametersPage = ParametersPage(self._fmusListModel.fmus[-1])
+                # add the parametersPage to parameters stacked widget
                 self._connectFMUDialog._parametersWidget._parametersStackedWidget.addWidget(parametersPage)
         self.enableNextButton()
 
