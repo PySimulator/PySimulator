@@ -287,7 +287,7 @@ def generatehtml(model1,model2,namesBoth,col1var,col2var,htmlfile,resultfile,dir
                with open(htmlreport, 'wb') as f:
                 message = """<html>
 <head>
-<script type="text/javascript" src="http://dygraphs.com/1.0.1/dygraph-combined.js"></script>
+<script type="text/javascript" src="../dygraph-combined.js"></script>
 <style type="text/css">
     #graphdiv {
       position: absolute;
@@ -978,8 +978,8 @@ class simulationThread(QtCore.QThread):
 def runCompareResultsInDirectories(PySimulatorPath, dir1, listdirs, tol, logFile):
 
     print "Start comparing results ..."
-
     compare = CompareThread(None)
+    compare.PySimulatorPath=PySimulatorPath
     compare.dir1 = dir1
     compare.listdirs= listdirs
     compare.tol = tol
@@ -1009,6 +1009,12 @@ class CompareThread(QtCore.QThread):
       
       encoding = sys.getfilesystemencoding()
       
+      ### copy the dygraph script from /Plugins/Analysis/Testing/ to the result directory ###
+      
+      dygraphpath=os.path.join(self.PySimulatorPath, 'Plugins/Analysis/Testing/dygraph-combined.js').replace('\\','/')
+      if os.path.exists(dygraphpath):     
+          shutil.copy(dygraphpath,os.path.dirname(self.logFile))
+        
       ### create a new subdirectory if the user specifies in the directory of results in the GUI ###
       np=os.path.dirname(self.logFile)
       if not os.path.exists(np): 
