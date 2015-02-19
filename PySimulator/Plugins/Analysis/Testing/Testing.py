@@ -1009,6 +1009,11 @@ class CompareThread(QtCore.QThread):
       
       encoding = sys.getfilesystemencoding()
       
+      ### create a new subdirectory if the user specifies in the directory of results in the GUI ###
+      np=os.path.dirname(self.logFile)
+      if not os.path.exists(np): 
+            os.mkdir(np)
+               
       rdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
       if os.path.exists(rdir): 
          shutil.rmtree(rdir)
@@ -1112,7 +1117,7 @@ class CompareThread(QtCore.QThread):
            os.mkdir(np1)
         shutil.copy(logfile1,np2)
                      
-      #print "... running the analysis done."
+      print "... running the analysis done."
       fileOut.close()
       #import ctypes 
       #ctypes.windll.user32.MessageBoxA(0, "running the analysis done", "Compare Analysis", 0)
