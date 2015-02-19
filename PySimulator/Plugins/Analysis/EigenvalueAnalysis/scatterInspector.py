@@ -50,7 +50,7 @@ class myScatterInspectorOverlay(AbstractOverlay):
     Can render the points in a different style, as well as display a
     DataLabel.
 
-    Used in conjuction with ScatterInspector.
+    Used in conjunction with ScatterInspector.
     """
 
     # The style to use when a point is hovered over

@@ -415,7 +415,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
 
         def completed_step(solver):
-            ''' Function that is called after each successfull integrator step
+            ''' Function that is called after each successful integrator step
                 Returns True,  if there was a step event
                         False, if there was no step event
             '''
@@ -965,9 +965,9 @@ class ExplicitEulerSolver():
         Integration method: Explicit Euler with event handling (without rootfinding)
     '''
     def simulate(self, Tstart, dt, Tend, y0, nOutputIntervals, gridWidth):
-        ''' Simulates an ODE-sytem defined by different functions
+        ''' Simulates an ODE-system defined by different functions
             from Tstart to Tend by the explicit Euler method with the fixed step size dt.
-            The inital start values of the states are given by the vector y0.
+            The initial start values of the states are given by the vector y0.
             Time or state events are handled after a successful step if necessary.
             Result points are defined by the number of output intervals 'nOutputIntervals'
             that define a time grid between Tstart and Tend with constant width.
