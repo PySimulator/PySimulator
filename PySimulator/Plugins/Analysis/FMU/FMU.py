@@ -131,27 +131,22 @@ class InputsOutputsListModel(QtCore.QAbstractListModel):
             self._inputsOutputs = inputsOutputs
             self.endInsertRows()
 
-class ConnectionsListModel(QtCore.QAbstractListModel):
+class ConnectionsListModel(QtCore.QAbstractItemModel):
 
     def __init__(self):
-        QtCore.QAbstractListModel.__init__(self)
+        QtCore.QAbstractItemModel.__init__(self)
         self._connections = []
+
+    def columnCount(self, parent=QtCore.QModelIndex()):
+        return 2
 
     def rowCount(self, parent=QtCore.QModelIndex()):
         return len(self._connections)
 
     def data(self, index, role=QtCore.Qt.DisplayRole):
         if index.isValid() is True:
-            if role == QtCore.Qt.DisplayRole:
-                return ("%s.%s  ===>  %s.%s"
-                        %
-                        (self._connections[index.row()]._fromFMU._name,
-                         self._connections[index.row()]._inputVar['name'],
-                         self._connections[index.row()]._toFMU._name,
-                         self._connections[index.row()]._outputVar['name'])
-                        )
-            elif role == QtCore.Qt.ToolTipRole:
-                return ("<b>Connection</b><br />"
+            column = index.column()
+            toolTip = ("<b>Connection</b><br />"
                         "<b>From FMU:</b> %s<br />"
                         "<b>Input Variable:</b> %s<br />"
                         "<b>To FMU:</b> %s<br />"
@@ -162,7 +157,41 @@ class ConnectionsListModel(QtCore.QAbstractListModel):
                          self._connections[index.row()]._toFMU._name,
                          self._connections[index.row()]._outputVar['name'])
                         )
+            if column == 0:
+                if role == QtCore.Qt.DisplayRole:
+                    return ("%s.%s"
+                            %
+                            (self._connections[index.row()]._fromFMU._name,
+                             self._connections[index.row()]._inputVar['name'])
+                            )
+                elif role == QtCore.Qt.ToolTipRole:
+                    return toolTip
+            elif column == 1:
+                if role == QtCore.Qt.DisplayRole:
+                    return ("%s.%s"
+                            %
+                            (self._connections[index.row()]._toFMU._name,
+                             self._connections[index.row()]._outputVar['name'])
+                            )
+                elif role == QtCore.Qt.ToolTipRole:
+                    return toolTip
         return None
+
+    def headerData(self, section, orientation, role=QtCore.Qt.DisplayRole):
+        if (orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole):
+            if section == 0:
+                return self.tr("From")
+            elif section == 1:
+                return self.tr("To")
+
+    def index(self, row, column, parent=QtCore.QModelIndex()):
+        if self.hasIndex(row, column, parent):
+            return self.createIndex(row, column)
+        else:
+            return QtCore.QModelIndex()
+
+    def parent(self, child=QtCore.QModelIndex()):
+        return QtCore.QModelIndex()
 
     def addConnection(self, fromFMU, inputVar, toFMU, outputVar):
         if not self.containsConnection(fromFMU, inputVar, toFMU, outputVar):
@@ -278,11 +307,14 @@ class ConnectFMUsDialog(QtGui.QDialog):
         addConnectionButton.clicked.connect(self.addInputOutputConnection)
         # connections list view
         self._connectionsListModel = ConnectionsListModel()
-        self._connectionsListView = QtGui.QListView()
-        self._connectionsListView.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
-        self._connectionsListView.setModel(self._connectionsListModel)
+        self._connectionsTableView = QtGui.QTableView()
+        self._connectionsTableView.verticalHeader().hide();
+        self._connectionsTableView.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignLeft)
+        self._connectionsTableView.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self._connectionsTableView.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+        self._connectionsTableView.setModel(self._connectionsListModel)
         # remove connection button
-        removeConnectionButton = QtGui.QPushButton(self.tr("Remove Connection"))
+        removeConnectionButton = QtGui.QPushButton(self.tr("Remove Connection(s)"))
         removeConnectionButton.clicked.connect(self.removeInputOutputConnection)
         # layout for inputs & outputs
         inputsOutputsGridLayout = QtGui.QGridLayout()
@@ -293,7 +325,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
         inputsOutputsGridLayout.addWidget(self._inputsComboBox, 2, 0)
         inputsOutputsGridLayout.addWidget(self._outputsComboBox, 2, 1)
         inputsOutputsGridLayout.addWidget(addConnectionButton, 3, 0, 1, 2)
-        inputsOutputsGridLayout.addWidget(self._connectionsListView, 4, 0, 1, 2)
+        inputsOutputsGridLayout.addWidget(self._connectionsTableView, 4, 0, 1, 2)
         inputsOutputsGridLayout.addWidget(removeConnectionButton, 5, 0, 1, 2)
         # ok and cancel buttons
         okButton = QtGui.QPushButton(self.tr("OK"))
@@ -396,14 +428,16 @@ class ConnectFMUsDialog(QtGui.QDialog):
         if (fromFMU is None or inputVar is None or toFMU is None or outputVar is None):
             pass
         else:
-            if not self._connectionsListModel.addConnection(fromFMU, inputVar, toFMU, outputVar):
+            if self._connectionsListModel.addConnection(fromFMU, inputVar, toFMU, outputVar):
+                self._connectionsTableView.resizeColumnsToContents()
+            else:
                 QtGui.QMessageBox().information(self, self.tr("Information"),
                               self.tr("This connection already exists."), QtGui.QMessageBox.Ok)
 
     def removeInputOutputConnection(self):
         i = 0
-        while i < len(self._connectionsListView.selectedIndexes()):
-            row = self._connectionsListView.selectedIndexes()[i].row()
+        while i < len(self._connectionsTableView.selectedIndexes()):
+            row = self._connectionsTableView.selectedIndexes()[i].row()
             self._connectionsListModel.removeConnection(row)
             # restart iteration
             i = 0
