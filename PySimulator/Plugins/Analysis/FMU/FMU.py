@@ -165,18 +165,28 @@ class ConnectionsListModel(QtCore.QAbstractListModel):
         return None
 
     def addConnection(self, fromFMU, inputVar, toFMU, outputVar):
-        connection = Connection(fromFMU, inputVar, toFMU, outputVar)
-        if connection not in self._connections:
+        if not self.containsConnection(fromFMU, inputVar, toFMU, outputVar):
+            connection = Connection(fromFMU, inputVar, toFMU, outputVar)
             row = self.rowCount()
             self.beginInsertRows(QtCore.QModelIndex(), row, row)
             self._connections.insert(row, connection)
             self.endInsertRows()
+            return True
+        else:
+            return False
 
     def removeConnection(self, row):
         self.beginRemoveRows(QtCore.QModelIndex(), row, row)
         connection = self._connections.pop(row)
         del connection
         self.endRemoveRows()
+
+    def containsConnection(self, fromFMU, inputVar, toFMU, outputVar):
+        for connection in self._connections:
+            if (connection._fromFMU == fromFMU and connection._inputVar == inputVar and
+                connection._toFMU == toFMU and connection._outputVar == outputVar):
+                return True
+        return False
 
 class FMUsListModel(QtCore.QAbstractListModel):
 
@@ -196,19 +206,28 @@ class FMUsListModel(QtCore.QAbstractListModel):
         return None
 
     def addFMU(self, fileName):
-        fmuFileInfo = QtCore.QFileInfo(fileName)
-        fmu = FMU(fmuFileInfo.baseName(), fmuFileInfo.absoluteFilePath())
-        if fmu not in self._fmus:
+        if not self.containsFMU(fileName):
+            fmuFileInfo = QtCore.QFileInfo(fileName)
+            fmu = FMU(fmuFileInfo.baseName(), fmuFileInfo.absoluteFilePath())
             row = self.rowCount()
             self.beginInsertRows(QtCore.QModelIndex(), row, row)
             self._fmus.insert(row, fmu)
             self.endInsertRows()
+            return True
+        else:
+            return False
 
     def removeFMU(self, row):
         self.beginRemoveRows(QtCore.QModelIndex(), row, row)
         fmu = self._fmus.pop(row)
         del fmu
         self.endRemoveRows()
+
+    def containsFMU(self, fileName):
+        for fmu in self._fmus:
+            if fmu._location == fileName:
+                return True
+        return False
 
 class ConnectFMUsDialog(QtGui.QDialog):
 
@@ -339,7 +358,10 @@ class ConnectFMUsDialog(QtGui.QDialog):
             fileName = fileName.replace('\\', '/')
             if fileName != '':
                 # add the FMU to FMUsListModel
-                self._fmusListModel.addFMU(fileName)
+                if not self._fmusListModel.addFMU(fileName):
+                    QtGui.QMessageBox().information(self, self.tr("Information"),
+                                      self.tr("The FMU {0} already exists.").format(fileName),
+                                      QtGui.QMessageBox.Ok)
 
     def removeFmuFiles(self):
         i = 0
@@ -374,7 +396,9 @@ class ConnectFMUsDialog(QtGui.QDialog):
         if (fromFMU is None or inputVar is None or toFMU is None or outputVar is None):
             pass
         else:
-            self._connectionsListModel.addConnection(fromFMU, inputVar, toFMU, outputVar)
+            if not self._connectionsListModel.addConnection(fromFMU, inputVar, toFMU, outputVar):
+                QtGui.QMessageBox().information(self, self.tr("Information"),
+                              self.tr("This connection already exists."), QtGui.QMessageBox.Ok)
 
     def removeInputOutputConnection(self):
         i = 0
