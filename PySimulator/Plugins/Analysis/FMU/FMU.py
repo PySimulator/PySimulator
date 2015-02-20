@@ -27,6 +27,8 @@ import os
 from PySide import QtGui, QtCore
 import zipfile
 import xml.etree.ElementTree as ET
+import codecs
+from xml.dom import minidom
 
 class FMU(object):
 
@@ -344,7 +346,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
         inputsOutputsGridLayout.addWidget(removeConnectionButton, 5, 0, 1, 2)
         # ok and cancel buttons
         okButton = QtGui.QPushButton(self.tr("OK"))
-        okButton.clicked.connect(self.accept)
+        okButton.clicked.connect(self.saveConnectionsXML)
         cancelButton = QtGui.QPushButton(self.tr("Cancel"))
         cancelButton.clicked.connect(self.reject)
         # add the buttons to button box
@@ -462,6 +464,36 @@ class ConnectFMUsDialog(QtGui.QDialog):
             self._connectionsListModel.removeConnection(row)
             # restart iteration
             i = 0
+
+    def saveConnectionsXML(self):
+        (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, self.tr("Save file"), os.getcwd(), '(*.xml)')
+        if fileName == '':
+            return
+
+        xmlTemplate = '<?xml version="1.0" encoding="utf-8"?><connectedFmus></connectedFmus>'
+        rootElement = ET.fromstring(xmlTemplate)
+        fmusElement = ET.SubElement(rootElement, "fmus")
+        ET.SubElement(fmusElement, "fmu", {"name":"fmu1", "instanceName":"instanceName1", "path":"path1"})
+        ET.SubElement(fmusElement, "fmu", {"name":"fmu2", "instanceName":"instanceName2", "path":"path2"})
+        
+        connectionsElement = ET.SubElement(rootElement, "connections")
+        ET.SubElement(connectionsElement, "connection", {"fromInstanceName":"fromInstanceName1", "fromVariableName":"fromVariableName1", "toInstanceName":"toInstanceName1", "toVariableName":"toVariableName1"})
+        
+        xml = prettify(rootElement)
+        try:
+            xmlFile = codecs.open(fileName, "w", "utf-8")
+            xmlFile.write(xml)
+            xmlFile.close()
+            self.accept()
+        except IOError, e:
+            print "Failed to write the xml file. %s" % e
+            
+
+def prettify(elem):
+   """Return a pretty-printed XML string for the Element """
+   rough_string = ET.tostring(elem, "utf-8")
+   reparsed = minidom.parseString(rough_string)
+   return reparsed.toprettyxml(indent="  ")
 
 def NewConnectME(model, gui):
     print "New connected FMU for Model Exchange"
