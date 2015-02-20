@@ -28,7 +28,7 @@ from PySide import QtGui, QtCore
 import zipfile
 import xml.etree.ElementTree as ET
 
-class FMU:
+class FMU(object):
 
     def __init__(self, name, location):
         self._name = name
@@ -217,7 +217,20 @@ class ConnectionsListModel(QtCore.QAbstractItemModel):
                 return True
         return False
 
+    def handleFMURemoved(self, fmu):
+        if len(self._connections) > 0:
+            i = 0
+            while i < len(self._connections):
+                if (self._connections[i]._fromFMU == fmu or self._connections[i]._toFMU == fmu):
+                    self.removeConnection(i)
+                    # restart iteration
+                    i = 0
+                else:
+                    i += 1
+
 class FMUsListModel(QtCore.QAbstractListModel):
+
+    fmuRemoved = QtCore.Signal(FMU)
 
     def __init__(self):
         QtCore.QAbstractListModel.__init__(self)
@@ -249,6 +262,7 @@ class FMUsListModel(QtCore.QAbstractListModel):
     def removeFMU(self, row):
         self.beginRemoveRows(QtCore.QModelIndex(), row, row)
         fmu = self._fmus.pop(row)
+        self.fmuRemoved.emit(fmu)
         del fmu
         self.endRemoveRows()
 
@@ -307,6 +321,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
         addConnectionButton.clicked.connect(self.addInputOutputConnection)
         # connections list view
         self._connectionsListModel = ConnectionsListModel()
+        self._fmusListModel.fmuRemoved.connect(self._connectionsListModel.handleFMURemoved)
         self._connectionsTableView = QtGui.QTableView()
         self._connectionsTableView.verticalHeader().hide();
         self._connectionsTableView.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignLeft)
@@ -396,12 +411,18 @@ class ConnectFMUsDialog(QtGui.QDialog):
                                       QtGui.QMessageBox.Ok)
 
     def removeFmuFiles(self):
-        i = 0
-        while i < len(self._fmusListView.selectedIndexes()):
-            row = self._fmusListView.selectedIndexes()[i].row()
-            self._fmusListModel.removeFMU(row)
-            # restart iteration
-            i = 0
+        if len(self._fmusListView.selectedIndexes()) > 0:
+            confirmMsg = self.tr("Removing the FMU will also remove the connection associated with it. Are you sure you want to remove?")
+            confirm = QtGui.QMessageBox.question(self, self.tr("Question"), confirmMsg,
+                                                 QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
+                                                 QtGui.QMessageBox.No)
+            if confirm == QtGui.QMessageBox.Yes:
+                i = 0
+                while i < len(self._fmusListView.selectedIndexes()):
+                    row = self._fmusListView.selectedIndexes()[i].row()
+                    self._fmusListModel.removeFMU(row)
+                    # restart iteration
+                    i = 0
 
     def inputFMUChanged(self, index):
         if len(self._fmusListModel._fmus) > index and index != -1:
