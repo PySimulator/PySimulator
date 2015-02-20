@@ -29,12 +29,14 @@ import zipfile
 import xml.etree.ElementTree as ET
 import codecs
 from xml.dom import minidom
+from datetime import datetime
 
 class FMU(object):
 
-    def __init__(self, name, location):
+    def __init__(self, name, location, index):
         self._name = name
         self._location = location
+        self._instanceName = name + datetime.now().strftime("%Y%m%d%H%M%S")
         self._inputs = []
         self._outputs = []
         try:
@@ -252,8 +254,8 @@ class FMUsListModel(QtCore.QAbstractListModel):
     def addFMU(self, fileName):
         if not self.containsFMU(fileName):
             fmuFileInfo = QtCore.QFileInfo(fileName)
-            fmu = FMU(fmuFileInfo.baseName(), fmuFileInfo.absoluteFilePath())
             row = self.rowCount()
+            fmu = FMU(fmuFileInfo.baseName(), fmuFileInfo.absoluteFilePath(), row)
             self.beginInsertRows(QtCore.QModelIndex(), row, row)
             self._fmus.insert(row, fmu)
             self.endInsertRows()
@@ -354,11 +356,11 @@ class ConnectFMUsDialog(QtGui.QDialog):
         navigationButtonBox.addButton(okButton, QtGui.QDialogButtonBox.ActionRole)
         navigationButtonBox.addButton(cancelButton, QtGui.QDialogButtonBox.ActionRole)
         # save to file
-        saveToFile = QtGui.QCheckBox(self.tr("Save to file"))
-        saveToFile.setChecked(True)
+        self._saveToFile = QtGui.QCheckBox(self.tr("Save to file"))
+        self._saveToFile.setChecked(True)
         # horizontal layout for saveToFile and buttons
         horizontalLayout = QtGui.QHBoxLayout()
-        horizontalLayout.addWidget(saveToFile, 0, QtCore.Qt.AlignLeft)
+        horizontalLayout.addWidget(self._saveToFile, 0, QtCore.Qt.AlignLeft)
         horizontalLayout.addWidget(navigationButtonBox, 0, QtCore.Qt.AlignRight)
         # set the widget layout
         mainLayout = QtGui.QGridLayout()
@@ -466,28 +468,34 @@ class ConnectFMUsDialog(QtGui.QDialog):
             i = 0
 
     def saveConnectionsXML(self):
-        (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, self.tr("Save file"), os.getcwd(), '(*.xml)')
-        if fileName == '':
-            return
-
-        xmlTemplate = '<?xml version="1.0" encoding="utf-8"?><connectedFmus></connectedFmus>'
-        rootElement = ET.fromstring(xmlTemplate)
-        fmusElement = ET.SubElement(rootElement, "fmus")
-        ET.SubElement(fmusElement, "fmu", {"name":"fmu1", "instanceName":"instanceName1", "path":"path1"})
-        ET.SubElement(fmusElement, "fmu", {"name":"fmu2", "instanceName":"instanceName2", "path":"path2"})
-        
-        connectionsElement = ET.SubElement(rootElement, "connections")
-        ET.SubElement(connectionsElement, "connection", {"fromInstanceName":"fromInstanceName1", "fromVariableName":"fromVariableName1", "toInstanceName":"toInstanceName1", "toVariableName":"toVariableName1"})
-        
-        xml = prettify(rootElement)
-        try:
-            xmlFile = codecs.open(fileName, "w", "utf-8")
-            xmlFile.write(xml)
-            xmlFile.close()
+        if self._saveToFile.isChecked():
+            (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, self.tr("Save file"), os.getcwd(), '(*.xml)')
+            if fileName == '':
+                return
+    
+            xmlTemplate = '<?xml version="1.0" encoding="utf-8"?><connectedFmus></connectedFmus>'
+            rootElement = ET.fromstring(xmlTemplate)
+            # add fmus to file
+            fmusElement = ET.SubElement(rootElement, "fmus")
+            for fmu in self._fmusListModel._fmus:
+                ET.SubElement(fmusElement, "fmu", {"name":fmu._name, "instanceName":fmu._instanceName, "path":fmu._location})
+    
+            # add connections to file
+            connectionsElement = ET.SubElement(rootElement, "connections")
+            for connection in self._connectionsListModel._connections:
+                ET.SubElement(connectionsElement, "connection", {"fromInstanceName":connection._fromFMU._instanceName, "fromVariableName":connection._inputVar['name'], "toInstanceName":connection._toFMU._instanceName, "toVariableName":connection._outputVar['name']})
+    
+            # pretty print the xml
+            xml = prettify(rootElement)
+            try:
+                xmlFile = codecs.open(fileName, "w", "utf-8")
+                xmlFile.write(xml)
+                xmlFile.close()
+                self.accept()
+            except IOError, e:
+                print "Failed to write the xml file. %s" % e
+        else:
             self.accept()
-        except IOError, e:
-            print "Failed to write the xml file. %s" % e
-            
 
 def prettify(elem):
    """Return a pretty-printed XML string for the Element """
