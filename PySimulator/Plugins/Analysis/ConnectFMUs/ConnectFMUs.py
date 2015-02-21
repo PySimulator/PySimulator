@@ -411,8 +411,8 @@ def ConnectFMUMenu(model, gui):
                        self.paramtable.setItem(row, 2, QtGui.QTableWidgetItem('Real'))  
                        self.paramtable.setItem(row, 3, QtGui.QTableWidgetItem(x.get('start')))
                        self.paramtable.resizeColumnsToContents()
-                       
-            
+                                    
+                                   
        def connect(self):
            ##connect the selected FMU connections##                    
            cur=self.combo.currentText()
