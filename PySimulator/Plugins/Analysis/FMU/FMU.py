@@ -199,7 +199,7 @@ class ConnectionsListModel(QtCore.QAbstractItemModel):
             return True
         else:
             return False
-
+                
     def removeConnection(self, row):
         self.beginRemoveRows(QtCore.QModelIndex(), row, row)
         connection = self._connections.pop(row)
@@ -281,8 +281,8 @@ class ConnectFMUsDialog(QtGui.QDialog):
         self.setWindowIcon(QtGui.QIcon(gui.rootDir + '/Icons/pysimulator.ico'))
         
         # xml setup file
-        xmlFileLabel = QtGui.QLabel(self.tr("Load XML:"))
-        xmlFileTextBox = QtGui.QLineEdit()
+        self.xmlFileLabel = QtGui.QLabel(self.tr("Load XML:"))
+        self.xmlFileTextBox = QtGui.QLineEdit("",self)
         browseXmlSetupFileButton = QtGui.QPushButton(self.tr("Browse"))
         browseXmlSetupFileButton.clicked.connect(self.browseXmlSetupFile)
         # list of FMUs
@@ -357,8 +357,8 @@ class ConnectFMUsDialog(QtGui.QDialog):
         # set the widget layout
         mainLayout = QtGui.QGridLayout()
         mainLayout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
-        mainLayout.addWidget(xmlFileLabel, 0, 0)
-        mainLayout.addWidget(xmlFileTextBox, 0, 1)
+        mainLayout.addWidget(self.xmlFileLabel, 0, 0)
+        mainLayout.addWidget(self.xmlFileTextBox, 0, 1)
         mainLayout.addWidget(browseXmlSetupFileButton, 0, 2)
         mainLayout.addWidget(fmuLabel, 1, 0, 1, 1, QtCore.Qt.AlignTop)
         mainLayout.addWidget(self._fmusListView, 1, 1)
@@ -370,31 +370,22 @@ class ConnectFMUsDialog(QtGui.QDialog):
     def browseXmlSetupFile(self):
         (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open File', os.getcwd(), '(*.xml)')
         if fileName != '':
-             self.xmlFileEdit.setText(fileName)
-             setupfile=self.xmlFileEdit.text()
+             self.xmlFileTextBox.setText(fileName)            
+             setupfile=self.xmlFileTextBox.text()
              tree = ET.parse(setupfile)
              root = tree.getroot()
              for fmu in root.iter('fmu'):
                  name = fmu.get('path')
-                 self.fmu.addItem(name)
+                 self._fmusListModel.addFMU(name)
              
+             '''
              for connection in root.iter('connection'):
-                fid=connection.get('fromFmuId')
-                fvar=connection.get('fromFmuvar')
-                fvarcon=connection.get('fromFmuvarconnection')
-                fval=connection.get('fromValueReference')
-                fromtable=''.join([fid,' ',fvar,' ',fvarcon,' ','(',fval,')'])
-                tid=connection.get('toFmuId')
-                tvar=connection.get('toFmuvar')
-                tvarcon=connection.get('toFmuvarconnection')
-                tval=connection.get('toValueReference') 
-                totable=''.join([tid,' ',tvar,' ',tvarcon,' ','(',tval,')'])
-                row = self.table.rowCount()
-                self.table.insertRow(row)
-                self.table.setItem(row, 0, QtGui.QTableWidgetItem(fromtable))    
-                self.table.setItem(row, 1, QtGui.QTableWidgetItem(totable))                    
-                self.table.resizeColumnsToContents()
-
+                fid=connection.get('fromInstanceName')
+                fvar=connection.get('fromVariableName')
+                tid=connection.get('fromInstanceName')
+                tvar=connection.get('fromVariableName')'''
+                
+                
     def browseFmuFile(self):
         (fileNames, trash) = QtGui.QFileDialog().getOpenFileNames(self, 'Open File', os.getcwd(), '(*.fmu)')
         for fileName in fileNames:
