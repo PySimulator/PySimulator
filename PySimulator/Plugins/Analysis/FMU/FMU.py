@@ -37,8 +37,7 @@ class FMU(object):
         self._name = name
         self._location = location
         self._instanceName = name + datetime.now().strftime("%Y%m%d%H%M%S")
-        self._inputs = []
-        self._outputs = []
+        self._inputsOutputs = []
         try:
             self._fmuFile = zipfile.ZipFile(location, 'r')
         except:
@@ -57,36 +56,25 @@ class FMU(object):
             varValueReference = variable.get('valueReference')
             varDescription = variable.get('description')
             varCausality = variable.get('causality')
-            if (varCausality == 'input'):
-                _input = {'name':varName, 'valueReference':varValueReference, 'description': varDescription}
+            if (varCausality == 'input' or varCausality == 'output'):
+                _inputOutput = {'name':varName, 'valueReference':varValueReference, 'description': varDescription}
                 for varType in variable.iter('Real'):
-                    _input['type'] = 'Real'
+                    _inputOutput['type'] = 'Real'
                     break
                 for varType in variable.iter('Integer'):
-                    _input['type'] = 'Integer'
+                    _inputOutput['type'] = 'Integer'
                     break
                 for varType in variable.iter('Boolean'):
-                    _input['type'] = 'Boolean'
+                    _inputOutput['type'] = 'Boolean'
                     break
                 for varType in variable.iter('String'):
-                    _input['type'] = 'String'
+                    _inputOutput['type'] = 'String'
                     break
-                self._inputs.append(_input)
-            elif (varCausality == 'output'):
-                _output = {'name':varName, 'valueReference':varValueReference, 'description': varDescription}
-                for varType in variable.iter('Real'):
-                    _output['type'] = 'Real'
-                    break
-                for varType in variable.iter('Integer'):
-                    _output['type'] = 'Integer'
-                    break
-                for varType in variable.iter('Boolean'):
-                    _output['type'] = 'Boolean'
-                    break
-                for varType in variable.iter('String'):
-                    _output['type'] = 'String'
-                    break
-                self._outputs.append(_output)
+                if (varCausality == 'input'):
+                    _inputOutput['causality'] = 'input'
+                elif (varCausality == 'output'):
+                    _inputOutput['causality'] = 'output'
+                self._inputsOutputs.append(_inputOutput)
 
 class Connection:
 
@@ -108,7 +96,11 @@ class InputsOutputsListModel(QtCore.QAbstractListModel):
     def data(self, index, role=QtCore.Qt.DisplayRole):
         if index.isValid() is True:
             if role == QtCore.Qt.DisplayRole:
-                return self._inputsOutputs[index.row()]['name']
+                return ("%s (%s)"
+                        %
+                        (self._inputsOutputs[index.row()]['name'],
+                        self._inputsOutputs[index.row()]['causality'])
+                        )
             elif role == QtCore.Qt.ToolTipRole:
                 return ("<b>Type:</b> %s<br />"
                         "<b>Name:</b> %s<br />"
@@ -152,9 +144,9 @@ class ConnectionsListModel(QtCore.QAbstractItemModel):
             column = index.column()
             toolTip = ("<b>Connection</b><br />"
                         "<b>From FMU:</b> %s<br />"
-                        "<b>Input Variable:</b> %s<br />"
+                        "<b>Variable:</b> %s<br />"
                         "<b>To FMU:</b> %s<br />"
-                        "<b>Output Variable:</b> %s<br />"
+                        "<b>Variable:</b> %s<br />"
                         %
                         (self._connections[index.row()]._fromFMU._name,
                          self._connections[index.row()]._inputVar['name'],
@@ -308,21 +300,21 @@ class ConnectFMUsDialog(QtGui.QDialog):
         FmuButtonBox.addButton(browseFmuFileButton, QtGui.QDialogButtonBox.ActionRole)
         FmuButtonBox.addButton(removeFmuButton, QtGui.QDialogButtonBox.ActionRole)
         # input & output comboboxes
-        self._inputFMUsComboBox = QtGui.QComboBox()
-        self._inputFMUsComboBox.setModel(self._fmusListModel)
-        self._inputFMUsComboBox.currentIndexChanged.connect(self.inputFMUChanged)
-        self._inputsListModel = InputsOutputsListModel()
-        self._inputsComboBox = QtGui.QComboBox()
-        self._inputsComboBox.setModel(self._inputsListModel)
-        self._outputFMUsComboBox = QtGui.QComboBox()
-        self._outputFMUsComboBox.setModel(self._fmusListModel)
-        self._outputFMUsComboBox.currentIndexChanged.connect(self.outputFMUChanged)
-        self._outputsListModel = InputsOutputsListModel()
-        self._outputsComboBox = QtGui.QComboBox()
-        self._outputsComboBox.setModel(self._outputsListModel)
+        self._fromFMUsComboBox = QtGui.QComboBox()
+        self._fromFMUsComboBox.setModel(self._fmusListModel)
+        self._fromFMUsComboBox.currentIndexChanged.connect(self.fromFMUChanged)
+        self._fromListModel = InputsOutputsListModel()
+        self._fromComboBox = QtGui.QComboBox()
+        self._fromComboBox.setModel(self._fromListModel)
+        self._toFMUsComboBox = QtGui.QComboBox()
+        self._toFMUsComboBox.setModel(self._fmusListModel)
+        self._toFMUsComboBox.currentIndexChanged.connect(self.toFMUChanged)
+        self._toListModel = InputsOutputsListModel()
+        self._toComboBox = QtGui.QComboBox()
+        self._toComboBox.setModel(self._toListModel)
         # add connection button
         addConnectionButton = QtGui.QPushButton(self.tr("Add Connection"))
-        addConnectionButton.clicked.connect(self.addInputOutputConnection)
+        addConnectionButton.clicked.connect(self.addFromToConnection)
         # connections list view
         self._connectionsListModel = ConnectionsListModel()
         self._fmusListModel.fmuRemoved.connect(self._connectionsListModel.handleFMURemoved)
@@ -334,18 +326,18 @@ class ConnectFMUsDialog(QtGui.QDialog):
         self._connectionsTableView.setModel(self._connectionsListModel)
         # remove connection button
         removeConnectionButton = QtGui.QPushButton(self.tr("Remove Connection(s)"))
-        removeConnectionButton.clicked.connect(self.removeInputOutputConnection)
+        removeConnectionButton.clicked.connect(self.removeFromToConnection)
         # layout for inputs & outputs
-        inputsOutputsGridLayout = QtGui.QGridLayout()
-        inputsOutputsGridLayout.addWidget(QtGui.QLabel(self.tr("Inputs")), 0, 0)
-        inputsOutputsGridLayout.addWidget(QtGui.QLabel(self.tr("Outputs")), 0, 1)
-        inputsOutputsGridLayout.addWidget(self._inputFMUsComboBox, 1, 0)
-        inputsOutputsGridLayout.addWidget(self._outputFMUsComboBox, 1, 1)
-        inputsOutputsGridLayout.addWidget(self._inputsComboBox, 2, 0)
-        inputsOutputsGridLayout.addWidget(self._outputsComboBox, 2, 1)
-        inputsOutputsGridLayout.addWidget(addConnectionButton, 3, 0, 1, 2)
-        inputsOutputsGridLayout.addWidget(self._connectionsTableView, 4, 0, 1, 2)
-        inputsOutputsGridLayout.addWidget(removeConnectionButton, 5, 0, 1, 2)
+        FromToGridLayout = QtGui.QGridLayout()
+        FromToGridLayout.addWidget(QtGui.QLabel(self.tr("From")), 0, 0)
+        FromToGridLayout.addWidget(QtGui.QLabel(self.tr("To")), 0, 1)
+        FromToGridLayout.addWidget(self._fromFMUsComboBox, 1, 0)
+        FromToGridLayout.addWidget(self._toFMUsComboBox, 1, 1)
+        FromToGridLayout.addWidget(self._fromComboBox, 2, 0)
+        FromToGridLayout.addWidget(self._toComboBox, 2, 1)
+        FromToGridLayout.addWidget(addConnectionButton, 3, 0, 1, 2)
+        FromToGridLayout.addWidget(self._connectionsTableView, 4, 0, 1, 2)
+        FromToGridLayout.addWidget(removeConnectionButton, 5, 0, 1, 2)
         # ok and cancel buttons
         okButton = QtGui.QPushButton(self.tr("OK"))
         okButton.clicked.connect(self.saveConnectionsXML)
@@ -371,7 +363,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
         mainLayout.addWidget(fmuLabel, 1, 0, 1, 1, QtCore.Qt.AlignTop)
         mainLayout.addWidget(self._fmusListView, 1, 1)
         mainLayout.addWidget(FmuButtonBox, 1, 2)
-        mainLayout.addLayout(inputsOutputsGridLayout, 2, 0, 1, 3)
+        mainLayout.addLayout(FromToGridLayout, 2, 0, 1, 3)
         mainLayout.addLayout(horizontalLayout, 3, 0, 1, 3)
         self.setLayout(mainLayout)
 
@@ -428,28 +420,28 @@ class ConnectFMUsDialog(QtGui.QDialog):
                     # restart iteration
                     i = 0
 
-    def inputFMUChanged(self, index):
+    def fromFMUChanged(self, index):
         if len(self._fmusListModel._fmus) > index and index != -1:
-            self._inputsListModel.updateInputs(self._fmusListModel._fmus[index]._inputs)
+            self._fromListModel.updateInputs(self._fmusListModel._fmus[index]._inputsOutputs)
         else:
-            self._inputsListModel.updateInputs([])
+            self._fromListModel.updateInputs([])
 
-    def outputFMUChanged(self, index):
+    def toFMUChanged(self, index):
         if len(self._fmusListModel._fmus) > index and index != -1:
-            self._outputsListModel.updateInputs(self._fmusListModel._fmus[index]._outputs)
+            self._toListModel.updateInputs(self._fmusListModel._fmus[index]._inputsOutputs)
         else:
-            self._outputsListModel.updateInputs([])
+            self._toListModel.updateInputs([])
 
-    def addInputOutputConnection(self):
+    def addFromToConnection(self):
         fromFMU = inputVar = toFMU = outputVar = None
-        if len(self._fmusListModel._fmus) > self._inputFMUsComboBox.currentIndex() and self._inputFMUsComboBox.currentIndex() != -1:
-            fromFMU = self._fmusListModel._fmus[self._inputFMUsComboBox.currentIndex()]
-        if len(self._inputsListModel._inputsOutputs) > self._inputsComboBox.currentIndex() and self._inputsComboBox.currentIndex() != -1:
-            inputVar = self._inputsListModel._inputsOutputs[self._inputsComboBox.currentIndex()]
-        if len(self._fmusListModel._fmus) > self._outputFMUsComboBox.currentIndex() and self._outputFMUsComboBox.currentIndex() != -1:
-            toFMU = self._fmusListModel._fmus[self._outputFMUsComboBox.currentIndex()]
-        if len(self._outputsListModel._inputsOutputs) > self._outputsComboBox.currentIndex() and self._outputsComboBox.currentIndex() != -1:
-            outputVar = self._outputsListModel._inputsOutputs[self._outputsComboBox.currentIndex()]
+        if len(self._fmusListModel._fmus) > self._fromFMUsComboBox.currentIndex() and self._fromFMUsComboBox.currentIndex() != -1:
+            fromFMU = self._fmusListModel._fmus[self._fromFMUsComboBox.currentIndex()]
+        if len(self._fromListModel._inputsOutputs) > self._fromComboBox.currentIndex() and self._fromComboBox.currentIndex() != -1:
+            inputVar = self._fromListModel._inputsOutputs[self._fromComboBox.currentIndex()]
+        if len(self._fmusListModel._fmus) > self._toFMUsComboBox.currentIndex() and self._toFMUsComboBox.currentIndex() != -1:
+            toFMU = self._fmusListModel._fmus[self._toFMUsComboBox.currentIndex()]
+        if len(self._toListModel._inputsOutputs) > self._toComboBox.currentIndex() and self._toComboBox.currentIndex() != -1:
+            outputVar = self._toListModel._inputsOutputs[self._toComboBox.currentIndex()]
         if (fromFMU is None or inputVar is None or toFMU is None or outputVar is None):
             pass
         else:
@@ -459,7 +451,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
                 QtGui.QMessageBox().information(self, self.tr("Information"),
                               self.tr("This connection already exists."), QtGui.QMessageBox.Ok)
 
-    def removeInputOutputConnection(self):
+    def removeFromToConnection(self):
         i = 0
         while i < len(self._connectionsTableView.selectedIndexes()):
             row = self._connectionsTableView.selectedIndexes()[i].row()
