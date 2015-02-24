@@ -199,7 +199,7 @@ class ConnectionsListModel(QtCore.QAbstractItemModel):
             return True
         else:
             return False
-                
+
     def removeConnection(self, row):
         self.beginRemoveRows(QtCore.QModelIndex(), row, row)
         connection = self._connections.pop(row)
@@ -282,7 +282,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
         
         # xml setup file
         self.xmlFileLabel = QtGui.QLabel(self.tr("Load XML:"))
-        self.xmlFileTextBox = QtGui.QLineEdit("",self)
+        self.xmlFileTextBox = QtGui.QLineEdit()
         browseXmlSetupFileButton = QtGui.QPushButton(self.tr("Browse"))
         browseXmlSetupFileButton.clicked.connect(self.browseXmlSetupFile)
         # list of FMUs
@@ -368,10 +368,9 @@ class ConnectFMUsDialog(QtGui.QDialog):
         self.setLayout(mainLayout)
 
     def browseXmlSetupFile(self):
-        (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open File', os.getcwd(), '(*.xml)')
-        if fileName != '':
-             self.xmlFileTextBox.setText(fileName)            
-             setupfile=self.xmlFileTextBox.text()
+        (setupfile, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open File', os.getcwd(), '(*.xml)')
+        if setupfile != '':
+             self.xmlFileTextBox.setText(setupfile)
              tree = ET.parse(setupfile)
              root = tree.getroot()
              for fmu in root.iter('fmu'):
@@ -384,8 +383,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
                 fvar=connection.get('fromVariableName')
                 tid=connection.get('fromInstanceName')
                 tvar=connection.get('fromVariableName')'''
-                
-                
+
     def browseFmuFile(self):
         (fileNames, trash) = QtGui.QFileDialog().getOpenFileNames(self, 'Open File', os.getcwd(), '(*.fmu)')
         for fileName in fileNames:
