@@ -33,11 +33,15 @@ from datetime import datetime
 
 class FMU(object):
 
-    def __init__(self, name, location, index):
+    def __init__(self, name, location, instance):
         self._name = name
         self._location = location
         self._instanceName = name + datetime.now().strftime("%Y%m%d%H%M%S")
+        #check if an instance exits when loading from xmlsetup
+        if(instance):
+           self._instanceName=instance
         self._inputsOutputs = []
+        
         try:
             self._fmuFile = zipfile.ZipFile(location, 'r')
         except:
@@ -83,6 +87,7 @@ class Connection:
         self._inputVar = inputVar
         self._toFMU = toFMU
         self._outputVar = outputVar
+        
 
 class InputsOutputsListModel(QtCore.QAbstractListModel):
 
@@ -198,8 +203,8 @@ class ConnectionsListModel(QtCore.QAbstractItemModel):
             self.endInsertRows()
             return True
         else:
-            return False
-                
+            return False 
+            
     def removeConnection(self, row):
         self.beginRemoveRows(QtCore.QModelIndex(), row, row)
         connection = self._connections.pop(row)
@@ -247,13 +252,26 @@ class FMUsListModel(QtCore.QAbstractListModel):
         if not self.containsFMU(fileName):
             fmuFileInfo = QtCore.QFileInfo(fileName)
             row = self.rowCount()
-            fmu = FMU(fmuFileInfo.baseName(), fmuFileInfo.absoluteFilePath(), row)
+            fmu = FMU(fmuFileInfo.baseName(), fmuFileInfo.absoluteFilePath(), "")         
             self.beginInsertRows(QtCore.QModelIndex(), row, row)
             self._fmus.insert(row, fmu)
             self.endInsertRows()
             return True
         else:
             return False
+            
+    def addFMUfromXMLsetup(self, fileName,fmuinstance):
+        if not self.containsFMU(fileName):
+            fmuFileInfo = QtCore.QFileInfo(fileName)
+            row = self.rowCount()
+            fmu = FMU(fmuFileInfo.baseName(), fmuFileInfo.absoluteFilePath(), fmuinstance)
+            self.beginInsertRows(QtCore.QModelIndex(), row, row)
+            self._fmus.insert(row, fmu)
+            self.endInsertRows()
+            return True
+        else:
+            return False
+
 
     def removeFMU(self, row):
         self.beginRemoveRows(QtCore.QModelIndex(), row, row)
@@ -376,16 +394,27 @@ class ConnectFMUsDialog(QtGui.QDialog):
              root = tree.getroot()
              for fmu in root.iter('fmu'):
                  name = fmu.get('path')
-                 self._fmusListModel.addFMU(name)
-             
-             '''
+                 fmuinstance=fmu.get('instanceName')
+                 self._fmusListModel.addFMUfromXMLsetup(name,fmuinstance)
+                        
+             ''' 
              for connection in root.iter('connection'):
                 fid=connection.get('fromInstanceName')
                 fvar=connection.get('fromVariableName')
                 tid=connection.get('fromInstanceName')
-                tvar=connection.get('fromVariableName')'''
+                tvar=connection.get('fromVariableName')
+                #print self._fromListModel._inputsOutputs
+                #print self._fromFMUsComboBox.allItems()
+                print 'arun'
+                for i in xrange(self._fromFMUsComboBox.count()):
+                    x=self._fromFMUsComboBox.itemText(i)
+                    print fid, x
                 
+                for z in xrange(self._fromComboBox.count()):
+                    x=self._fromComboBox.itemText(z)
+                    print self._fromListModel._inputsOutputs[self._fromComboBox.currentIndex()]'''
                 
+                 
     def browseFmuFile(self):
         (fileNames, trash) = QtGui.QFileDialog().getOpenFileNames(self, 'Open File', os.getcwd(), '(*.fmu)')
         for fileName in fileNames:
