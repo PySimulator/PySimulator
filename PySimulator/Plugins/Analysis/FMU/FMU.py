@@ -203,8 +203,8 @@ class ConnectionsListModel(QtCore.QAbstractItemModel):
             self.endInsertRows()
             return True
         else:
-            return False 
-            
+            return False
+
     def removeConnection(self, row):
         self.beginRemoveRows(QtCore.QModelIndex(), row, row)
         connection = self._connections.pop(row)
@@ -300,7 +300,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
         
         # xml setup file
         self.xmlFileLabel = QtGui.QLabel(self.tr("Load XML:"))
-        self.xmlFileTextBox = QtGui.QLineEdit("",self)
+        self.xmlFileTextBox = QtGui.QLineEdit()
         browseXmlSetupFileButton = QtGui.QPushButton(self.tr("Browse"))
         browseXmlSetupFileButton.clicked.connect(self.browseXmlSetupFile)
         # list of FMUs
@@ -386,10 +386,9 @@ class ConnectFMUsDialog(QtGui.QDialog):
         self.setLayout(mainLayout)
 
     def browseXmlSetupFile(self):
-        (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open File', os.getcwd(), '(*.xml)')
-        if fileName != '':
-             self.xmlFileTextBox.setText(fileName)            
-             setupfile=self.xmlFileTextBox.text()
+        (setupfile, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open File', os.getcwd(), '(*.xml)')
+        if setupfile != '':
+             self.xmlFileTextBox.setText(setupfile)
              tree = ET.parse(setupfile)
              root = tree.getroot()
              for fmu in root.iter('fmu'):
@@ -401,18 +400,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
              for connection in root.iter('connection'):
                 fid=connection.get('fromInstanceName')
                 fvar=connection.get('fromVariableName')
-                tid=connection.get('fromInstanceName')
-                tvar=connection.get('fromVariableName')
-                #print self._fromListModel._inputsOutputs
-                #print self._fromFMUsComboBox.allItems()
-                print 'arun'
-                for i in xrange(self._fromFMUsComboBox.count()):
-                    x=self._fromFMUsComboBox.itemText(i)
-                    print fid, x
-                
-                for z in xrange(self._fromComboBox.count()):
-                    x=self._fromComboBox.itemText(z)
-                    print self._fromListModel._inputsOutputs[self._fromComboBox.currentIndex()]'''
+                tid=connection.get('fromInstanceName')'''
                 
                  
     def browseFmuFile(self):
