@@ -31,12 +31,12 @@ and simulation executable of Dymola. It runs the executable and loads the result
 '''
 
 
-import os, sys, string
+import os, sys
 import subprocess
 from PySide import QtGui
 
-import Plugins.Simulator.SimulatorBase
-import Plugins.SimulationResult.DymolaMat.DymolaMat as DymolaMat
+from .. import SimulatorBase
+from ...SimulationResult.DymolaMat import DymolaMat
 
 iconImage = 'simulatorDymola.ico'
 modelExtension = ['mo', 'moe', 'exe']
@@ -46,11 +46,11 @@ def closeSimulatorPlugin():
 def getNewModel(modelName=None, modelFileName=None, config=None):    
     return Model(modelName, modelFileName, config)
 
-class Model(Plugins.Simulator.SimulatorBase.Model):
+class Model(SimulatorBase.Model):
 
     def __init__(self, modelName, modelFileName, config):
 
-        Plugins.Simulator.SimulatorBase.Model.__init__(self, modelName, modelFileName, config)
+        SimulatorBase.Model.__init__(self, modelName, modelFileName, config)
         self.modelType = 'Modelica model in Dymola'
 
         # A dummy object to get result properties:
@@ -123,7 +123,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             variableAttribute += 'Causality:' + chr(9) + causality + '\n'
             variableAttribute += 'Variability:' + chr(9) + variability + '\n'
             variableAttribute += 'Type:' + chr(9) + dataType
-            self.variableTree.variable[self._initialResult.name[i]] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(self._initialResult.name[i]), value, valueEdit, unit, variability, variableAttribute)
+            self.variableTree.variable[self._initialResult.name[i]] = SimulatorBase.TreeVariable(self.structureVariableName(self._initialResult.name[i]), value, valueEdit, unit, variability, variableAttribute)
 
 
     def _compileModel(self):

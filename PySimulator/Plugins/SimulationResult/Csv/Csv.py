@@ -24,7 +24,7 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 '''
 
 import csv, numpy, collections
-from Plugins.SimulationResult import IntegrationResults
+from .. import IntegrationResults
 
 
 fileExtension = 'csv'

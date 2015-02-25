@@ -40,8 +40,7 @@ import os
 from operator import itemgetter
 
 import pyMtsf
-from Plugins.Simulator.FMUSimulator.FMIDescription1 import FMIDescription
-
+from ...Simulator.FMUSimulator.FMIDescription1 import FMIDescription
 
 
 StandardSeriesForFmi = [pyMtsf.Series('Fixed', None, 'constant', 1), pyMtsf.Series('Continuous', 'Time', 'linear', 100), pyMtsf.Series('Discrete', 'TimeDiscrete', 'constant', 10)]

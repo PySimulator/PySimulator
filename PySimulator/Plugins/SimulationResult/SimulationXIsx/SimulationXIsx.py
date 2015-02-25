@@ -30,7 +30,7 @@ import string
 
 import numpy
 
-from Plugins.SimulationResult import IntegrationResults
+from .. import IntegrationResults
 import PyResultX as isx
 from SimXUnitSI import unitSI
 

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-Copyright (C) 2011-2014 German Aerospace Center DLR
+Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
 Copyright (C) 2014-2015 ITI GmbH
@@ -42,8 +42,8 @@ import types
 import pythoncom
 import win32com.client
 
-import Plugins.SimulationResult.SimulationXCsv.SimulationXCsv as SimulationXCsv
-import Plugins.Simulator.SimulatorBase
+from ...SimulationResult.SimulationXCsv import SimulationXCsv
+from .. import SimulatorBase
 import _winreg as winreg
 from SimXEnums import *
 
@@ -75,10 +75,10 @@ def _isNumeric(s):
 		except TypeError:
 			return False
 
-class Model(Plugins.Simulator.SimulatorBase.Model):
+class Model(SimulatorBase.Model):
 
 	def __init__(self, modelName, modelFileName, config):
-		Plugins.Simulator.SimulatorBase.Model.__init__(self, modelName, modelFileName, config)
+		SimulatorBase.Model.__init__(self, modelName, modelFileName, config)
 		self.modelType = 'SimulationX'
 
 		sim = None
@@ -222,7 +222,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 		except:
 			print 'SimulationX: Error.'
 		finally:
-			Plugins.Simulator.SimulatorBase.Model.close(self)
+			SimulatorBase.Model.close(self)
 			if not type(sim) is types.NoneType:
 				sim.Interactive = True
 				sim = None
@@ -299,7 +299,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 						childVariableAttr += 'Description:' + chr(9) + childComment + '\n'
 					childVariableAttr += 'Causality:' + chr(9) + 'parameter' + '\n'
 					childVariableAttr += 'Variability:' + chr(9) + childVariability  # + '\n'
-					self.variableTree.variable[childRelIdent] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent), childValue, childValueEdit, childUnit, childVariability, childVariableAttr)
+					self.variableTree.variable[childRelIdent] = SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent), childValue, childValueEdit, childUnit, childVariability, childVariableAttr)
 		elif _isNumeric(dim):
 			# Fixed vector dimension
 			childTypeIdent = pChild.Type.Ident
@@ -325,7 +325,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 						childVariableAttr += 'Variability:' + chr(9) + childVariability  # + '\n'
 						for i in range(1, dim + 1):
 							if _isNumeric(childValueList[i - 1]):
-								self.variableTree.variable[childRelIdent + '[' + str(i) + ']'] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent + '[' + str(i) + ']'), childValueList[i - 1], childValueEdit, childUnit, childVariability, childVariableAttr)
+								self.variableTree.variable[childRelIdent + '[' + str(i) + ']'] = SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent + '[' + str(i) + ']'), childValueList[i - 1], childValueEdit, childUnit, childVariability, childVariableAttr)
 
 	def _fillTreeResult(self, pObject, doc, pChild):
 		''' Scan a SimulationX result object
@@ -350,7 +350,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 					childVariableAttr += 'Description:' + chr(9) + childComment + '\n'
 				childVariableAttr += 'Causality:' + chr(9) + 'state' + '\n'
 				childVariableAttr += 'Variability:' + chr(9) + childVariability  # + '\n'
-				self.variableTree.variable[childRelIdent] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent), childValue, childValueEdit, childUnit, childVariability, childVariableAttr)
+				self.variableTree.variable[childRelIdent] = SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent), childValue, childValueEdit, childUnit, childVariability, childVariableAttr)
 		elif _isNumeric(dim):
 			# Fixed vector dimension
 			childRelIdent = pChild.GetRelIdent(doc)
@@ -372,7 +372,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 				childVariableAttr += 'Causality:' + chr(9) + 'state' + '\n'
 				childVariableAttr += 'Variability:' + chr(9) + childVariability  # + '\n'
 				for i in range(1, dim + 1):
-					self.variableTree.variable[childRelIdent + '[' + str(i) + ']'] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent + '[' + str(i) + ']'), childValue, childValueEdit, childUnit, childVariability, childVariableAttr)
+					self.variableTree.variable[childRelIdent + '[' + str(i) + ']'] = SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent + '[' + str(i) + ']'), childValue, childValueEdit, childUnit, childVariability, childVariableAttr)
 
 	def getReachedSimulationTime(self):
 		''' Read the current simulation time during a simulation
@@ -406,9 +406,9 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 				self._simulate_sync(doc)
 		except win32com.client.pywintypes.com_error:
 			print 'SimulationX: COM error.'
-			raise(Plugins.Simulator.SimulatorBase.Stopping)
+			raise(SimulatorBase.Stopping)
 		except:
-			raise(Plugins.Simulator.SimulatorBase.Stopping)
+			raise(SimulatorBase.Stopping)
 		finally:
 			if not type(sim) is types.NoneType:
 				sim.Interactive = True
@@ -539,7 +539,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 			if self.simulationStopRequest:
 				doc.Stop()
 				self.simulationStopRequest = False
-				raise(Plugins.Simulator.SimulatorBase.Stopping)
+				raise(SimulatorBase.Stopping)
 			time.sleep(0.1)
 
 		# Integration is finished

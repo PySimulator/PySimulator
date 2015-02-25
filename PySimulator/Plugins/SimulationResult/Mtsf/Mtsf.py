@@ -29,7 +29,7 @@ import collections
 from operator import itemgetter
 import time
 import os
-from Plugins.SimulationResult import IntegrationResults
+from .. import IntegrationResults
 
 
 import pyMtsf
@@ -169,7 +169,8 @@ def convertFromDymolaMatFile(matFilename, mtsfFilename=None):
         else:
             resultFileName = mtsfFilename + '.mtsf'
 
-    import Plugins.SimulationResult.DymolaMat.DymolaMat as DymolaMat
+    from ..DymolaMat import DymolaMat   
+
     # Load mat-file
     res = DymolaMat.Results(matFilename)
 

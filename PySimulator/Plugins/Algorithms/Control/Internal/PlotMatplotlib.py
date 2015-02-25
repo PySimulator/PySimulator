@@ -31,8 +31,8 @@ Created on 09.04.2012
 
 import matplotlib.pyplot as plt
 import numpy
-from Plugins.Algorithms.Control import Misc
-from Plugins.Algorithms.Control import lti
+from ...Control import Misc
+from ...Control import lti
 
 
 def plotBode(lti, n=200, f_range=None, f_logspace=True, u_indices=None, y_indices=None):

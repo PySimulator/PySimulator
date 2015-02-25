@@ -22,8 +22,8 @@ You should have received a copy of the GNU Lesser General Public License
 along with PySimulator. If not, see www.gnu.org/licenses.
 '''
 
-import Plugins.Simulator.SimulatorBase
-import os, sys, shutil
+from .. import SimulatorBase
+import os, shutil
 from PySide import QtGui
 from pythonica import pythonica
 
@@ -38,11 +38,11 @@ def closeSimulationPlugin():
 def getNewModel(modelName=None, modelFileName=None, config=None):    
     return Model(modelName, modelFileName, config)
 
-class Model(Plugins.Simulator.SimulatorBase.Model):
+class Model(SimulatorBase.Model):
 
     def __init__(self, modelName, modelFileName, config):
 
-        Plugins.Simulator.SimulatorBase.Model.__init__(self, modelName, modelFileName, config)
+        SimulatorBase.Model.__init__(self, modelName, modelFileName, config)
         self.modelType = 'Modelica model in Wolfram'
 
         self.onlyResultFile = False
@@ -172,7 +172,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             variableAttribute += 'Variability:' + chr(9) + v['kind'] + '\n'
             variableAttribute += 'Type:' + chr(9) + v['type']
 
-            self.variableTree.variable[v['name'].replace('[', '.[')] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(v['name'].replace('[', '.[')), value, 'false', v['unit'], v['kind'], variableAttribute)
+            self.variableTree.variable[v['name'].replace('[', '.[')] = SimulatorBase.TreeVariable(self.structureVariableName(v['name'].replace('[', '.[')), value, 'false', v['unit'], v['kind'], variableAttribute)
     def getAvailableIntegrationAlgorithms(self):
         ''' Returns a list of strings with available integration algorithms
         '''
