@@ -248,19 +248,7 @@ class FMUsListModel(QtCore.QAbstractListModel):
                 return self._fmus[index.row()]._location
         return None
 
-    def addFMU(self, fileName):
-        if not self.containsFMU(fileName):
-            fmuFileInfo = QtCore.QFileInfo(fileName)
-            row = self.rowCount()
-            fmu = FMU(fmuFileInfo.baseName(), fmuFileInfo.absoluteFilePath(), "")         
-            self.beginInsertRows(QtCore.QModelIndex(), row, row)
-            self._fmus.insert(row, fmu)
-            self.endInsertRows()
-            return True
-        else:
-            return False
-            
-    def addFMUfromXMLsetup(self, fileName,fmuinstance):
+    def addFMU(self, fileName, fmuinstance):
         if not self.containsFMU(fileName):
             fmuFileInfo = QtCore.QFileInfo(fileName)
             row = self.rowCount()
@@ -271,7 +259,6 @@ class FMUsListModel(QtCore.QAbstractListModel):
             return True
         else:
             return False
-
 
     def removeFMU(self, row):
         self.beginRemoveRows(QtCore.QModelIndex(), row, row)
@@ -396,7 +383,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
              for fmu in root.iter('fmu'):
                  name = fmu.get('path')
                  fmuinstance=fmu.get('instanceName')
-                 self._fmusListModel.addFMUfromXMLsetup(name,fmuinstance)
+                 self._fmusListModel.addFMU(name, fmuinstance)
                      
              ## Add connection information to table from xmlsetup 
              for connection in root.iter('connection'):
@@ -433,7 +420,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
             fileName = fileName.replace('\\', '/')
             if fileName != '':
                 # add the FMU to FMUsListModel
-                if not self._fmusListModel.addFMU(fileName):
+                if not self._fmusListModel.addFMU(fileName, ""):
                     QtGui.QMessageBox().information(self, self.tr("Information"),
                                       self.tr("The FMU {0} already exists.").format(fileName),
                                       QtGui.QMessageBox.Ok)
