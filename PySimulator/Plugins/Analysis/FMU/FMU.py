@@ -378,41 +378,44 @@ class ConnectFMUsDialog(QtGui.QDialog):
              self.xmlFileTextBox.setText(setupfile)
              tree = ET.parse(setupfile)
              root = tree.getroot()
-             
+
              ## Add fmu's to list with correct instance from xmlsetup
              for fmu in root.iter('fmu'):
                  name = fmu.get('path')
                  fmuinstance=fmu.get('instanceName')
                  self._fmusListModel.addFMU(name, fmuinstance)
-                     
+
              ## Add connection information to table from xmlsetup 
              for connection in root.iter('connection'):
                 frominstance=connection.get('fromInstanceName')
                 fromvar=connection.get('fromVariableName')
                 toinstance=connection.get('toInstanceName')
                 tovar=connection.get('toVariableName')
-                
+
                 for i in xrange(len(self._fmusListModel._fmus)):
                       instance=self._fmusListModel._fmus[i]._instanceName
-                      
+
                       if (instance==frominstance):
                            fromFMU=self._fmusListModel._fmus[i]
                            frominputoutputvar=self._fmusListModel._fmus[i]._inputsOutputs
                            for j in xrange(len(frominputoutputvar)):
                                 varname=frominputoutputvar[j]['name']
                                 if(fromvar==varname):
-                                      inputVar=frominputoutputvar[j]  
-                                      
+                                    inputVar=frominputoutputvar[j]
+
                       if (instance==toinstance):
                            toFMU=self._fmusListModel._fmus[i]
                            toinputoutputvar=self._fmusListModel._fmus[i]._inputsOutputs
                            for j in xrange(len(toinputoutputvar)):
                                 varname=toinputoutputvar[j]['name']                               
                                 if(tovar==varname):
-                                      outputVar=toinputoutputvar[j]                                    
-                              
-                self._connectionsListModel.addConnection(fromFMU, inputVar, toFMU, outputVar)
-                self._connectionsTableView.resizeColumnsToContents()
+                                    outputVar=toinputoutputvar[j]
+
+                if (fromFMU is None or inputVar is None or toFMU is None or outputVar is None):
+                    pass
+                else:
+                    self._connectionsListModel.addConnection(fromFMU, inputVar, toFMU, outputVar)
+                    self._connectionsTableView.resizeColumnsToContents()
 
     def browseFmuFile(self):
         (fileNames, trash) = QtGui.QFileDialog().getOpenFileNames(self, 'Open File', os.getcwd(), '(*.fmu)')
