@@ -32,7 +32,7 @@ import math
 import gc
 import time
 
-import Plugins.Simulator.SimulatorBase
+from Plugins.Simulator import SimulatorBase
 
 
 class IntegratorControl(QtGui.QDialog):
@@ -570,7 +570,7 @@ class simulationThread(QtCore.QThread):
             except:
                 pass
             self.model.simulate()
-        except Plugins.Simulator.SimulatorBase.Stopping:
+        except SimulatorBase.Stopping:
             print("solver canceled ... ")
         except Exception, e:
             print("unexpected error ... ")

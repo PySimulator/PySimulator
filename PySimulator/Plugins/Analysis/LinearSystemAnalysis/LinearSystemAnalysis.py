@@ -31,7 +31,7 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 
 
 
-from Plugins.Analysis.LinearSystemAnalysis.LinearizeFMU  import LinearizeFMU
+import LinearizeFMU
 
 def linearizeToMAT(model, gui):
     ''' Example callback function for model specific actions

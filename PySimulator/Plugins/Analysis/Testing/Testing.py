@@ -35,9 +35,8 @@ from bs4 import BeautifulSoup
 import webbrowser
 import datetime
 from PySide import QtGui, QtCore
-import Plugins.Simulator
-import Plugins.Simulator.SimulatorBase as SimulatorBase
-import Plugins.SimulationResult as SimulationResult
+from ... import Simulator 
+from ... import SimulationResult
 from multiprocessing import Pool
 
 def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdout, filewritehtml=None,resultfile=None,htmlfile=None):
@@ -861,19 +860,19 @@ def parallelsimulation(modellists):
      try:
        '''load the Simulator Module like this, depending on the simulator selected by the users as the pool.map() cannot pickle module types '''
        if(simulator=='OpenModelica'):
-           import Plugins.Simulator.OpenModelica.OpenModelica as OpenModelica
+           from ...Simulator.OpenModelica import OpenModelica
            model=OpenModelica.getNewModel(modelname, packname, config)
        if(simulator=='Dymola'):
-           import Plugins.Simulator.Dymola.Dymola as Dymola
+           from ...Simulator.Dymola import Dymola
            model=Dymola.getNewModel(modelname, packname, config)
        if(simulator=='FMUSimulator'):
-           import Plugins.Simulator.FMUSimulator.FMUSimulator as FMUSimulator
+           from ...Simulator.FMUSimulator import FMUSimulator
            model=FMUSimulator.getNewModel(modelname, packname, config)
        if(simulator=='SimulationX'):
-           import Plugins.Simulator.SimulationX.SimulationX as SimulationX
+           from ...Simulator.SimulationX import SimulationX
            model=SimulationX.getNewModel(modelname, packname, config)
        if(simulator=='Wolfram'):
-           import Plugins.Simulator.Wolfram.Wolfram as Wolfram
+           from ...Simulator.Wolfram import Wolfram
            model=Wolfram.getNewModel(modelname, packname, config)
              
        if (subdir == 'N'):
@@ -1015,7 +1014,7 @@ class simulationThread(QtCore.QThread):
                                 print "Simulating %s by %s (result in %s)..." % (modelName,simulatorName,resultFileName)
                                 model.simulate()
 
-                            except Plugins.Simulator.SimulatorBase.Stopping:
+                            except Simulator.SimulatorBase.Stopping:
                                 print("Solver cancelled ... ")
                             except Exception as e:
                                 import traceback
@@ -1334,9 +1333,9 @@ class CompareThread(QtCore.QThread):
 
                 file1 = dir1 + '/' + fileName1[index]
                 file2 = dir2 + '/' + fileName2[i]
-                model1 = SimulatorBase.Model(None, None, None)
+                model1 = Simulator.SimulatorBase.Model(None, None, None)
                 model1.loadResultFile(file1)
-                model2 = SimulatorBase.Model(None, None, None)
+                model2 = Simulator.SimulatorBase.Model(None, None, None)
                 model2.loadResultFile(file2)
                 compareResults(model1, model2, dircount, self.tol, fileOut, fileOuthtml,self.logFile,file2)
         

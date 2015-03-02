@@ -31,8 +31,7 @@ Created on 05.04.2012
 import numpy
 from Internal        import StateSpace
 from Internal        import ZerosAndPoles
-from Plugins.Algorithms.Simulator.Sundials import SundialsIntegrators
-
+from ..Integrator.Sundials import SundialsIntegrators
 
 class SignalInfo:
     """
