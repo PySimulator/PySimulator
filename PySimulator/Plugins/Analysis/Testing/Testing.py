@@ -1125,9 +1125,9 @@ class CompareParallelThread(QtCore.QThread):
       if os.path.exists(logfilesdir): 
          shutil.rmtree(logfilesdir)
                
-      rdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
-      if os.path.exists(rdir): 
-         shutil.rmtree(rdir)
+      regressionfilesdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
+      if os.path.exists(regressionfilesdir): 
+         shutil.rmtree(regressionfilesdir)
       
             
       self.running = False
@@ -1194,6 +1194,9 @@ def parallelcompareanalysis(directories):
 
                 file1 = dir1 + '/' + fileName1[index]
                 file2 = dir2 + '/' + fileName2[i]
+               
+                from ...Simulator import SimulatorBase 
+                
                 model1 = SimulatorBase.Model(None, None, None)
                 model1.loadResultFile(file1)
                 model2 = SimulatorBase.Model(None, None, None)
@@ -1377,9 +1380,9 @@ class CompareThread(QtCore.QThread):
       genregressionreport(self.logFile)
       
       ## remove the temporary rfiles directory after the Regression report generated
-      rdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
-      if os.path.exists(rdir): 
-         shutil.rmtree(rdir)     
+      regressionfilesdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
+      if os.path.exists(regressionfilesdir): 
+         shutil.rmtree(regressionfilesdir)     
          
       self.running = False
 
