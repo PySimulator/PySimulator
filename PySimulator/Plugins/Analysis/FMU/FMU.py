@@ -286,6 +286,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
 
     def __init__(self, gui, fmuType,setupfile=None):
         QtGui.QDialog.__init__(self)
+        self._setupfile=setupfile
         
         self._fmuType = fmuType
         if self._fmuType == 1:
@@ -373,9 +374,9 @@ class ConnectFMUsDialog(QtGui.QDialog):
         mainLayout.addLayout(horizontalLayout, 3, 0, 1, 3)
         self.setLayout(mainLayout)
 
-        if setupfile is not None:
+        if self._setupfile is not None:
              self._saveToFile.setChecked(False)
-             tree = ET.parse(setupfile)
+             tree = ET.parse(self._setupfile)
              root = tree.getroot()
 
              ## Add fmu's to list with correct instance from xmlsetup
@@ -481,35 +482,39 @@ class ConnectFMUsDialog(QtGui.QDialog):
             i = 0
 
     def saveConnectionsXML(self):
-        if self._saveToFile.isChecked():
-            (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, self.tr("Save file"), os.getcwd(), '(*.xml)')
+        if (self._saveToFile.isChecked()):
+            (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, self.tr("Save file"), os.getcwd(), '(*.xml)') 
             if fileName == '':
                 return
-    
-            xmlTemplate = '<?xml version="1.0" encoding="utf-8"?><connectedFmus></connectedFmus>'
-            rootElement = ET.fromstring(xmlTemplate)
-            # add fmus to file
-            fmusElement = ET.SubElement(rootElement, "fmus")
-            for fmu in self._fmusListModel._fmus:
-                ET.SubElement(fmusElement, "fmu", {"name":fmu._name, "instanceName":fmu._instanceName, "path":fmu._location})
-    
-            # add connections to file
-            connectionsElement = ET.SubElement(rootElement, "connections")
-            for connection in self._connectionsListModel._connections:
-                ET.SubElement(connectionsElement, "connection", {"fromInstanceName":connection._fromFMU._instanceName, "fromVariableName":connection._inputVar['name'], "toInstanceName":connection._toFMU._instanceName, "toVariableName":connection._outputVar['name']})
-    
-            # pretty print the xml
-            xml = prettify(rootElement)
-            try:
-                xmlFile = codecs.open(fileName, "w", "utf-8")
-                xmlFile.write(xml)
-                xmlFile.close()
-                self.accept()
-            except IOError, e:
-                print "Failed to write the xml file. %s" % e
         else:
-            self.accept()
-
+            if self._setupfile is not None:  
+               fileName = self._setupfile
+            else:
+               print "Loading setup file failed "
+                
+        xmlTemplate = '<?xml version="1.0" encoding="utf-8"?><connectedFmus></connectedFmus>'
+        rootElement = ET.fromstring(xmlTemplate)
+        # add fmus to file
+        fmusElement = ET.SubElement(rootElement, "fmus")
+        for fmu in self._fmusListModel._fmus:
+            ET.SubElement(fmusElement, "fmu", {"name":fmu._name, "instanceName":fmu._instanceName, "path":fmu._location})
+    
+        # add connections to file
+        connectionsElement = ET.SubElement(rootElement, "connections")
+        for connection in self._connectionsListModel._connections:
+            ET.SubElement(connectionsElement, "connection", {"fromInstanceName":connection._fromFMU._instanceName, "fromVariableName":connection._inputVar['name'], "toInstanceName":connection._toFMU._instanceName, "toVariableName":connection._outputVar['name']})
+    
+        # pretty print the xml
+        xml = prettify(rootElement)
+        try:
+           xmlFile = codecs.open(fileName, "w", "utf-8")
+           xmlFile.write(xml)
+           xmlFile.close()
+           self.accept()
+        except IOError, e:
+           print "Failed to write the xml file. %s" % e
+        
+        
 def prettify(elem):
    """Return a pretty-printed XML string for the Element """
    rough_string = ET.tostring(elem, "utf-8")
