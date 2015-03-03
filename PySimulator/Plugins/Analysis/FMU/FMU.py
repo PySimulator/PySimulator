@@ -273,28 +273,12 @@ class FMUsListModel(QtCore.QAbstractListModel):
                 return True
         return False
 
-class ConnectFMUsSetupfileDialog(QtGui.QDialog):
-
-    def __init__(self, gui):
-        QtGui.QDialog.__init__(self)        
-        (fileName, trash) = QtGui.QFileDialog().getOpenFileName(self, 'Open XMLSetupFile', os.getcwd(), '(*.xml)')
-        fileName = fileName.replace('\\', '/')       
-        connectFMUsDialog = ConnectFMUsDialog(gui,2,fileName)
-        connectFMUsDialog.exec_()
-        
 class ConnectFMUsDialog(QtGui.QDialog):
 
-    def __init__(self, gui, fmuType,setupfile=None):
+    def __init__(self, gui, fmuType, setupfile=None):
         QtGui.QDialog.__init__(self)
-        self._setupfile=setupfile
-        
         self._fmuType = fmuType
-        if self._fmuType == 1:
-            self.setWindowTitle("Connect FMUs for Model Exchange")
-        elif self._fmuType == 2:
-            self.setWindowTitle("Connect FMUs for Co-Simulation")
-        self.setWindowIcon(QtGui.QIcon(gui.rootDir + '/Icons/pysimulator.ico'))
-        
+        self._setupfile = setupfile
         # list of FMUs
         fmuLabel = QtGui.QLabel(self.tr("List of FMUs:"))
         self._fmusListModel = FMUsListModel()
@@ -375,10 +359,11 @@ class ConnectFMUsDialog(QtGui.QDialog):
         self.setLayout(mainLayout)
 
         if self._setupfile is not None:
-             self._saveToFile.setChecked(False)
+             self._saveToFile.setEnabled(False)
              tree = ET.parse(self._setupfile)
              root = tree.getroot()
-
+             
+             self._fmuType = int(root.get('type'))
              ## Add fmu's to list with correct instance from xmlsetup
              for fmu in root.iter('fmu'):
                  name = fmu.get('path')
@@ -416,6 +401,12 @@ class ConnectFMUsDialog(QtGui.QDialog):
                 else:
                     self._connectionsListModel.addConnection(fromFMU, inputVar, toFMU, outputVar)
                     self._connectionsTableView.resizeColumnsToContents()
+
+        if self._fmuType == 1:
+            self.setWindowTitle("Connect FMUs for Model Exchange")
+        elif self._fmuType == 2:
+            self.setWindowTitle("Connect FMUs for Co-Simulation")
+        self.setWindowIcon(QtGui.QIcon(gui.rootDir + '/Icons/pysimulator.ico'))
 
     def browseFmuFile(self):
         (fileNames, trash) = QtGui.QFileDialog().getOpenFileNames(self, 'Open File', os.getcwd(), '(*.fmu)')
@@ -482,18 +473,19 @@ class ConnectFMUsDialog(QtGui.QDialog):
             i = 0
 
     def saveConnectionsXML(self):
-        if (self._saveToFile.isChecked()):
+        if (self._saveToFile.isChecked() and self._saveToFile.isEnabled()):
             (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, self.tr("Save file"), os.getcwd(), '(*.xml)') 
             if fileName == '':
                 return
         else:
-            if self._setupfile is not None:  
+            if self._setupfile is not None:
                fileName = self._setupfile
             else:
                print "Loading setup file failed "
-                
+
         xmlTemplate = '<?xml version="1.0" encoding="utf-8"?><connectedFmus></connectedFmus>'
         rootElement = ET.fromstring(xmlTemplate)
+        rootElement.attrib["type"] = str(self._fmuType)
         # add fmus to file
         fmusElement = ET.SubElement(rootElement, "fmus")
         for fmu in self._fmusListModel._fmus:
@@ -513,8 +505,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
            self.accept()
         except IOError, e:
            print "Failed to write the xml file. %s" % e
-        
-        
+
 def prettify(elem):
    """Return a pretty-printed XML string for the Element """
    rough_string = ET.tostring(elem, "utf-8")
@@ -524,14 +515,19 @@ def prettify(elem):
 def NewConnectME(model, gui):
     print "New connected FMU for Model Exchange"
     pass
-    
+
 def NewConnectCS(model, gui):
-    connectFMUsDialog = ConnectFMUsDialog(gui,2,None)
+    connectFMUsDialog = ConnectFMUsDialog(gui, 2, None)
     connectFMUsDialog.exec_()
-    
-def OpenConnectFMUSetupfile(model, gui):
-    ConnectFMUsSetupfileDialog(gui)
-    
+
+def OpenConnectFMU(model, gui):
+    (fileName, trash) = QtGui.QFileDialog().getOpenFileName(gui, 'Open Connected FMU', os.getcwd(), '(*.xml)')
+    if fileName == '':
+        pass
+    else:
+        fileName = fileName.replace('\\', '/')
+        connectFMUsDialog = ConnectFMUsDialog(gui, 0, fileName)
+        connectFMUsDialog.exec_()
 
 def Settings(model, gui):    
 
@@ -591,4 +587,4 @@ def getModelCallbacks():
         return a list of lists, one list for each callback, each sublist
         containing a name for the function and a function pointer
     '''
-    return [["New connected FMU for Model Exchange...", NewConnectME], ["New connected FMU for CoSimulation...", NewConnectCS], ["Open connectedFMU XMLsetup for CoSimulation...", OpenConnectFMUSetupfile],["Settings...", Settings]]
+    return [["New connected FMU for Model Exchange...", NewConnectME], ["New connected FMU for CoSimulation...", NewConnectCS], ["Open connected FMU...", OpenConnectFMU],["Settings...", Settings]]
