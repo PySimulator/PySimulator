@@ -152,7 +152,6 @@ def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdou
                         for m in xrange(len(identical)):
                             if not identical[m]:
                                 message = u"Results for " + namesBothSub[m] + u" are NOT identical within the tolerance " + unicode(tol) + u"; estimated Tolerance = " + unicode(estTol[m])
-                                message1=namesBothSub[m]+'-'+ u" are NOT identical within the tolerance " + unicode(tol) + u"; estimated Tolerance = " + unicode(estTol[m])
                                 message2=namesBothSub[m]+'-'+unicode(estTol[m])
                                 diff.append(namesBothSub[m])
                                 diff2.append(message2)
@@ -215,17 +214,13 @@ def htmloverview(fileouthtml,resultfile,file,diff1,dircount,maxEstTol):
     os.chdir(p)
     filename=os.path.join(p,modelname1.replace(' ',''))
     fileerror=os.path.join(filename,'err.html').replace('\\','/')
-    '''messerr="""<html>
-<head> Differed variables </head>
-<li>"""'''
     messerr="""<html>
 <head> <h2> List of Differed variables </h2> </head>
 <table> 
 <tr> 
 <th> Name </th> 
 <th> Estimated Tolerance </th> </td> """  
-     
-    
+         
     message1= '<a href=' + os.path.relpath(resultfile) + '>' + modelname + '</a>' +' </td>' 
     if(len(diff1)==0):
          emptyhref='<a href="" style="text-decoration:none;">0</a>'
@@ -234,24 +229,8 @@ def htmloverview(fileouthtml,resultfile,file,diff1,dircount,maxEstTol):
          fileouthtml.write('\n')   
     
     if(len(diff1)>0): 
-         f=open(fileerror,'w')
-         '''         
-         for z in xrange(len(diff)):
-             str1=''.join([modelname+'_'+diff[z]+'.html'])
-             x= '<a href='+str1.replace(' ','')+'>'+ diff[z]+ '</a>'+'</li>'
-             if(diff[z]==diff[-1]):
-                  x= '<a href='+str1.replace(' ','')+'>'+ diff[z]+ '</a>' +'</li>'+'</html>'      
-             if(z==0):
-               s = '\n'.join([messerr,x])
-             else:         
-               s = '\n'.join(['<li>',x])
-                
-             f.write(s)
-             f.write('\n')
-         f.close()'''
-        
+         f=open(fileerror,'w')        
          for i in xrange(len(diff1)):
-             #str1=''.join([modelname+'_'+diff1[z]+'.html'])
              var=diff1[i].split('-') 
              str1=''.join([modelname+'_'+var[0]+'.html'])
              x1='<td>'+'<a href='+str1.replace(' ','')+'>'+ str(var[0])+ '</a>'+'</td>'
@@ -1110,12 +1089,12 @@ class CompareParallelThread(QtCore.QThread):
           dircount.append(i)
       
       pool=Pool()
-      startTime = time.time() 
+      #startTime = time.time() 
       pool.map(parallelcompareanalysis, zip(listdir1,listdirs,resultfiles,dircount,tol))
       pool.close()
       pool.join()
-      elapsedTime = time.time() - startTime
-      print elapsedTime
+      #elapsedTime = time.time() - startTime
+      #print elapsedTime
       print "Parallel Compare Analysis Completed"
       genlogfilesreport(self.logFile)
       genregressionreport(self.logFile)
@@ -1278,7 +1257,6 @@ class CompareThread(QtCore.QThread):
       files1 = os.listdir(dir1) 
       
       fileOut = open(self.logFile, 'w')
-      startTime=time.time()      
       for dircount in xrange(len(listdirs)):
         dir2=listdirs[dircount]    
         files2 = os.listdir(dir2)
@@ -1374,9 +1352,7 @@ class CompareThread(QtCore.QThread):
         shutil.copy(logfile1,np2)
                      
       print "... running the analysis done."
-      fileOut.close()
-      elapsedTime = time.time() - startTime
-      print elapsedTime       
+      fileOut.close()      
       genregressionreport(self.logFile)
       
       ## remove the temporary rfiles directory after the Regression report generated
