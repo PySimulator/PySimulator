@@ -187,7 +187,7 @@ def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdou
     message = u"Compared results of " + unicode(nPos + nNeg) + u" variables: " + unicode(nPos) + u" identical, " + unicode(nNeg) + u" differ" + messageOnce
     # print message
     fileOutput.write(message + u"\n")
-
+    totalvar= unicode(nPos + nNeg)
     if allIdentical:
         message = u"The results for all compared variables are identical up to the given tolerance = " + unicode(tol)
         # print message
@@ -199,11 +199,11 @@ def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdou
     print "... done."
     ''' Function call to generate the overview report'''
     if htmlfile is not None:
-        htmloverview(filewritehtml,resultfile,htmlfile,diff1,dircount,maxEstTol)
+        htmloverview(filewritehtml,resultfile,htmlfile,diff1,dircount,totalvar,maxEstTol)
 
     return
 
-def htmloverview(fileouthtml,resultfile,file,diff1,dircount,maxEstTol):
+def htmloverview(fileouthtml,resultfile,file,diff1,dircount,totalvar,maxEstTol):
     '''This function is used to present the users with the overall comparison report of different models, The report includes, for each model the number of variables 
        differed, and a link is provided to inspect the differed variables, if there are no differed variables then no link is provided '''
     os.getcwd()
@@ -223,7 +223,7 @@ def htmloverview(fileouthtml,resultfile,file,diff1,dircount,maxEstTol):
          
     message1= '<a href=' + os.path.relpath(resultfile) + '>' + modelname + '</a>' +' </td>' 
     if(len(diff1)==0):
-         emptyhref='<a href="" style="text-decoration:none;">0</a>'
+         emptyhref='<a href="" style="text-decoration:none;">0'+ '(' + str(totalvar) + 'variables)' +'</a>'
          s = '\n'.join(['<tr>','<td>',message1,'<td bgcolor=#00FF00>',emptyhref,'</td>','</tr>']) 
          fileouthtml.write(s)
          fileouthtml.write('\n')   
@@ -247,7 +247,7 @@ def htmloverview(fileouthtml,resultfile,file,diff1,dircount,maxEstTol):
          f.write('\n')
          f.close()
          
-         diff = '<a href='+ os.path.relpath(fileerror) +'>'+str(len(diff1))+'</a>'+ '[' +str(maxEstTol)+ ']' +'</td>'+'</tr>'      
+         diff = '<a href='+ os.path.relpath(fileerror) +'>'+str(len(diff1))+'</a>'+ '(' + str(totalvar) +'variables)' + '[' +str(maxEstTol)+ ']' +'</td>'+'</tr>'      
          s = '\n'.join(['<tr>','<td>',message1,'<td bgcolor=#FF0000>',diff])            
          fileouthtml.write(s)
          fileouthtml.write('\n')
@@ -1089,15 +1089,17 @@ class CompareParallelThread(QtCore.QThread):
           dircount.append(i)
       
       pool=Pool()
-      #startTime = time.time() 
+      startTime = time.time() 
       pool.map(parallelcompareanalysis, zip(listdir1,listdirs,resultfiles,dircount,tol))
       pool.close()
       pool.join()
-      #elapsedTime = time.time() - startTime
+      elapsedTime = time.time() - startTime
       #print elapsedTime
       print "Parallel Compare Analysis Completed"
+      totaldir=len(listdirs)
+      filecount=len(os.listdir(dir1))      
       genlogfilesreport(self.logFile)
-      genregressionreport(self.logFile)
+      genregressionreport(self.logFile,totaldir,filecount,elapsedTime)
       
       ## Remove the temporary logfiles and rfiles directories after the regression report completed
       logfilesdir=os.path.join(os.path.dirname(self.logFile),'logfiles').replace('\\','/')
@@ -1257,6 +1259,7 @@ class CompareThread(QtCore.QThread):
       files1 = os.listdir(dir1) 
       
       fileOut = open(self.logFile, 'w')
+      startTime = time.time()
       for dircount in xrange(len(listdirs)):
         dir2=listdirs[dircount]    
         files2 = os.listdir(dir2)
@@ -1352,8 +1355,11 @@ class CompareThread(QtCore.QThread):
         shutil.copy(logfile1,np2)
                      
       print "... running the analysis done."
-      fileOut.close()      
-      genregressionreport(self.logFile)
+      elapsedTime = time.time() - startTime
+      fileOut.close()
+      totaldir=len(listdirs)
+      filecount=len(files1)      
+      genregressionreport(self.logFile,totaldir,filecount,elapsedTime)
       
       ## remove the temporary rfiles directory after the Regression report generated
       regressionfilesdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
@@ -1386,7 +1392,7 @@ def genlogfilesreport(logfile):
       f.close()
       
       
-def genregressionreport(logfile):
+def genregressionreport(logfile,totaldir,filecount,Time):
   ''' the function is used to parse the html files and collect the table datas from different html files and finally generate single regression chart'''
   dir1=os.path.dirname(logfile)
   dir2=os.path.join(dir1,'rfiles').replace('\\','/')
@@ -1407,11 +1413,17 @@ def genregressionreport(logfile):
     logfile1=logfile.replace(fileExtension,'.html')    
     f=open(logfile1,'w') 
     date_time_info = datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
-    date_time_info1 =' '.join(['<h4>','Generated','@',date_time_info,'</h4>'])    
+    date_time_info1 =' '.join(['<h4>','Generated','@',date_time_info,'</h4>'])
+    dircount=' '.join(['<h4>','Number of Directories Compared :',str(totaldir),'</h4>'])    
+    filecounts=' '.join(['<h4>','Number of Files Compared:',str(filecount),'</h4>'])
+    TotalTime =' '.join(['<h4>','Time Taken:',time.strftime("%Mm:%Ss", time.gmtime(Time)),'</h4>'])
+
     m1='''<body><h1>Regression Report </h1>
-<p><font style="background-color:#00FF00">Green</font> cells means success. <font style="background-color:#FF0000">Red</font> cells represents number of variables differed, The numbers inside square brackets represents Maximum Estimated Tolerance</p>
+<p><font style="background-color:#FF0000">Red</font> cells contains 3 values, Representing Number of differed variables (total number of variables) and [the maximum estimated Tolerance]</p>
+<p><font style="background-color:#00FF00">Green</font> cells contains 2 values, Representing Number of differed variables and (total number of variables) </p>
+<p><font style="background-color:#00FF00">Green</font> cells means success. <font style="background-color:#FF0000">Red</font> cells contains Links to inspect the differed variables</p>
 </body>'''
-    s='\n'.join(['<html>',date_time_info1,m1,'<table>','<tr>','<th>','Model','</th>'])
+    s='\n'.join(['<html>',date_time_info1,m1, dircount,filecounts,TotalTime,'<table>','<tr>','<th>','Model','</th>'])
     f.write(s)
     f.write('\n')
            
