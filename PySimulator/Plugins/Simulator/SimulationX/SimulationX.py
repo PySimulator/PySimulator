@@ -299,6 +299,11 @@ class Model(SimulatorBase.Model):
 						childVariableAttr += 'Description:' + chr(9) + childComment + '\n'
 					childVariableAttr += 'Causality:' + chr(9) + 'parameter' + '\n'
 					childVariableAttr += 'Variability:' + chr(9) + childVariability  # + '\n'
+					if pChild.IsA(simEnumeration):
+						childVariableAttr += '\nEnumeration:' + chr(9)
+						for a in pChild.Alternatives:
+							childVariableAttr += str(a.Value) + '=' + a.Name + ', '
+						childVariableAttr = childVariableAttr.rstrip(', ')
 					self.variableTree.variable[childRelIdent] = SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent), childValue, childValueEdit, childUnit, childVariability, childVariableAttr)
 		elif _isNumeric(dim):
 			# Fixed vector dimension
@@ -461,7 +466,7 @@ class Model(SimulatorBase.Model):
 		for name, newValue in self.changedStartValue.iteritems():
 			i = name.find('[')
 			if i >= 0 and name.endswith(']'):
-				value = doc.Parameters(name[0:i]).Value
+				value = doc.Lookup(name[0:i]).Value
 				n = name[i:]
 				n = re.sub('[\[\]]', '', n)
 				if _isNumeric(n):
@@ -470,9 +475,9 @@ class Model(SimulatorBase.Model):
 					value = value.replace(';', ',')
 					valueList = value.split(',')
 					valueList[n - 1] = newValue
-					doc.Parameters(name[0:i]).Value = '{' + ','.join(valueList) + '}'
+					doc.Lookup(name[0:i]).Value = '{' + ','.join(valueList) + '}'
 			else:
-				doc.Parameters(name).Value = newValue
+				doc.Lookup(name).Value = newValue
 
 		# Build variable tree if empty, e.g. if simulate is called by the Testing plugin
 		if not bool(self.variableTree.variable):
