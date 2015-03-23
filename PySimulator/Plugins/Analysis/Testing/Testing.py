@@ -780,6 +780,7 @@ class simulationParallelThread(QtCore.QThread):
             if not os.path.isdir(fullSimulatorResultPath):
                 os.makedirs(fullSimulatorResultPath)
             
+            ## Call prepareSimulationList to translate models in Dymola 
             simulator.prepareSimulationList(self.modelList['fileName'],self.modelList['modelName'],self.config)  
             
             '''create a new list of resultpath, config, and simulatorname to be pickled by the multiprocessing pool.map()'''
@@ -807,9 +808,10 @@ class simulationParallelThread(QtCore.QThread):
             #check the subdirectory for empty strings and replace it with 'N' for passing to pool.map(), as it cannot process empty list of strings to multiprocess module
             subdirlist= ["N" if not x else x for x in self.modelList['subDirectory']]
             
+            ## Create a Pool of process and run the Simulation in Parallel
             pool=Pool()
             #startTime = time.time() 
-            pool.map(parallelsimulation, zip(self.modelList['fileName'],self.modelList['modelName'],subdirlist,self.modelList['tStart'],self.modelList['tStop'],self.modelList['tol'],self.modelList['stepSize'],self.modelList['nInterval'],self.modelList['includeEvents'],dirs,resultpath,config,simname))
+            pool.map(ParallelSimulation, zip(self.modelList['fileName'],self.modelList['modelName'],subdirlist,self.modelList['tStart'],self.modelList['tStop'],self.modelList['tol'],self.modelList['stepSize'],self.modelList['nInterval'],self.modelList['includeEvents'],dirs,resultpath,config,simname))
             pool.close()
             pool.join()
             #elapsedTime = time.time() - startTime
@@ -818,7 +820,7 @@ class simulationParallelThread(QtCore.QThread):
         self.running = False
             
   
-def parallelsimulation(modellists):
+def ParallelSimulation(modellists):
      'unpacks the modelists and run the simuations in parallel using the multiprocessing module'
      packname=[]
      packname.append(modellists[0])     
@@ -1088,9 +1090,10 @@ class CompareParallelThread(QtCore.QThread):
           resultfiles.append(newlogfilepath)
           dircount.append(i)
       
+      ## Create a Pool of process and run the Compare Analysis in Parallel
       pool=Pool()
       startTime = time.time() 
-      pool.map(parallelcompareanalysis, zip(listdir1,listdirs,resultfiles,dircount,tol))
+      pool.map(ParallelCompareAnalysis, zip(listdir1,listdirs,resultfiles,dircount,tol))
       pool.close()
       pool.join()
       elapsedTime = time.time() - startTime
@@ -1113,7 +1116,7 @@ class CompareParallelThread(QtCore.QThread):
             
       self.running = False
 
-def parallelcompareanalysis(directories):
+def ParallelCompareAnalysis(directories):
     'unpack the directories and start running the compare analysis in parallel'
     
     dir1=directories[0]
@@ -1189,18 +1192,16 @@ def parallelcompareanalysis(directories):
     fileOut.write('\n') 
     fileOut.close()      
     fileOuthtml.close()
-    '''open the html file to check the html tags are correctly closed for proper display of table and add headers'''
+    
+    '''open the html file to insert start html tags and add add headers of the directory name'''
     with open(logfile1) as myfile:
-                   data=myfile.read()
-                   header='''<body><h1>Comparison Report </h1>
-<p><font style="background-color:#00FF00">Green</font> cells means success. <font style="background-color:#FF0000">Red</font> cells represents number of variables differed, The numbers inside square brackets represents Maximum Estimated Tolerance</p>
-</body>'''          
-                   m1="<table><tr><th>Model</th><th>"+os.path.basename(os.path.dirname(file2))+'</th>'+'</tr>'
-                   message='\n'.join(['<html>',header,m1])
-                   f=open(logfile1,'w')
-                   s = '\n'.join([message,data,'</table>','</html>']) 
-                   f.write(s)                    
-                   f.close()
+         data=myfile.read() 
+         m1="<table><tr><th>Model</th><th>"+os.path.basename(os.path.dirname(file2))+'</th>'+'</tr>'
+         message='\n'.join(['<html>',m1])
+         f=open(logfile1,'w')
+         s = '\n'.join([message,data,'</table>','</html>']) 
+         f.write(s)                    
+         f.close()
                    
     logfiledir=os.path.dirname(logfile)
     logfilename=os.path.basename(logfile)
@@ -1328,20 +1329,17 @@ class CompareThread(QtCore.QThread):
         fileOut.write('\n')                   
         fileOuthtml.close()
      
-        '''open the html file to check the html tags are correctly closed for proper display of table and add headers'''
+        '''open the html file to insert start html tags and add add headers of the directory name'''
         with open(logfile1) as myfile:
-           data=myfile.read()
-           header='''<body><h1>Comparison Report </h1>
-<p><font style="background-color:#00FF00">Green</font> cells means success. <font style="background-color:#FF0000">Red</font> cells represents number of variables differed, The numbers inside square brackets represents Maximum Estimated Tolerance</p>
-</body>'''          
+           data=myfile.read()          
            m1="<table><tr><th>Model</th><th>"+os.path.basename(os.path.dirname(file2))+'</th>'+'</tr>'
-           message='\n'.join(['<html>',header,m1])
+           message='\n'.join(['<html>',m1])
            f=open(logfile1,'w')
            s = '\n'.join([message,data,'</table>','</html>']) 
            f.write(s)                    
            f.close() 
        
-        '''Save the data to prepare regression report, if the user press the regression button'''
+        '''Save the data to prepare regression report'''
         
         newpath=os.path.dirname(logfile1)
         name=os.path.basename(logfile1)
@@ -1419,8 +1417,8 @@ def genregressionreport(logfile,totaldir,filecount,Time):
     TotalTime =' '.join(['<h4>','Time Taken:',time.strftime("%Mm:%Ss", time.gmtime(Time)),'</h4>'])
 
     m1='''<body><h1>Regression Report </h1>
-<p><font style="background-color:#FF0000">Red</font> cells contains 3 values, Representing Number of differed variables (total number of variables) and [the maximum estimated Tolerance]</p>
-<p><font style="background-color:#00FF00">Green</font> cells contains 2 values, Representing Number of differed variables and (total number of variables) </p>
+<p><font style="background-color:#FF0000">Red</font> cells contains 3 values, Representing Number of differed variables Compared with(total number of variables) and [the maximum estimated Tolerance]</p>
+<p><font style="background-color:#00FF00">Green</font> cells contains 2 values, Representing Number of differed variables Compared with (total number of variables) </p>
 <p><font style="background-color:#00FF00">Green</font> cells means success. <font style="background-color:#FF0000">Red</font> cells contains Links to inspect the differed variables</p>
 </body>'''
     s='\n'.join(['<html>',date_time_info1,m1, dircount,filecounts,TotalTime,'<table>','<tr>','<th>','Model','</th>'])
