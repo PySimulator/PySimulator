@@ -288,7 +288,7 @@ def generatehtml(model1,model2,namesBoth,col1var,col2var,htmlfile,resultfile,dir
         var2=col2var[z]
         if (name != 'Time'):
              try:
-                # for each variable get the appropriate column datas from model1 and model2 
+               #for each variable get the appropriate column datas from model1 and model2 
                fast_c = numpy.vstack([i, model1[numpy.in1d(model1[:,0], i), var1], model2[numpy.in1d(model2[:,0], i), var2]]).T
                dygraph_array= repr(fast_c).replace('array',' ').replace('(' ,' ').replace(')' ,' ')
                htmlreport=newpath+'\\'+report+'_'+name+'.html'     
