@@ -329,7 +329,7 @@ class Model(SimulatorBase.Model):
     def simulate(self):
         ''' The main simulation function
         '''
-
+ 
         def prepareResultFile():
             # Prepare result file
             fmi = self.description
