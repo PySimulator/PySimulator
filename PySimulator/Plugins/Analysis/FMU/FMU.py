@@ -22,7 +22,7 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with PySimulator. If not, see www.gnu.org/licenses.
 '''
-
+import ConnectedFMUSimulation
 import os
 from PySide import QtGui, QtCore
 import zipfile
@@ -30,6 +30,7 @@ import xml.etree.ElementTree as ET
 import codecs
 from xml.dom import minidom
 from datetime import datetime
+from ...Simulator.FMUSimulator import FMUSimulator
 
 class FMU(object):
 
@@ -279,6 +280,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
         QtGui.QDialog.__init__(self)
         self._fmuType = fmuType
         self._setupfile = setupfile
+        self._gui = gui
         # list of FMUs
         fmuLabel = QtGui.QLabel(self.tr("List of FMUs:"))
         self._fmusListModel = FMUsListModel()
@@ -506,9 +508,9 @@ class ConnectFMUsDialog(QtGui.QDialog):
         except IOError, e:
            print "Failed to write the xml file. %s" % e
         
-        StartSimulation(fileName)
+        StartSimulation(self._gui,fileName)
 
-def StartSimulation(fileName):
+def StartSimulation(gui,fileName):
    ###  Main function which starts the Simulation of Connected FMUS ###
     
    ## Parse the xml-setup and find the connection order from the connection tag as defined by the user 
@@ -531,9 +533,37 @@ def StartSimulation(fileName):
    ## Provide the the graph edges to find the strongly connected components using tarjan's algorithm
    #print graph   
    connected_components = StronglyConnectedComponents(graph)
-   print connected_components
    
-   ## TO DO Load the List FMUs in loop and display in the variable Browser as a SingleComponent
+   ## Check for Algebraic loops  ##
+   Algebraic_loops=[]
+   for i in xrange(len(connected_components)):
+        Algebraic_loops.append(len(connected_components[i]))
+   
+   True=Algebraic_loops.count(1)==len(Algebraic_loops)    
+   
+   ## Loop the List FMUs and display in the variable Browser as a SingleComponent
+   if True:
+      import configobj
+      config = configobj.ConfigObj(os.path.join(os.path.expanduser("~"), '.config', 'PySimulator', 'PySimulator.ini'), encoding='utf8')
+   
+      modelname=[]
+      filename=[]
+      for z in xrange(len(connected_components)):
+        for fmu in root.iter('fmu'):
+           fmuinstance=fmu.get('instanceName')
+           if (connected_components[z][0]==fmuinstance):
+              file=fmu.get('path')
+              name=fmu.get('name')
+              filename.append(file)
+              modelname.append(name)
+  
+      model=ConnectedFMUSimulation.Model(modelname, filename, config)
+      gui._newModel(model)
+      
+   else:
+      msg=QtGui.QMessageBox()
+      msg.setText("The connections contains Algebraic Loops, Currently PySimulator supports ConnectedFMU Simulation without Algebraic Loops")
+      msg.exec_()
    
 def StronglyConnectedComponents(graph):
     ## For each node in the graph the following two information must be set namely index and lowlinks according to tarjan algorithm
