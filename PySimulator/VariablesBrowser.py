@@ -270,7 +270,6 @@ class VariablesBrowser(QtGui.QTreeWidget):
             return
 
         # Define the tipText displayed when stopping the mouse over the numbered model name in the variable browser
-        
         tipText = 'Model type: ' + model.modelType
         if model.variableTree.rootAttribute is not None:
             if len(model.variableTree.rootAttribute) > 0:
@@ -285,12 +284,13 @@ class VariablesBrowser(QtGui.QTreeWidget):
         def natsort_key(x1, _nsre=re.compile('([0-9]+)')):
             x = x1[0]
             return [int(text) if text.isdigit() else text.lower() for text in re.split(_nsre, x)]
+
         # Sort the variables for the tree
-        
         variableNames.sort(key=natsort_key)
+
         for v in variableNames:
             self.addItemToTree(treeRoot, v[0], v[1], model)
-        
+
         # Show changed start values in startValueBox given in model.settings
         for variable in model.changedStartValue:
             self.setVariable(model, variable, model.changedStartValue[variable])

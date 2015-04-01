@@ -329,14 +329,11 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
     def simulate(self):
         ''' The main simulation function
         '''
-        print 'simulate1'
+
         def prepareResultFile():
-            print 'simulate2'
             # Prepare result file
             fmi = self.description
             (modelDescription, modelVariables, simpleTypes, units, enumerations) = MtsfFmi.convertFromFmi('', fmi)
-            print 'simulate2a'
-            print modelVariables
             # Phase 1 of result file generation
             settings = self.integrationSettings
             experimentSetup = pyMtsf.ExperimentSetup(startTime=settings.startTime, stopTime=settings.stopTime,
@@ -411,7 +408,6 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             ''' Writes variable values at time 'time' to result file.
                 Only variables of the given series are written.
             '''
-            print 'simulate3'
             if hasattr(self, 'integrationResultFileSemaphore'):
                 self.integrationResultFileSemaphore.acquire()
             series = self.integrationResults._mtsf.results.series[seriesName]
@@ -431,7 +427,6 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         def right_hand_side(t, x, xd=None):
             ''' Returns the right hand side (or the delta to xd for implicit solvers)
             '''
-            print 'simulate4'
             dx = self.getDerivatives(t, x)  # dx is returned as matrix with one row [[ 0.1  0.4]]
             if implicitSolver:
                 return dx[0] - xd  # numpy.array(dx - xd)#maybe [dx] #dx - xd
@@ -441,20 +436,17 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         def state_events(t, x, sw):
             ''' Returns event indicator functions at time=t, states=x
             '''
-            print 'simulate5'
             test = self.getEventIndicators(t, x)
             return numpy.array(test)
 
         def state_eventsImplicit(t, x, xd, sw):
             ''' Returns event indicator functions at time=t, states=x
             '''
-            print 'simulate6'
             return state_events(t, x, sw)
 
         def time_events(t, x, sw):
             ''' Returns the next time event
             '''
-            print 'simulate7'
             if simulator.nextTimeEvent == None:
                 return 1e10
             else:
@@ -463,14 +455,13 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         def time_eventsImplicit(t, x, xd, sw):
             ''' Returns event indicator functions at time=t, states=x
             '''
-            print 'simulate8'
             return time_events(t, x, sw)
 
         def handle_result(solver, t, x, xd=None):
             ''' This function is called when new values
                 (in time) for variables shall be saved.
             '''
-            print 'simulate9'
+
             # Check, if simulation shall be interrupted
             if self.simulationStopRequest:
                 finalize(solver)
@@ -490,7 +481,6 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         def finalize(solver):
             ''' Function that is called at the end of the simulation
             '''
-            print 'simulate10'
             if solver is not None and 'Discrete' in self.integrationResults._mtsf.results.series:
                 # Write discrete Variables
                 writeResults('Discrete', solver.t)
@@ -565,7 +555,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             Here the simulate function starts:
             **********************************
         '''
-        print 'simulate9'
+
         # Initialize result file
         if not prepareResultFile():
             return
@@ -758,6 +748,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             valueEdit = True  # for the moment
             # ----> Here variable of self.variableTree is set (one entry of the dictionary)
             self.variableTree.variable[vName] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(vName), v.type.start, valueEdit, v.type.unit, v.variability, variableAttribute)
+
 
 class ExplicitEulerSolver():
     '''

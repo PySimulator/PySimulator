@@ -63,13 +63,11 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
       #The data is set in self.variableTree that is an instance of the class SimulatorBase.VariableTree
 
       self.description=self._descriptioninstance
-      tipText = ''
-      for i in xrange(len(self.description)):      
-        tipText += 'Model name:        ' + chr(9) + self.description[i].modelName + '\n'
+      
+      for i in xrange(len(self.description)):
         for vName, v in self.description[i].scalarVariables.iteritems():
-            #text=(self.description[i].modelName).split('.')
-            text=(self.description[i].modelName).replace('.','')            
-            varname=text+'.'+vName
+            text=(self.description[i].modelName).split('.')           
+            varname=text[-1]+' '+vName
             variableAttribute = ''
             if v.description is not None:
                 variableAttribute += 'Description:' + chr(9) + v.description + '\n'
@@ -108,6 +106,5 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             valueEdit = True  # for the moment
             # ----> Here variable of self.variableTree is set (one entry of the dictionary)
             self.variableTree.variable[varname] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(varname), v.type.start, valueEdit, v.type.unit, v.variability, variableAttribute)
-      self.variableTree.rootAttribute = tipText
-  
+        
 
