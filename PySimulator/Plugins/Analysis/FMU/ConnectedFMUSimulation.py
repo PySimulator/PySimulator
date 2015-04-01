@@ -66,8 +66,9 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
       
       for i in xrange(len(self.description)):
         for vName, v in self.description[i].scalarVariables.iteritems():
-            text=(self.description[i].modelName).split('.')           
-            varname=text[-1]+' '+vName
+            #text=(self.description[i].modelName).split('.')
+            text=(self.description[i].modelName).replace('.','')                      
+            varname=text+'.'+vName
             variableAttribute = ''
             if v.description is not None:
                 variableAttribute += 'Description:' + chr(9) + v.description + '\n'
