@@ -553,11 +553,11 @@ def StartSimulation(gui,xml):
       frominstance=connection.get('fromInstanceName')
       toinstance=connection.get('toInstanceName')
       graph[frominstance] = [toinstance]
-
+ 
    ## Provide the the graph edges to find the strongly connected components using tarjan's algorithm
    #print graph
    connected_components = StronglyConnectedComponents(graph)
-
+  
    ## Check for Algebraic loops  ##
    Algebraic_loops=[]
    for i in xrange(len(connected_components)):
@@ -572,14 +572,11 @@ def StartSimulation(gui,xml):
 
       modelname=[]
       filename=[]
-      for z in xrange(len(connected_components)):
-        for fmu in root.iter('fmu'):
-           fmuinstance=fmu.get('instanceName')
-           if (connected_components[z][0]==fmuinstance):
-              file=fmu.get('path')
-              name=fmu.get('name')
-              filename.append(file)
-              modelname.append(name)
+      for fmu in root.iter('fmu'):
+         file=fmu.get('path')
+         name=fmu.get('name')
+         filename.append(file)
+         modelname.append(name)
 
       model=ConnectedFMUSimulation.Model(modelname, filename, config)
       gui._newModel(model)
@@ -591,7 +588,7 @@ def StartSimulation(gui,xml):
 
 def StronglyConnectedComponents(graph):
     ## For each node in the graph the following two information must be set namely index and lowlinks according to tarjan algorithm
-    ## eg: If there a node 'A' then Node A should contain A(index,lowlink)
+    ## eg: If there is node 'A' then Node A should contain A(index,lowlink)
     index_counter =[0]
     stack = []
     lowlinks = {}
