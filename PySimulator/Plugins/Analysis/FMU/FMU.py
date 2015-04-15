@@ -548,14 +548,13 @@ def StartSimulation(gui,xml):
    root = ET.fromstring(xml)
    graph={}
    for connection in root.iter('connection'):
-      frominstance=connection.get('fromInstanceName')
-      toinstance=connection.get('toInstanceName')
-      graph[frominstance] = [toinstance]
- 
+      fromFMU=connection.get('fromFmuName')
+      toFMU=connection.get('toFmuName')
+      graph[fromFMU] = [toFMU]
+
    ## Provide the the graph edges to find the strongly connected components using tarjan's algorithm
-   #print graph
    connected_components = StronglyConnectedComponents(graph)
-  
+
    ## Check for Algebraic loops  ##
    Algebraic_loops=[]
    for i in xrange(len(connected_components)):
