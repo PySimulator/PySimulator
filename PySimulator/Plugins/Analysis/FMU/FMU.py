@@ -34,13 +34,9 @@ from ...Simulator.FMUSimulator import FMUSimulator
 
 class FMU(object):
 
-    def __init__(self, name, location, instance):
+    def __init__(self, name, location):
         self._name = name
         self._location = location
-        self._instanceName = name + datetime.now().strftime("%Y%m%d%H%M%S")
-        #check if an instance exits when loading from xmlsetup
-        if(instance):
-           self._instanceName=instance
         self._inputsOutputs = []
 
         try:
@@ -230,36 +226,60 @@ class ConnectionsListModel(QtCore.QAbstractItemModel):
                 else:
                     i += 1
 
-class FMUsListModel(QtCore.QAbstractListModel):
+class FMUsListModel(QtCore.QAbstractItemModel):
 
     fmuRemoved = QtCore.Signal(FMU)
 
     def __init__(self):
-        QtCore.QAbstractListModel.__init__(self)
+        QtCore.QAbstractItemModel.__init__(self)
         self._fmus = []
+
+    def columnCount(self, parent=QtCore.QModelIndex()):
+        return 2
 
     def rowCount(self, parent=QtCore.QModelIndex()):
         return len(self._fmus)
 
     def data(self, index, role=QtCore.Qt.DisplayRole):
         if index.isValid() is True:
-            if role == QtCore.Qt.DisplayRole:
-                return self._fmus[index.row()]._name
-            elif role == QtCore.Qt.ToolTipRole:
-                return self._fmus[index.row()]._location
+            column = index.column()
+            if column == 0:
+                if role == QtCore.Qt.DisplayRole:
+                    return self._fmus[index.row()]._name
+                elif role == QtCore.Qt.ToolTipRole:
+                    return self._fmus[index.row()]._name
+            elif column == 1:
+                if role == QtCore.Qt.DisplayRole:
+                    return self._fmus[index.row()]._location
+                elif role == QtCore.Qt.ToolTipRole:
+                    return self._fmus[index.row()]._location
         return None
 
-    def addFMU(self, fileName, fmuinstance):
-        if not self.containsFMU(fileName):
-            fmuFileInfo = QtCore.QFileInfo(fileName)
-            row = self.rowCount()
-            fmu = FMU(fmuFileInfo.baseName(), fmuFileInfo.absoluteFilePath(), fmuinstance)
-            self.beginInsertRows(QtCore.QModelIndex(), row, row)
-            self._fmus.insert(row, fmu)
-            self.endInsertRows()
-            return True
+    def headerData(self, section, orientation, role=QtCore.Qt.DisplayRole):
+        if (orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole):
+            if section == 0:
+                return self.tr("Name")
+            elif section == 1:
+                return self.tr("Location")
+
+    def index(self, row, column, parent=QtCore.QModelIndex()):
+        if self.hasIndex(row, column, parent):
+            return self.createIndex(row, column)
         else:
-            return False
+            return QtCore.QModelIndex()
+
+    def parent(self, child=QtCore.QModelIndex()):
+        return QtCore.QModelIndex()
+
+    def addFMU(self, fileName, fmuName = None):
+        fmuFileInfo = QtCore.QFileInfo(fileName)
+        row = self.rowCount()
+        if fmuName is None:
+            fmuName = self.getUniqueFMUName(fmuFileInfo.completeBaseName())
+        fmu = FMU(fmuName, fmuFileInfo.absoluteFilePath())
+        self.beginInsertRows(QtCore.QModelIndex(), row, row)
+        self._fmus.insert(row, fmu)
+        self.endInsertRows()
 
     def removeFMU(self, row):
         self.beginRemoveRows(QtCore.QModelIndex(), row, row)
@@ -268,33 +288,34 @@ class FMUsListModel(QtCore.QAbstractListModel):
         del fmu
         self.endRemoveRows()
 
-    def containsFMU(self, fileName):
-        for fmu in self._fmus:
-            if fmu._location == fileName:
-                return True
-        return False
+    def getUniqueFMUName(self, name, number = 1):
+      fmuName = name + str(number)
+      for fmu in self._fmus:
+          if fmu._name == fmuName:
+              fmuName = self.getUniqueFMUName(name, number + 1)
+              break
+      return fmuName
 
 class ConnectFMUsDialog(QtGui.QDialog):
 
     def __init__(self, gui, fmuType, setupfile=None):
         QtGui.QDialog.__init__(self)
+        self.setMinimumWidth(500)        
+        
         self._fmuType = fmuType
         self._setupfile = setupfile
         self._gui = gui
-        # list of FMUs
-        fmuLabel = QtGui.QLabel(self.tr("List of FMUs:"))
+        # FMUs model and view
         self._fmusListModel = FMUsListModel()
-        self._fmusListView = QtGui.QListView()
-        self._fmusListView.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
-        self._fmusListView.setModel(self._fmusListModel)
+        self._fmusTableView = QtGui.QTableView()
+        self._fmusTableView.verticalHeader().hide();
+        self._fmusTableView.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignLeft)
+        self._fmusTableView.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self._fmusTableView.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+        self._fmusTableView.setModel(self._fmusListModel)
         # add the fmu buttons to button box
-        browseFmuFileButton = QtGui.QPushButton(self.tr("Browse"))
-        browseFmuFileButton.clicked.connect(self.browseFmuFile)
-        removeFmuButton = QtGui.QPushButton(self.tr("Remove"))
-        removeFmuButton.clicked.connect(self.removeFmuFiles)
-        FmuButtonBox = QtGui.QDialogButtonBox(QtCore.Qt.Vertical)
-        FmuButtonBox.addButton(browseFmuFileButton, QtGui.QDialogButtonBox.ActionRole)
-        FmuButtonBox.addButton(removeFmuButton, QtGui.QDialogButtonBox.ActionRole)
+        addFmuButton = QtGui.QPushButton(self.tr("Add FMU"))
+        addFmuButton.clicked.connect(self.addFMUFile)
         # input & output comboboxes
         self._fromFMUsComboBox = QtGui.QComboBox()
         self._fromFMUsComboBox.setModel(self._fmusListModel)
@@ -308,6 +329,9 @@ class ConnectFMUsDialog(QtGui.QDialog):
         self._toListModel = InputsOutputsListModel()
         self._toComboBox = QtGui.QComboBox()
         self._toComboBox.setModel(self._toListModel)
+        # remove fmu button
+        removeFmuButton = QtGui.QPushButton(self.tr("Remove FMU(s)"))
+        removeFmuButton.clicked.connect(self.removeFmuFiles)
         # add connection button
         addConnectionButton = QtGui.QPushButton(self.tr("Add Connection"))
         addConnectionButton.clicked.connect(self.addFromToConnection)
@@ -325,15 +349,16 @@ class ConnectFMUsDialog(QtGui.QDialog):
         removeConnectionButton.clicked.connect(self.removeFromToConnection)
         # layout for inputs & outputs
         FromToGridLayout = QtGui.QGridLayout()
-        FromToGridLayout.addWidget(QtGui.QLabel(self.tr("From")), 0, 0)
-        FromToGridLayout.addWidget(QtGui.QLabel(self.tr("To")), 0, 1)
-        FromToGridLayout.addWidget(self._fromFMUsComboBox, 1, 0)
-        FromToGridLayout.addWidget(self._toFMUsComboBox, 1, 1)
-        FromToGridLayout.addWidget(self._fromComboBox, 2, 0)
-        FromToGridLayout.addWidget(self._toComboBox, 2, 1)
-        FromToGridLayout.addWidget(addConnectionButton, 3, 0, 1, 2)
-        FromToGridLayout.addWidget(self._connectionsTableView, 4, 0, 1, 2)
-        FromToGridLayout.addWidget(removeConnectionButton, 5, 0, 1, 2)
+        FromToGridLayout.addWidget(QtGui.QLabel(self.tr("List of Connections:")), 0, 0, 1, 2)
+        FromToGridLayout.addWidget(QtGui.QLabel(self.tr("From")), 1, 0)
+        FromToGridLayout.addWidget(QtGui.QLabel(self.tr("To")), 1, 1)
+        FromToGridLayout.addWidget(self._fromFMUsComboBox, 2, 0)
+        FromToGridLayout.addWidget(self._toFMUsComboBox, 2, 1)
+        FromToGridLayout.addWidget(self._fromComboBox, 3, 0)
+        FromToGridLayout.addWidget(self._toComboBox, 3, 1)
+        FromToGridLayout.addWidget(addConnectionButton, 4, 0, 1, 2)
+        FromToGridLayout.addWidget(self._connectionsTableView, 5, 0, 1, 2)
+        FromToGridLayout.addWidget(removeConnectionButton, 6, 0, 1, 2)
         # ok and cancel buttons
         okButton = QtGui.QPushButton(self.tr("OK"))
         okButton.clicked.connect(self.saveConnectionsXML)
@@ -353,11 +378,12 @@ class ConnectFMUsDialog(QtGui.QDialog):
         # set the widget layout
         mainLayout = QtGui.QGridLayout()
         mainLayout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
-        mainLayout.addWidget(fmuLabel, 1, 0, 1, 1, QtCore.Qt.AlignTop)
-        mainLayout.addWidget(self._fmusListView, 1, 1)
-        mainLayout.addWidget(FmuButtonBox, 1, 2)
-        mainLayout.addLayout(FromToGridLayout, 2, 0, 1, 3)
-        mainLayout.addLayout(horizontalLayout, 3, 0, 1, 3)
+        mainLayout.addWidget(QtGui.QLabel(self.tr("List of FMUs:")), 0, 0)
+        mainLayout.addWidget(addFmuButton, 1, 0)
+        mainLayout.addWidget(self._fmusTableView, 2, 0)
+        mainLayout.addWidget(removeFmuButton, 3, 0)
+        mainLayout.addLayout(FromToGridLayout, 4, 0)
+        mainLayout.addLayout(horizontalLayout, 5, 0)
         self.setLayout(mainLayout)
 
         if self._setupfile is not None:
@@ -368,21 +394,22 @@ class ConnectFMUsDialog(QtGui.QDialog):
              self._fmuType = int(root.get('type'))
              ## Add fmu's to list with correct instance from xmlsetup
              for fmu in root.iter('fmu'):
-                 name = fmu.get('path')
-                 fmuinstance=fmu.get('instanceName')
-                 self._fmusListModel.addFMU(name, fmuinstance)
+                 location = fmu.get('path')
+                 fmuName=fmu.get('name')
+                 self._fmusListModel.addFMU(location, fmuName)
+                 self._fmusTableView.resizeColumnsToContents()
 
              ## Add connection information to table from xmlsetup
              for connection in root.iter('connection'):
-                frominstance=connection.get('fromInstanceName')
+                fromFmuName=connection.get('fromFmuName')
                 fromvar=connection.get('fromVariableName')
-                toinstance=connection.get('toInstanceName')
+                toFmuName=connection.get('toFmuName')
                 tovar=connection.get('toVariableName')
 
                 for i in xrange(len(self._fmusListModel._fmus)):
-                      instance=self._fmusListModel._fmus[i]._instanceName
+                      name = self._fmusListModel._fmus[i]._name
 
-                      if (instance==frominstance):
+                      if (name==fromFmuName):
                            fromFMU=self._fmusListModel._fmus[i]
                            frominputoutputvar=self._fmusListModel._fmus[i]._inputsOutputs
                            for j in xrange(len(frominputoutputvar)):
@@ -390,7 +417,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
                                 if(fromvar==varname):
                                     inputVar=frominputoutputvar[j]
 
-                      if (instance==toinstance):
+                      if (name==toFmuName):
                            toFMU=self._fmusListModel._fmus[i]
                            toinputoutputvar=self._fmusListModel._fmus[i]._inputsOutputs
                            for j in xrange(len(toinputoutputvar)):
@@ -410,27 +437,25 @@ class ConnectFMUsDialog(QtGui.QDialog):
             self.setWindowTitle("Connect FMUs for Co-Simulation")
         self.setWindowIcon(QtGui.QIcon(gui.rootDir + '/Icons/pysimulator.ico'))
 
-    def browseFmuFile(self):
+    def addFMUFile(self):
         (fileNames, trash) = QtGui.QFileDialog().getOpenFileNames(self, 'Open File', os.getcwd(), '(*.fmu)')
         for fileName in fileNames:
             fileName = fileName.replace('\\', '/')
             if fileName != '':
                 # add the FMU to FMUsListModel
-                if not self._fmusListModel.addFMU(fileName, ""):
-                    QtGui.QMessageBox().information(self, self.tr("Information"),
-                                      self.tr("The FMU {0} already exists.").format(fileName),
-                                      QtGui.QMessageBox.Ok)
+                self._fmusListModel.addFMU(fileName)
+                self._fmusTableView.resizeColumnsToContents()
 
     def removeFmuFiles(self):
-        if len(self._fmusListView.selectedIndexes()) > 0:
-            confirmMsg = self.tr("Removing the FMU will also remove the connection associated with it. Are you sure you want to remove?")
+        if len(self._fmusTableView.selectedIndexes()) > 0:
+            confirmMsg = self.tr("Removing the FMU(s) will also removes its connections. Are you sure you want to remove?")
             confirm = QtGui.QMessageBox.question(self, self.tr("Question"), confirmMsg,
                                                  QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
                                                  QtGui.QMessageBox.No)
             if confirm == QtGui.QMessageBox.Yes:
                 i = 0
-                while i < len(self._fmusListView.selectedIndexes()):
-                    row = self._fmusListView.selectedIndexes()[i].row()
+                while i < len(self._fmusTableView.selectedIndexes()):
+                    row = self._fmusTableView.selectedIndexes()[i].row()
                     self._fmusListModel.removeFMU(row)
                     # restart iteration
                     i = 0
@@ -490,12 +515,12 @@ class ConnectFMUsDialog(QtGui.QDialog):
         # add fmus to file
         fmusElement = ET.SubElement(rootElement, "fmus")
         for fmu in self._fmusListModel._fmus:
-            ET.SubElement(fmusElement, "fmu", {"name":fmu._name, "instanceName":fmu._instanceName, "path":fmu._location})
+            ET.SubElement(fmusElement, "fmu", {"name":fmu._name, "path":fmu._location})
 
         # add connections to file
         connectionsElement = ET.SubElement(rootElement, "connections")
         for connection in self._connectionsListModel._connections:
-            ET.SubElement(connectionsElement, "connection", {"fromInstanceName":connection._fromFMU._instanceName, "fromVariableName":connection._inputVar['name'], "toInstanceName":connection._toFMU._instanceName, "toVariableName":connection._outputVar['name']})
+            ET.SubElement(connectionsElement, "connection", {"fromFmuName":connection._fromFMU._name, "fromVariableName":connection._inputVar['name'], "toFmuName":connection._toFMU._name, "toVariableName":connection._outputVar['name']})
 
         # pretty print the xml
         xml = prettify(rootElement)
