@@ -113,13 +113,12 @@ class FMUInterface:
         all fmi* functions are a public interface to the FMU-functions
         not implemented: type checks and automatic conversions for fmi* functions
     '''
-    def __init__(self, fileName, parent=None, loggingOn=True):
+    def __init__(self, fileName, parent=None, loggingOn=True , connectedFMU=None):
         ''' Load an FMU-File and start a new instance
             @param fileName: complete path and name of FMU-file (.fmu)
             @type fileName: string
         '''
         self._loggingOn = loggingOn
-
         self._tempDir = tempfile.mkdtemp()     
 
         ''' Open the given fmu-file (read only)'''
@@ -144,7 +143,7 @@ class FMUInterface:
         except BaseException as e:
             raise FMUError.FMUError('Error when reading modelDescription.xml\n' + str(e) + '\n')
         
-        self.description = FMIDescription(xmlFileHandle, self)
+        self.description = FMIDescription(xmlFileHandle, self, connectedFMU)
         
         ''' Just a little sanity check - standard definition says file name and FMU-name have to be the same '''
         if re.match(r'.*/(.*?).fmu$', fileName).group(1) != self.description.modelIdentifier:

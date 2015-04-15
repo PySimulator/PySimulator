@@ -120,7 +120,7 @@ class FMIDescription:
         It parses an XML-file description as defined by MODELISAR (ITEA 2 - 07006) Version 1.0
         The model description (FMI) is usually part of a Functional Mock-Up Unit (FMU)
     '''
-    def __init__(self, xmlFile, parent=None):
+    def __init__(self, xmlFile, parent=None, connectedFMU=None):
         ''' Create FMIDescription from XML-file
             @param xmlFile: File object of the describing XML-Document
         '''
@@ -144,7 +144,7 @@ class FMIDescription:
         self.defaultStartTime = 0
         self.defaultStopTime = 1
         self.defaultTolerance = 1e-4
-
+        self.connectedFMU=connectedFMU       
         if xmlFile is None:
             return
 
@@ -222,9 +222,13 @@ class FMIDescription:
             else:
                 type = FMIType(scalar[0])
             reference = scalar.get('valueReference')
+            
             ''' Change some variable names '''
-            scalarName = scalar.get('name')
-
+            if  self.connectedFMU is not None:
+               scalarName =self.modelName.replace('.','')+'.'+scalar.get('name')
+            else:
+               scalarName = scalar.get('name')
+ 
             # Set the scalarVariable
             s = FMIScalarVariable(type, reference)
             s.description = scalar.get('description')

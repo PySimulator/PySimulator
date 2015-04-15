@@ -329,7 +329,6 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
     def simulate(self):
         ''' The main simulation function
         '''
-
         def prepareResultFile():
             # Prepare result file
             fmi = self.description
@@ -509,7 +508,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             self.interface.fmiSetTime(solver.t)
             if not self.description.numberOfContinuousStates == 0:
                 self.interface.fmiSetContinuousStates(solver.y)
-            
+
             # handle_result(solver, solver.t, solver.y) here if your solver does not call it by itself(Assimulo does)
 
             # Do the event updates
@@ -526,7 +525,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
                 print("terminated by model ... ")
                 # Raise exception to abort simulation...
                 finalize(solver)
-                raise(Plugins.Simulator.SimulatorBase.Stopping)          
+                raise(Plugins.Simulator.SimulatorBase.Stopping)
 
             # handle_result(solver, solver.t, solver.y) here if your solver does not call it by itself(Assimulo does)
 

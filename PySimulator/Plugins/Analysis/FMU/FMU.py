@@ -42,7 +42,7 @@ class FMU(object):
         if(instance):
            self._instanceName=instance
         self._inputsOutputs = []
-        
+
         try:
             self._fmuFile = zipfile.ZipFile(location, 'r')
         except:
@@ -88,7 +88,7 @@ class Connection:
         self._inputVar = inputVar
         self._toFMU = toFMU
         self._outputVar = outputVar
-        
+
 
 class InputsOutputsListModel(QtCore.QAbstractListModel):
 
@@ -364,7 +364,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
              self._saveToFile.setEnabled(False)
              tree = ET.parse(self._setupfile)
              root = tree.getroot()
-             
+
              self._fmuType = int(root.get('type'))
              ## Add fmu's to list with correct instance from xmlsetup
              for fmu in root.iter('fmu'):
@@ -372,7 +372,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
                  fmuinstance=fmu.get('instanceName')
                  self._fmusListModel.addFMU(name, fmuinstance)
 
-             ## Add connection information to table from xmlsetup 
+             ## Add connection information to table from xmlsetup
              for connection in root.iter('connection'):
                 frominstance=connection.get('fromInstanceName')
                 fromvar=connection.get('fromVariableName')
@@ -394,7 +394,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
                            toFMU=self._fmusListModel._fmus[i]
                            toinputoutputvar=self._fmusListModel._fmus[i]._inputsOutputs
                            for j in xrange(len(toinputoutputvar)):
-                                varname=toinputoutputvar[j]['name']                               
+                                varname=toinputoutputvar[j]['name']
                                 if(tovar==varname):
                                     outputVar=toinputoutputvar[j]
 
@@ -476,14 +476,13 @@ class ConnectFMUsDialog(QtGui.QDialog):
 
     def saveConnectionsXML(self):
         if (self._saveToFile.isChecked() and self._saveToFile.isEnabled()):
-            (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, self.tr("Save file"), os.getcwd(), '(*.xml)') 
-            if fileName == '':
-                return
+            (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, self.tr("Save file"), os.getcwd(), '(*.xml)')
+
         else:
             if self._setupfile is not None:
                fileName = self._setupfile
             else:
-               print "Loading setup file failed"
+               fileName = ''
 
         xmlTemplate = '<?xml version="1.0" encoding="utf-8"?><connectedFmus></connectedFmus>'
         rootElement = ET.fromstring(xmlTemplate)
@@ -492,60 +491,60 @@ class ConnectFMUsDialog(QtGui.QDialog):
         fmusElement = ET.SubElement(rootElement, "fmus")
         for fmu in self._fmusListModel._fmus:
             ET.SubElement(fmusElement, "fmu", {"name":fmu._name, "instanceName":fmu._instanceName, "path":fmu._location})
-    
+
         # add connections to file
         connectionsElement = ET.SubElement(rootElement, "connections")
         for connection in self._connectionsListModel._connections:
             ET.SubElement(connectionsElement, "connection", {"fromInstanceName":connection._fromFMU._instanceName, "fromVariableName":connection._inputVar['name'], "toInstanceName":connection._toFMU._instanceName, "toVariableName":connection._outputVar['name']})
-    
+
         # pretty print the xml
         xml = prettify(rootElement)
-        try:
-           xmlFile = codecs.open(fileName, "w", "utf-8")
-           xmlFile.write(xml)
-           xmlFile.close()
-           self.accept()
-        except IOError, e:
-           print "Failed to write the xml file. %s" % e
-        
-        StartSimulation(self._gui,fileName)
 
-def StartSimulation(gui,fileName):
+        if fileName:
+          try:
+            xmlFile = codecs.open(fileName, "w", "utf-8")
+            xmlFile.write(xml)
+            xmlFile.close()
+            self.accept()
+          except IOError, e:
+            print "Failed to write the xml file. %s" % e
+
+        StartSimulation(self._gui,xml)
+
+def StartSimulation(gui,xml):
    ###  Main function which starts the Simulation of Connected FMUS ###
-    
-   ## Parse the xml-setup and find the connection order from the connection tag as defined by the user 
+
+   ## Parse the xml-setup and find the connection order from the connection tag as defined by the user
    ## create a graph edges information to find strongly connected components
-   ## eg: Let us say there are four FMU'S 1)Step.fmu, 2)PI.fmu , 3)gain.fmu and 4) test.fmu 
-   ## and we define the connection in the following order 1--->2--->3--->4, then we create the edges information like below   
-   ## { 'step' : ['PI'],  
+   ## eg: Let us say there are four FMU'S 1)Step.fmu, 2)PI.fmu , 3)gain.fmu and 4) test.fmu
+   ## and we define the connection in the following order 1--->2--->3--->4, then we create the edges information like below
+   ## { 'step' : ['PI'],
    ##   'PI'   : ['gain'],
    ##   'gain' : ['test'] }
-   
-   tree = ET.parse(fileName)
-   root = tree.getroot()   
-   
+
+   root = ET.fromstring(xml)
    graph={}
    for connection in root.iter('connection'):
       frominstance=connection.get('fromInstanceName')
       toinstance=connection.get('toInstanceName')
       graph[frominstance] = [toinstance]
-      
+
    ## Provide the the graph edges to find the strongly connected components using tarjan's algorithm
-   #print graph   
+   #print graph
    connected_components = StronglyConnectedComponents(graph)
-   
+
    ## Check for Algebraic loops  ##
    Algebraic_loops=[]
    for i in xrange(len(connected_components)):
         Algebraic_loops.append(len(connected_components[i]))
-   
-   True=Algebraic_loops.count(1)==len(Algebraic_loops)    
-   
+
+   True=Algebraic_loops.count(1)==len(Algebraic_loops)
+
    ## Loop the List FMUs and display in the variable Browser as a SingleComponent
    if True:
       import configobj
       config = configobj.ConfigObj(os.path.join(os.path.expanduser("~"), '.config', 'PySimulator', 'PySimulator.ini'), encoding='utf8')
-   
+
       modelname=[]
       filename=[]
       for z in xrange(len(connected_components)):
@@ -556,15 +555,15 @@ def StartSimulation(gui,fileName):
               name=fmu.get('name')
               filename.append(file)
               modelname.append(name)
-  
+
       model=ConnectedFMUSimulation.Model(modelname, filename, config)
       gui._newModel(model)
-      
+
    else:
       msg=QtGui.QMessageBox()
       msg.setText("The connections contains Algebraic Loops, Currently PySimulator supports ConnectedFMU Simulation without Algebraic Loops")
       msg.exec_()
-   
+
 def StronglyConnectedComponents(graph):
     ## For each node in the graph the following two information must be set namely index and lowlinks according to tarjan algorithm
     ## eg: If there a node 'A' then Node A should contain A(index,lowlink)
@@ -574,61 +573,61 @@ def StronglyConnectedComponents(graph):
     index = {}
     result = []
     def strongconnect(node):
-        ## set the index and lowlink of starting Node to be 0 
+        ## set the index and lowlink of starting Node to be 0
         ## eg: if A is the starting node in the graph then set A(0,0) and increment the index and lowlink for each successor of a node
-   
+
         index[node] = index_counter[0]
         lowlinks[node] = index_counter[0]
         index_counter[0] += 1
         stack.append(node)
-        
+
         # Get successors of 'node'
         try:
             successors = graph[node]
         except:
             successors = []
-            
+
         for successor in successors:
             if successor not in lowlinks:
-                # Successor has not yet been visited; 
+                # Successor has not yet been visited;
                 strongconnect(successor)
                 lowlinks[node] = min(lowlinks[node],lowlinks[successor])
             elif successor in stack:
                 # the successor is in the stack and hence in the current strongly connected component (SCC)
                 lowlinks[node] = min(lowlinks[node],index[successor])
-        
+
         # If `node` is a root node, pop the stack and generate an SCC
         if lowlinks[node] == index[node]:
             connected_component = []
             while True:
                 successor = stack.pop()
                 connected_component.append(successor)
-                if successor == node: 
+                if successor == node:
                     break
             component = tuple(connected_component)
             # storing the result
             result.append(component)
-    
+
     for node in graph:
         if node not in lowlinks:
             strongconnect(node)
-            
-    ## End of the Algorithm, get the Strongly connected component list and pass it to Topological Sort function to get the order of execution            
+
+    ## End of the Algorithm, get the Strongly connected component list and pass it to Topological Sort function to get the order of execution
     orderedlist=GetNodeComponentOrder(result,graph)
     return orderedlist
 
 def GetNodeComponentOrder(result,graph):
-    ## This Function is used to get Strongly connected Components list from Tarjan algorithm and create a New Graph components information 
+    ## This Function is used to get Strongly connected Components list from Tarjan algorithm and create a New Graph components information
     ## to find the order of execution of a Directed Graph using Topological Sort Algorithm
-    
+
     components = result
-    
+
     node_component = {}
     for component in components:
         for node in component:
             node_component[node] = component
- 
-    component_graph = {} 
+
+    component_graph = {}
     for component in components:
         component_graph[component] = []
 
@@ -637,18 +636,18 @@ def GetNodeComponentOrder(result,graph):
         for successor in graph[node]:
             successor_c = node_component[successor]
             if node_c != successor_c:
-                component_graph[node_c].append(successor_c) 
-  
+                component_graph[node_c].append(successor_c)
+
     return topological_sort(component_graph)
 
 def topological_sort(graph):
     ### Find the order of execution from the Connected Graph components ###
-    
+
     ## As a first step, Assign each node in Graph with number of incoming edges set to 0
     count = { }
     for node in graph:
         count[node] = 0
-        
+
     ## For each node in the graph determine the number of incoming edges and set the count,
     ## In this phase we determine the root node, A node with no incoming edge will be the start node
     for node in graph:
@@ -656,21 +655,21 @@ def topological_sort(graph):
             count[successor] += 1
 
     startnode = [ node for node in graph if count[node] == 0 ]
-    
-    ## After finding the start node, append it to list until all the successor of graph is completed which gives the order of execution 
+
+    ## After finding the start node, append it to list until all the successor of graph is completed which gives the order of execution
     result = [ ]
     while startnode:
         node = startnode.pop(-1)
         result.append(node)
-        
+
         for successor in graph[node]:
             count[successor] -= 1
             if count[successor] == 0:
                 startnode.append(successor)
-    
+
     return result
 
-        
+
 def prettify(elem):
    """Return a pretty-printed XML string for the Element """
    rough_string = ET.tostring(elem, "utf-8")
@@ -694,7 +693,7 @@ def OpenConnectFMU(model, gui):
         connectFMUsDialog = ConnectFMUsDialog(gui, 0, fileName)
         connectFMUsDialog.exec_()
 
-def Settings(model, gui):    
+def Settings(model, gui):
 
     class SettingsControl(QtGui.QDialog):
         ''' Class for the Settings Control GUI '''
@@ -702,8 +701,8 @@ def Settings(model, gui):
         def __init__(self):
             QtGui.QDialog.__init__(self)
             self.setModal(False)
-            self.setWindowTitle("FMU Settings")            
-                        
+            self.setWindowTitle("FMU Settings")
+
             _mainGrid = QtGui.QGridLayout(self)
 
             _ImportFMU = QtGui.QGroupBox("Importing FMUs", self)
@@ -711,34 +710,34 @@ def Settings(model, gui):
             _ImportFMULayout = QtGui.QGridLayout()
             _ImportFMU.setLayout(_ImportFMULayout)
             _ImportFMULayout.addWidget(QtGui.QLabel("Default FMI type:"), 0, 0)
-            
-            self.me = QtGui.QRadioButton("Model Exchange", self)            
+
+            self.me = QtGui.QRadioButton("Model Exchange", self)
             _ImportFMULayout.addWidget(self.me, 0, 1)
             self.me.toggled.connect(self.changeToME)
             self.cs = QtGui.QRadioButton("CoSimulation", self)
             _ImportFMULayout.addWidget(self.cs, 0, 2)
             self.cs.toggled.connect(self.changeToCS)
-            
+
             _ImportFMULayout.addWidget(QtGui.QLabel("The default FMI type will be used, if an FMU containing"), 1, 0, 1, 3)
             _ImportFMULayout.addWidget(QtGui.QLabel("both Model Exchange and CoSimulation models is opened."), 2, 0, 1, 3)
 
             self.closeButton = QtGui.QPushButton("Close", self)
             _mainGrid.addWidget(self.closeButton, 1, 1)
             self.closeButton.clicked.connect(self.close)
-            
+
             if not gui.config['Plugins']['FMU'].has_key('importType'):
                 gui.config['Plugins']['FMU']['importType'] = 'me'
-                gui.config.write() 
-                
+                gui.config.write()
+
             if gui.config['Plugins']['FMU']['importType'] == 'me':
                 self.me.setChecked(True)
             else:
                 self.cs.setChecked(True)
-           
+
         def changeToCS(self):
             gui.config['Plugins']['FMU']['importType'] = 'cs'
             gui.config.write()
-        
+
         def changeToME(self):
             gui.config['Plugins']['FMU']['importType'] = 'me'
             gui.config.write()
