@@ -29,8 +29,6 @@ import zipfile
 import xml.etree.ElementTree as ET
 import codecs
 from xml.dom import minidom
-from datetime import datetime
-from ...Simulator.FMUSimulator import FMUSimulator
 
 class FMU(object):
 
