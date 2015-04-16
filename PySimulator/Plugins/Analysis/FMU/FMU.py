@@ -298,8 +298,8 @@ class ConnectFMUsDialog(QtGui.QDialog):
 
     def __init__(self, gui, fmuType, setupfile=None):
         QtGui.QDialog.__init__(self)
-        self.setMinimumWidth(500)        
-        
+        self.setMinimumWidth(500)
+
         self._fmuType = fmuType
         self._setupfile = setupfile
         self._gui = gui
@@ -554,7 +554,7 @@ def StartSimulation(gui,xml):
 
    ## Provide the the graph edges to find the strongly connected components using tarjan's algorithm
    connected_components = StronglyConnectedComponents(graph)
-
+   #print connected_components
    ## Check for Algebraic loops  ##
    Algebraic_loops=[]
    for i in xrange(len(connected_components)):
@@ -567,15 +567,21 @@ def StartSimulation(gui,xml):
       import configobj
       config = configobj.ConfigObj(os.path.join(os.path.expanduser("~"), '.config', 'PySimulator', 'PySimulator.ini'), encoding='utf8')
 
-      modelname=[]
       filename=[]
-      for fmu in root.iter('fmu'):
-         file=fmu.get('path')
-         name=fmu.get('name')
-         filename.append(file)
-         modelname.append(name)
+      for z in xrange(len(connected_components)):
+        for fmu in root.iter('fmu'):
+           fmuname=fmu.get('name')
+           ## condition to add FMUS which does not have input and output components
+           if z==0:
+              checkname = [s for s in connected_components if fmuname in s]
+              if (len(checkname)==0):
+                 filename.insert(0,fmu.get('path'))
+           ## condition to create FMUS instance in the order obtained from tarjans algorithm
+           if (connected_components[z][0]==fmuname):
+             file=fmu.get('path')
+             filename.append(file)
 
-      model=ConnectedFMUSimulation.Model(modelname, filename, config)
+      model=ConnectedFMUSimulation.Model(filename, config)
       gui._newModel(model)
 
    else:

@@ -18,8 +18,8 @@ import Plugins.Simulator.SimulatorBase
 
 class Model(Plugins.Simulator.SimulatorBase.Model):
     
-    def __init__(self, modelName=None, modelFileName=None, config=None, loggingOn=False):
-         ''' Modelname and ModelFilename are list of strings '''
+    def __init__(self, modelFileName=None, config=None, loggingOn=False):
+         ''' ModelFilename are list of strings '''
          
          self._interfaceinstance=[]
          self._descriptioninstance=[]
