@@ -1275,17 +1275,24 @@ class CompareThread(QtCore.QThread):
       if os.path.exists(dygraphpath):     
           shutil.copy(dygraphpath,os.path.dirname(self.logFile))
            
-         
+      resultfilesize=[]   
       dir1 = self.dir1
+      ## calculate the size of directory for regression report
+      dir1size=directorysize(dir1)
+      resultfilesize.append(dir1size)
+      
       listdirs=self.listdirs
       files1 = os.listdir(dir1) 
       
       fileOut = open(self.logFile, 'w')
       startTime = time.time()
       for dircount in xrange(len(listdirs)):
-        dir2=listdirs[dircount]    
-        files2 = os.listdir(dir2)
+        dir2=listdirs[dircount] 
+        ## calculate the size of list of directories for regression report
+        dir2size=directorysize(dir2)
+        resultfilesize.append(dir2size)                   
         
+        files2 = os.listdir(dir2)    
         modelName1 = []
         fileName1 = []
         for fileName in files1:
@@ -1406,16 +1413,25 @@ class CompareThread(QtCore.QThread):
       fileOut.close()
       totaldir=len(listdirs)
       filecount=len(files1)
-            
-      genregressionreport(self.logFile,totaldir,filecount,elapsedTime)
-      '''
+      resultdirsize=sum(resultfilesize)      
+      genregressionreport(self.logFile,totaldir,filecount,elapsedTime,resultdirsize)
+      
       ## remove the temporary rfiles directory after the Regression report generated
       regressionfilesdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
       if os.path.exists(regressionfilesdir): 
-         shutil.rmtree(regressionfilesdir)'''     
+         shutil.rmtree(regressionfilesdir)    
          
       self.running = False
 
+def directorysize(dirname):
+  ## calculate the size of directory, traverses subdirectory and return the size in MB
+  folder_size = 0
+  for (path, dirs, files) in os.walk(dirname):
+    for file in files:
+      filename = os.path.join(path, file)
+      folder_size += os.path.getsize(filename)
+  size=folder_size/(1024*1024.0)
+  return round(size,1)
 
 def get_column(n,table):
    result = []
@@ -1440,7 +1456,7 @@ def genlogfilesreport(logfile):
       f.close()
       
       
-def genregressionreport(logfile,totaldir,filecount,Time):
+def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize):
   ''' the function is used to parse the html files and collect the table datas from different html files and finally generate single regression chart'''
   dir1=os.path.dirname(logfile)
   dir2=os.path.join(dir1,'rfiles').replace('\\','/')
@@ -1467,17 +1483,23 @@ def genregressionreport(logfile,totaldir,filecount,Time):
     logfile1=logfile.replace(fileExtension,'.html')    
     f=open(logfile1,'w') 
     date_time_info = datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
-    date_time_info1 =' '.join(['<h4>','Generated','@',date_time_info,'</h4>'])
-    dircount=' '.join(['<h4>','Number of Directories Compared :',str(totaldir),'</h4>'])    
-    filecounts=' '.join(['<h4>','Number of Files Compared:',str(filecount),'</h4>'])
-    TotalTime =' '.join(['<h4>','Time Taken:',time.strftime("%Mm:%Ss", time.gmtime(Time)),'</h4>'])
+    date_time_info1 =' '.join(['<p>','<b>Generated:</b>',date_time_info,'</p>'])
+    tolerance=' '.join(['<p> <b>Given Error tolerance: </b> 1e-3 </p>'])
+    diskspace=' '.join(['<p> <b>Disk space of all used result files: </b>',str(resultdirsize),' ','MB','</p>'])
+    dircount=' '.join(['<p>','<b>Total number of compared files:</b>',str(int(totaldir)*int(filecount)),'against',str(filecount),'baseline files','</p>']) 
+    comparedvariable=' '.join(['<p id=var> </p>'])
+    resultspace=' '.join(['<p id=resultdir> </p>'])    
+    #filecounts=' '.join(['<h4>','Number of Files Compared:',str(filecount),'</h4>'])
+    
+    TotalTime =' '.join(['<p>','<b>Time Taken:</b>',time.strftime("%Hh:%Mm:%Ss", time.gmtime(Time)),'</p>'])
 
-    m1='''<body><h1>Regression Report </h1>
-<p><font style="background-color:#FF0000">Red</font> cells contains 3 values, Representing Number of differed variables Compared with(total number of variables) and [the maximum estimated Tolerance]</p>
-<p><font style="background-color:#00FF00">Green</font> cells contains 2 values, Representing Number of differed variables Compared with (total number of variables) </p>
-<p><font style="background-color:#00FF00">Green</font> cells means success. <font style="background-color:#FF0000">Red</font> cells contains Links to inspect the differed variables</p>
-</body>'''
-    s='\n'.join(['<html>',date_time_info1,m1, dircount,filecounts,TotalTime,'<table>','<tr>','<th id=0>','Model','</th>','<th id=0>','Status','</th>''<th id=0>','Reference','</th>'])
+    m1='''<body><h1>Regression Report </h1>'''
+    '''
+    <p><font style="background-color:#FF0000">Red</font> cells contains 3 values, Representing Number of differed variables Compared with(total number of variables) and [the maximum estimated Tolerance]</p>
+    <p><font style="background-color:#00FF00">Green</font> cells contains 2 values, Representing Number of differed variables Compared with (total number of variables) </p>
+    <p><font style="background-color:#00FF00">Green</font> cells means success. <font style="background-color:#FF0000">Red</font> cells contains Links to inspect the differed variables</p>
+    </body>'''
+    s='\n'.join(['<html>',m1,tolerance,diskspace,dircount,comparedvariable,resultspace,date_time_info1,TotalTime,'<table>','<tr>','<th id=0>','Model','</th>','<th id=0>','Status','</th>''<th id=0>','Reference','</th>'])
     f.write(s)
     f.write('\n')
     
@@ -1540,6 +1562,9 @@ def genregressionreport(logfile,totaldir,filecount,Time):
     
     ## loop for fourth row for calculating status of number of files passed and failed for individual files
     status=[]
+    ## list variables to count the number of total number of variables and differed variables 
+    comparevar=[]
+    differedvar=[]
     for i in xrange(len(hreflist[0])):                       
       if(i%2==0):
          x=get_column(i,hreflist)
@@ -1562,8 +1587,17 @@ def genregressionreport(logfile,totaldir,filecount,Time):
           checkcolor=tag['bgcolor']
           if(checkcolor=="#00FF00"):
              green.append(checkcolor)
+             var1=str(x[i].find('a').string).split('[')
+             var2=var1[0].split('/')
+             comparevar.append(int(var2[-1]))
           else:
-             red.append(checkcolor) 
+             red.append(checkcolor)
+             var1=str(x[i]).split('<a')
+             var2=str(var1[0]).split('/')
+             comparevar.append(int(var2[1]))            
+             diffvar=x[i].find('a').string
+             differedvar.append(int(diffvar)) 
+             
         st=str(len(green))+'/'+str(len(red))+'/'+str(len(green)+len(red))
         status.append(st)
         
@@ -1581,12 +1615,21 @@ def genregressionreport(logfile,totaldir,filecount,Time):
          f.write('\n')
     
     f.close()
+    
+    ## get the size of the result files directory
+    resultsize=directorysize(dir1)
+    
     ## open the file to print the final status of the compared files
     stat = BeautifulSoup(open(logfile1))
     dat=stat.find_all('td',{"id":"status"})
     hst=stat.find_all('td',{"id":"hstatus"})
     pst=stat.find_all('td',{"id":"pstatus"})
-    
+    totalvar=stat.find_all('p',{"id":"var"})
+    ressize=stat.find_all('p',{"id":"resultdir"})
+
+    totalvar[0].string="<b>Total number of Compared Variables:</b>"+str(sum(comparevar))+'('+str(sum(comparevar)-sum(differedvar))+'passed'+','+str(sum(differedvar))+'failed)'
+    ressize[0].string="<b>Disk space of full report directory:</b>"+str(resultsize)+' '+'MB'
+ 
     ## condition for updating the percentage status and color code in first and  second row
     if(pstatus[0]==100):
       ## green color
@@ -1626,6 +1669,7 @@ def genregressionreport(logfile,totaldir,filecount,Time):
           dat[i].string=d[0]+'/'+d[1]
     
     html = stat.prettify("utf-8")
+    html = html.replace('&lt;b&gt;','<b>').replace('&lt;/b&gt;','</b>')
     f=open(logfile1,'w') 
     f.write(html)
     print "Regression report generated"
