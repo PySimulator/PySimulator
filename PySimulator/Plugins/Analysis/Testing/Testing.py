@@ -1673,6 +1673,7 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize):
             f.write('\n')
             
     if(i==len(hreflist[0])-1):
+         s='\n'.join(['</table>','</footer>','</body>','</html>'])
          f.write(s)
          f.write('\n')
     
