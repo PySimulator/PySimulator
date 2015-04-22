@@ -39,7 +39,7 @@ from ... import Simulator
 from ... import SimulationResult
 from multiprocessing import Pool
 
-def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdout, filewritehtml=None,resultfile=None,htmlfile=None):
+def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdout, filewritehtml=None,resultfile=None,htmlfile=None,file1=None):
     def prepareMatrix(t, y):
         if t is None or y is None:
             print "Not supported to prepare None-vector/matrix."
@@ -153,16 +153,24 @@ def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdou
                         nNeg = nNeg + (len(identical) - s)
                         nPos = nPos + s
                         '''Get the differed variables after comparison'''
+                        diff3=[]
                         diff2=[]
                         diff=[]               
                         for m in xrange(len(identical)):
                             if not identical[m]:
                                 message = u"Results for " + namesBothSub[m] + u" are NOT identical within the tolerance " + unicode(tol) + u"; estimated Tolerance = " + unicode(estTol[m])
                                 message2=namesBothSub[m]+'-'+unicode(estTol[m])
+                                tupl=()
+                                tupl=(namesBothSub[m],unicode(estTol[m]))
                                 diff.append(namesBothSub[m])
                                 diff2.append(message2)
+                                diff3.append(tupl)
                                 fileOutput.write(message + u"\n")
+                        ## sort the differed variable by name        
                         diff1=sorted(diff2)
+                        ## sort the differed variable by highest error        
+                        difftol=y=sorted(diff3,key=lambda x: x[1],reverse=True)
+
                         '''Pass the numpy matrix data to generate the html graph in the browser'''        
                         if htmlfile is not None:
                             if (len(diff)!=0):
@@ -205,11 +213,11 @@ def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdou
     print "... done."
     ''' Function call to generate the overview report'''
     if htmlfile is not None:
-        htmloverview(filewritehtml,resultfile,htmlfile,diff1,dircount,model1var,model2var,totalComparedvar,maxEstTol)
+        htmloverview(filewritehtml,resultfile,htmlfile,file1,diff1,difftol,dircount,model1var,model2var,totalComparedvar,maxEstTol)
 
     return
 
-def htmloverview(fileouthtml,resultfile,file,diff1,dircount,model1var,model2var,totalComparedvar,maxEstTol):
+def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1var,model2var,totalComparedvar,maxEstTol):
     '''This function is used to present the users with the overall comparison report of different models, The report includes, for each model the number of variables 
        differed, and a link is provided to inspect the differed variables, if there are no differed variables then no link is provided '''
     os.getcwd()
@@ -220,13 +228,16 @@ def htmloverview(fileouthtml,resultfile,file,diff1,dircount,model1var,model2var,
     os.chdir(p)
     filename=os.path.join(p,modelname1.replace(' ',''))
     fileerror=os.path.join(filename,'err.html').replace('\\','/')
-    messerr="""<html>
-<head> <h2> List of Differed variables </h2> </head>
-<table> 
-<tr> 
-<th> Name </th> 
-<th> Estimated Tolerance </th> </td> """  
-         
+    filetolerance=os.path.join(filename,'tolerance.html').replace('\\','/')
+    filecommon=os.path.join(filename,'differ.html').replace('\\','/')
+    reference='<tr> <td> <b>Directory 1(reference)</b> </td>'+'<td>'+'<b>:</b>'+os.path.dirname(file1)+'</td></tr>'
+    comparison='<tr> <td> <b>Directory 2(comparison)</b> </td>'+'<td>'+'<b>:</b>'+os.path.dirname(file)+'</td></tr>'
+    comparedmodel='<tr> <td> <b>Compared Result file </b> </td>'+ '<td>'+'<b>:</b>'+os.path.basename(file)+'</td></tr>'
+    
+    messcommon="""<html> <head> <h2> List of Differed variables </h2> </head> <table>"""
+    messerr="""<html> <head> <h2> Sorted by Name </h2> </head> <table> <tr> <th> Name </th> <th> Estimated Tolerance </th> </td> """  
+    messtol="""<html> <head> <h2> Sorted by Highest Tolerance Error </h2> </head> <table> <tr> <th> Name </th> <th> Estimated Tolerance </th> </td> """  
+    
     message1= '<a href=' + os.path.relpath(resultfile) + '>' + modelname +'.'+ model1var+'</a>' +' </td>' 
     if(len(diff1)==0):
          #emptyhref='<a href="" style="text-decoration:none;">0'+ '(' + str(totalvar) + 'variables)' +'</a>'
@@ -235,8 +246,15 @@ def htmloverview(fileouthtml,resultfile,file,diff1,dircount,model1var,model2var,
          fileouthtml.write(s)
          fileouthtml.write('\n')   
     
-    if(len(diff1)>0): 
-         f=open(fileerror,'w')        
+    if(len(diff1)>0):         
+         d=open(filecommon,'w')
+         sortname='<p> <li> <a href="err.html">Sorted by Name</a> </li> </p>'
+         sorttol='<p> <li> <a href="tolerance.html">Sorted by Tolerance</a> </li> </p>'
+         s='\n'.join([messcommon,reference,comparison,comparedmodel,'</table>',sortname,sorttol,'</html>'])
+         d.write(s)
+         d.close() 
+         ## Html page to sort differed variable by name
+         f=open(fileerror,'w')         
          for i in xrange(len(diff1)):
              var=diff1[i].split('-') 
              str1=''.join([modelname+'_'+var[0]+'.html'])
@@ -254,8 +272,29 @@ def htmloverview(fileouthtml,resultfile,file,diff1,dircount,model1var,model2var,
          f.write('\n')
          f.close()
          
+         ## Html page to sort differed variable by highest error tolerance
+         tol=open(filetolerance,'w')         
+         for i in xrange(len(difftol)):
+             var=difftol[i][0]
+             var1=difftol[i][1]             
+             str1=''.join([modelname+'_'+var+'.html'])
+             x1='<td>'+'<a href='+str1.replace(' ','')+'>'+ str(var)+ '</a>'+'</td>'
+             diff='<td>'+str(var1)+'</td>'+'</tr>'
+             if(i==0):
+               s = '\n'.join([messtol,'<tr>',x1,diff])
+             else:
+               s = '\n'.join(['<tr>',x1,diff]) 
+             
+             tol.write(s)
+             tol.write('\n')
+         closetags ='\n'.join(['</table>','</html>'])
+         tol.write(closetags)
+         tol.write('\n')
+         tol.close()
+         
+         
          #diff = '<a href='+ os.path.relpath(fileerror) +'>'+str(len(diff1))+'</a>'+ '(' + str(totalvar) +'variables)' + '[' +str(maxEstTol)+ ']' +'</td>'+'</tr>'      
-         diff = model2var + '/' + str(totalComparedvar)+ '/' + '<a href='+ os.path.relpath(fileerror) +'>'+str(len(diff1))+'</a>'+ '[' +str(maxEstTol)+ ']' +'</td>'+'</tr>'
+         diff = model2var + '/' + str(totalComparedvar)+ '/' + '<a href='+ os.path.relpath(filecommon) +'>'+str(len(diff1))+'</a>'+ '[' +str(maxEstTol)+ ']' +'</td>'+'</tr>'
          s = '\n'.join(['<tr>','<td id=2>',message1,'<td id=2 bgcolor=#FF0000>',diff])            
          fileouthtml.write(s)
          fileouthtml.write('\n')
@@ -1350,7 +1389,7 @@ class CompareThread(QtCore.QThread):
                 model1.loadResultFile(file1)
                 model2 = Simulator.SimulatorBase.Model(None, None, None)
                 model2.loadResultFile(file2)
-                compareResults(model1, model2, dircount, self.tol, fileOut, fileOuthtml,self.logFile,file2)
+                compareResults(model1, model2, dircount, self.tol, fileOut, fileOuthtml,self.logFile,file2,file1)
         
         fileOut.write('\n')    
         fileOut.write("******* Compare Analysis Completed   *******" + u"\n")
