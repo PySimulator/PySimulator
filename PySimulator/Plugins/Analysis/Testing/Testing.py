@@ -1532,13 +1532,37 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize):
     
     TotalTime =' '.join(['<p>','<b>Time Taken:</b>',time.strftime("%Hh:%Mm:%Ss", time.gmtime(Time)),'</p>'])
 
-    m1='''<body><h1>Regression Report </h1>'''
-    '''
-    <p><font style="background-color:#FF0000">Red</font> cells contains 3 values, Representing Number of differed variables Compared with(total number of variables) and [the maximum estimated Tolerance]</p>
-    <p><font style="background-color:#00FF00">Green</font> cells contains 2 values, Representing Number of differed variables Compared with (total number of variables) </p>
-    <p><font style="background-color:#00FF00">Green</font> cells means success. <font style="background-color:#FF0000">Red</font> cells contains Links to inspect the differed variables</p>
-    </body>'''
-    s='\n'.join(['<html>',m1,tolerance,diskspace,dircount,comparedvariable,resultspace,date_time_info1,TotalTime,'<table>','<tr>','<th id=0>','Model','</th>','<th id=0>','Status','</th>''<th id=0>','Reference','</th>'])
+    m1='''<body>
+    <style>
+      header {
+      }
+    nav {
+    line-height:14px;   
+    height:100px;
+    width:500px;
+    float:left;
+    padding:2px;	      
+        }
+    section {
+    line-height:14px;   
+    width:600px;
+    background-color:#eeeeee;
+    float:right;
+      }
+    footer {
+    clear:both;
+    text-align:center;
+    padding:5px;	 	 
+     }
+    </style>'''
+
+    head= '<header> <h1> Regression Report </h1> </header>'
+    sec='''<fieldset> <legend>Coloring:</legend>
+    <p><font style="background-color:#FF0000">Red:</font> <br> *Per failed: Comparison failed,(i.e.) at least one variable with large error <br> *Per column or row: Only 0-50% of the corresponding files passed the test</p>
+    <p><font style="background-color:#00FF00">Green</font> <br> *Per failed: Comparison passed, i.e. all compared variables passed the test <br> *Per column or row: 100% of the corresponding files passed the test <br> *Total: All files passed the test </p>
+    <p><font style="background-color:#FFA500">Orange</font> <br> *Per column or row: &gt;50% and &lt;100% of the corresponding files passed the test <br> *Total: &gt;50% and &lt; 100% of all files passed the test</p> </fieldset>'''
+    
+    s='\n'.join(['<html>',m1,head,'<nav>',tolerance,diskspace,dircount,comparedvariable,resultspace,date_time_info1,TotalTime,'</nav>','<section>',sec,'</section>','<footer>','<table>','<tr>','<th id=0>','Model','</th>','<th id=0>','Status','</th>''<th id=0>','Reference','</th>'])
     f.write(s)
     f.write('\n')
     
@@ -1649,7 +1673,6 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize):
             f.write('\n')
             
     if(i==len(hreflist[0])-1):
-         s='\n'.join(['</table>','</html>'])
          f.write(s)
          f.write('\n')
     
