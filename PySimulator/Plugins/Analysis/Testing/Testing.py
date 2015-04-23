@@ -824,9 +824,34 @@ class simulationParallelThread(QtCore.QThread):
 
             if not os.path.isdir(fullSimulatorResultPath):
                 os.makedirs(fullSimulatorResultPath)
-            
+                
+            packageName = []
+            globalModelList = []
+            globalPackageList = []
+            for i in xrange(len(self.modelList['fileName'])):
+                modelName = self.modelList['modelName'][i]
+                packageName.append(self.modelList['fileName'][i])
+                if modelName != '':
+                    canLoadAllPackages = True
+                    for j in xrange(len(packageName)):
+                        sp = packageName[j].rsplit('.', 1)
+                        if len(sp) > 1:
+                            if not sp[1] in simulator.modelExtension:
+                                canLoadAllPackages = False
+                                break
+                        else:
+                            canLoadAllPackages = False
+                            break
+
+                    if canLoadAllPackages:
+                        globalModelList.append(modelName)
+                        for x in packageName:
+                            if x not in globalPackageList:
+                                globalPackageList.append(x)
+
             ## Call prepareSimulationList to translate models in Dymola 
-            simulator.prepareSimulationList(self.modelList['fileName'],self.modelList['modelName'],self.config)  
+            simulator.prepareSimulationList(globalPackageList, globalModelList, self.config)
+            
             
             '''create a new list of resultpath, config, and simulatorname to be pickled by the multiprocessing pool.map()'''
             p=[]
@@ -844,7 +869,7 @@ class simulationParallelThread(QtCore.QThread):
             dir=os.getcwd()
             dirs=[]
             for z in xrange(len(self.modelList['modelName'])):
-                s=str(self.modelList['modelName'][z])+simulatorName+str(z)
+                s=str(self.modelList['modelName'][z])+str(z)
                 np=os.path.join(fullSimulatorResultPath,s).replace('\\','/')
                 if not os.path.exists(np): 
                    os.mkdir(np)
@@ -896,21 +921,40 @@ def ParallelSimulation(modellists):
              
        if(simulator=='Dymola'):
            from ...Simulator.Dymola import Dymola
-           model=Dymola.getNewModel(modelname, packname, config)
            extension=Dymola.modelExtension
+           checkextension = [s for s in extension if (fileExtension).replace('.','') in s]
+           if checkextension:
+             model=Dymola.getNewModel(modelname, packname, config)
+           else:
+             print "WARNING: Simulator Dymola " + " cannot handle files ", packname[0], " due to unknown file type(s)."
+             
        if(simulator=='FMUSimulator'):
            from ...Simulator.FMUSimulator import FMUSimulator
-           model=FMUSimulator.getNewModel(modelname, packname, config)
            extension=FMUSimulator.modelExtension
+           checkextension = [s for s in extension if (fileExtension).replace('.','') in s]
+           if checkextension:
+              model=FMUSimulator.getNewModel(modelname, packname, config)
+           else:
+             print "WARNING: Simulator FMUSimulator " + " cannot handle files ", packname[0], " due to unknown file type(s)."
+               
        if(simulator=='SimulationX'):
            from ...Simulator.SimulationX import SimulationX
-           model=SimulationX.getNewModel(modelname, packname, config)
            extension=SimulationX.modelExtension
+           checkextension = [s for s in extension if (fileExtension).replace('.','') in s]
+           if checkextension:
+               model=SimulationX.getNewModel(modelname, packname, config)
+           else:
+             print "WARNING: Simulator SimulationX " + " cannot handle files ", packname[0], " due to unknown file type(s)."
+
        if(simulator=='Wolfram'):
            from ...Simulator.Wolfram import Wolfram
-           model=Wolfram.getNewModel(modelname, packname, config)
            extension=Wolfram.modelExtension
-             
+           checkextension = [s for s in extension if (fileExtension).replace('.','') in s]
+           if checkextension:
+              model=Wolfram.getNewModel(modelname, packname, config)
+           else:
+             print "WARNING: Simulator Wolfram " + " cannot handle files ", packname[0], " due to unknown file type(s)."
+ 
        if (subdir == 'N'):
           resultDir = path        
        else:
@@ -919,22 +963,18 @@ def ParallelSimulation(modellists):
               os.makedirs(resultDir)
          
        if checkextension:
-         print model
-       else:
-         print 'arun'
-       '''
-       resultFileName = resultDir + '/' + modelname + '.' + model.integrationSettings.resultFileExtension
-       model.integrationSettings.startTime = tstart
-       model.integrationSettings.stopTime  = tstop
-       model.integrationSettings.errorToleranceRel = tolerance
-       model.integrationSettings.fixedStepSize = stepsize
-       model.integrationSettings.gridPoints = interval
-       model.integrationSettings.gridPointsMode = 'NumberOf'
-       model.integrationSettings.resultFileIncludeEvents = events
-       model.integrationSettings.resultFileName = resultFileName     
-       print "Simulating %s by %s (result in %s)..." % (modelname,simulator,resultFileName)
-       model.simulate()
-       model.close()'''
+         resultFileName = resultDir + '/' + modelname + '.' + model.integrationSettings.resultFileExtension
+         model.integrationSettings.startTime = tstart
+         model.integrationSettings.stopTime  = tstop
+         model.integrationSettings.errorToleranceRel = tolerance
+         model.integrationSettings.fixedStepSize = stepsize
+         model.integrationSettings.gridPoints = interval
+         model.integrationSettings.gridPointsMode = 'NumberOf'
+         model.integrationSettings.resultFileIncludeEvents = events
+         model.integrationSettings.resultFileName = resultFileName     
+         print "Simulating %s by %s (result in %s)..." % (modelname,simulator,resultFileName)
+         model.simulate()
+         model.close()
      except Exception as e:
        import traceback
        traceback.print_exc(e,file=sys.stderr)
