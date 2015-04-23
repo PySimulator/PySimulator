@@ -66,13 +66,11 @@ def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdou
     var2Name = var2.keys()
 
     print "Start of comparing results ..."
-    m1='Number of variables in model1 : '+str(len(var1))
-    m2='Number of variables in model2 : '+str(len(var2))
+    
+    ## count the number of total variables in each result file
     model1var=str(len(var1))
     model2var=str(len(var2))
-    fileOutput.write(m1 + u"\n")
-    fileOutput.write(m2 + u"\n")
-    
+        
     allIdentical = True
     maxEstTol = 0.0
 
@@ -1125,8 +1123,8 @@ class CompareParallelThread(QtCore.QThread):
       dygraphpath=os.path.join(self.PySimulatorPath, 'Plugins/Analysis/Testing/dygraph-combined.js').replace('\\','/')
       if os.path.exists(dygraphpath):     
           shutil.copy(dygraphpath,os.path.dirname(self.logFile))
-
-          
+     
+      resultfilesize=[]    
       logfiles=[]   
       list1dir=[]
       tolerance=[]      
@@ -1139,6 +1137,16 @@ class CompareParallelThread(QtCore.QThread):
       logfiles.append(self.logFile)
       logfiles1=logfiles*len(listdirs)
       tol=tolerance*len(listdirs)
+      
+      ## calculate the size of directory for regression report
+      dir1size=directorysize(dir1)
+      resultfilesize.append(dir1size)
+      
+      ## calculate the size of list of directories for regression report 
+      for size in xrange(len(listdirs)):
+        dir2=listdirs[size] 
+        dir2size=directorysize(dir2)
+        resultfilesize.append(dir2size)         
       
       dircount=[]
       resultfiles=[]      
@@ -1160,9 +1168,11 @@ class CompareParallelThread(QtCore.QThread):
       #print elapsedTime
       print "Parallel Compare Analysis Completed"
       totaldir=len(listdirs)
-      filecount=len(os.listdir(dir1))      
+      filecount=len(os.listdir(dir1))
+      resultdirsize=sum(resultfilesize)      
+      
       genlogfilesreport(self.logFile)
-      genregressionreport(self.logFile,totaldir,filecount,elapsedTime)
+      genregressionreport(self.logFile,totaldir,filecount,elapsedTime,resultdirsize,dir1)      
       
       ## Remove the temporary logfiles and rfiles directories after the regression report completed
       logfilesdir=os.path.join(os.path.dirname(self.logFile),'logfiles').replace('\\','/')
@@ -1245,7 +1255,7 @@ def ParallelCompareAnalysis(directories):
                 model1.loadResultFile(file1)
                 model2 = SimulatorBase.Model(None, None, None)
                 model2.loadResultFile(file2)
-                compareResults(model1, model2, dircount, tolerance, fileOut, fileOuthtml,logfile,file2)
+                compareResults(model1, model2, dircount, tolerance, fileOut, fileOuthtml,logfile,file2,file1)
                 
     fileOut.write('\n')    
     fileOut.write("******* Compare Analysis Completed   *******" + u"\n")
@@ -1253,15 +1263,40 @@ def ParallelCompareAnalysis(directories):
     fileOut.close()      
     fileOuthtml.close()
     
+    green=[]
+    red=[]
     '''open the html file to insert start html tags and add add headers of the directory name'''
     with open(logfile1) as myfile:
-         data=myfile.read() 
-         m1="<table><tr><th>Model</th><th>"+os.path.basename(os.path.dirname(file2))+'</th>'+'</tr>'
-         message='\n'.join(['<html>',m1])
-         f=open(logfile1,'w')
-         s = '\n'.join([message,data,'</table>','</html>']) 
-         f.write(s)                    
-         f.close()
+        htmldata=myfile.read()          
+        m1="<table><tr><th id=0>Model</th><th id=0>"+os.path.basename(os.path.dirname(file2))+'</th>'+'</tr>'
+        soup = BeautifulSoup(open(logfile1))
+        data=soup.find_all('td',{"bgcolor":["#00FF00","#FF0000"]})         
+        for i in xrange(len(data)):
+           x=BeautifulSoup(str(data[i]))
+           tag=x.td
+           checkcolor=tag['bgcolor']
+           if(checkcolor=="#00FF00"):
+               green.append(checkcolor)
+           else:
+               red.append(checkcolor)
+           
+        message='\n'.join(['<html>',m1])
+        f=open(logfile1,'w')
+        if len(red)==0:
+            m1='<tr><td></td><td id=1 bgcolor=#00FF00>'+ str(len(green))+'passed'+'/'+str(len(red))+'failed'+'</td></tr>'
+            percentage=str((len(green))*100/(len(green)+len(red)))+'%'+'passed'
+            m2='<tr><td></td><td id=100 bgcolor=#00FF00>'+percentage+'</td></tr>'
+            m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
+            f.write(m3)
+            f.write('\n')
+        else:
+            m1='<tr><td></td><td id=1 bgcolor=#FF0000>'+ str(len(green))+'passed'+'/'+str(len(red))+'failed'+'</td></tr>'
+            percentage=str((len(green))*100/(len(green)+len(red)))+'%'+'passed'
+            m2='<tr><td></td><td id=100 bgcolor=#FF0000>'+percentage+'</td></tr>'
+            m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
+            f.write(m3)
+            f.write('\n')     
+        f.close() 
                    
     logfiledir=os.path.dirname(logfile)
     logfilename=os.path.basename(logfile)
@@ -1453,7 +1488,7 @@ class CompareThread(QtCore.QThread):
       totaldir=len(listdirs)
       filecount=len(files1)
       resultdirsize=sum(resultfilesize)      
-      genregressionreport(self.logFile,totaldir,filecount,elapsedTime,resultdirsize)
+      genregressionreport(self.logFile,totaldir,filecount,elapsedTime,resultdirsize,dir1)
       
       ## remove the temporary rfiles directory after the Regression report generated
       regressionfilesdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
@@ -1495,7 +1530,7 @@ def genlogfilesreport(logfile):
       f.close()
       
       
-def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize):
+def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedir):
   ''' the function is used to parse the html files and collect the table datas from different html files and finally generate single regression chart'''
   dir1=os.path.dirname(logfile)
   dir2=os.path.join(dir1,'rfiles').replace('\\','/')
@@ -1545,7 +1580,7 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize):
         }
     section {
     line-height:14px;   
-    width:600px;
+    width:560px;
     background-color:#eeeeee;
     float:right;
       }
@@ -1562,7 +1597,7 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize):
     <p><font style="background-color:#00FF00">Green</font> <br> *Per failed: Comparison passed, i.e. all compared variables passed the test <br> *Per column or row: 100% of the corresponding files passed the test <br> *Total: All files passed the test </p>
     <p><font style="background-color:#FFA500">Orange</font> <br> *Per column or row: &gt;50% and &lt;100% of the corresponding files passed the test <br> *Total: &gt;50% and &lt; 100% of all files passed the test</p> </fieldset>'''
     
-    s='\n'.join(['<html>',m1,head,'<nav>',tolerance,diskspace,dircount,comparedvariable,resultspace,date_time_info1,TotalTime,'</nav>','<section>',sec,'</section>','<footer>','<table>','<tr>','<th id=0>','Model','</th>','<th id=0>','Status','</th>''<th id=0>','Reference','</th>'])
+    s='\n'.join(['<html>',m1,head,'<nav>',tolerance,diskspace,dircount,comparedvariable,resultspace,date_time_info1,TotalTime,'</nav>','<section>',sec,'</section>','<footer>','<table>','<tr>','<th id=0>','Result Files','</th>','<th id=0>','Status','</th>''<th id=0>',os.path.basename(baselinedir),'</th>'])
     f.write(s)
     f.write('\n')
     
