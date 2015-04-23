@@ -1810,6 +1810,7 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
     html = html.replace('&lt;b&gt;','<b>').replace('&lt;/b&gt;','</b>')
     f=open(logfile1,'w') 
     f.write(html)
+    f.close()
     print "Regression report generated"
     webbrowser.open(logfile1)       
     
