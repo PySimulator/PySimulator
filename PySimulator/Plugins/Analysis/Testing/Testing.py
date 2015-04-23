@@ -1738,7 +1738,7 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
              
         st=str(len(green))+'/'+str(len(red))+'/'+str(len(green)+len(red))
         status.append(st)
-        
+        ## loop for preparing the main table of Regression report from different files
         for z in xrange(len(x)): 
             if(z==(len(x)-1)):               
                s='\n'.join([str(x[z]),'</tr>'])
