@@ -566,7 +566,8 @@ def StartSimulation(gui,xml):
    if True:
       import configobj
       config = configobj.ConfigObj(os.path.join(os.path.expanduser("~"), '.config', 'PySimulator', 'PySimulator.ini'), encoding='utf8')
-
+      
+      instancename=[]
       filename=[]
       for z in xrange(len(connected_components)):
         for fmu in root.iter('fmu'):
@@ -576,12 +577,15 @@ def StartSimulation(gui,xml):
               checkname = [s for s in connected_components if fmuname in s]
               if (len(checkname)==0):
                  filename.insert(0,fmu.get('path'))
+                 instancename.insert(0,fmu.get('name'))
            ## condition to create FMUS instance in the order obtained from tarjans algorithm
            if (connected_components[z][0]==fmuname):
              file=fmu.get('path')
+             name=fmu.get('name')
              filename.append(file)
-
-      model=ConnectedFMUSimulation.Model(filename, config)
+             instancename.append(name)
+             
+      model=ConnectedFMUSimulation.Model(instancename, filename, config)
       gui._newModel(model)
 
    else:

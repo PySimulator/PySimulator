@@ -18,13 +18,13 @@ import Plugins.Simulator.SimulatorBase
 
 class Model(Plugins.Simulator.SimulatorBase.Model):
     
-    def __init__(self, modelFileName=None, config=None, loggingOn=False):
+    def __init__(self, instancename=None, modelFileName=None, config=None, loggingOn=False):
          ''' ModelFilename are list of strings '''
          
          self._interfaceinstance=[]
          self._descriptioninstance=[]
          for i in xrange(len(modelFileName)):
-            self.interface = FMUInterface.FMUInterface(modelFileName[i], self, loggingOn, 'ConnectedFmu')
+            self.interface = FMUInterface.FMUInterface(modelFileName[i], self, loggingOn, 'ConnectedFmu',instancename[i])
             self.description = self.interface.description
             self._interfaceinstance.append(self.interface)
             self._descriptioninstance.append(self.description)
