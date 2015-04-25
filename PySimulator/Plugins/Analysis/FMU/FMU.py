@@ -483,12 +483,17 @@ class ConnectFMUsDialog(QtGui.QDialog):
         if (fromFMU is None or inputVar is None or toFMU is None or outputVar is None):
             pass
         else:
-            if self._connectionsListModel.addConnection(fromFMU, inputVar, toFMU, outputVar):
-                self._connectionsTableView.resizeColumnsToContents()
-            else:
-                QtGui.QMessageBox().information(self, self.tr("Information"),
+            if(inputVar['type']==outputVar['type']):
+              if self._connectionsListModel.addConnection(fromFMU, inputVar, toFMU, outputVar):
+                  self._connectionsTableView.resizeColumnsToContents()
+              else:
+                  QtGui.QMessageBox().information(self, self.tr("Information"),
                               self.tr("This connection already exists."), QtGui.QMessageBox.Ok)
-
+            else:
+                 typemismatch="Invalid connection of type"+' '+str(inputVar['type'])+' '+'to'+' '+str(outputVar['type'])
+                 QtGui.QMessageBox().information(self, self.tr("Type Mismatch"),
+                              self.tr(typemismatch), QtGui.QMessageBox.Ok)
+             
     def removeFromToConnection(self):
         i = 0
         while i < len(self._connectionsTableView.selectedIndexes()):
