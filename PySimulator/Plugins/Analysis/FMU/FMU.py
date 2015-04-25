@@ -483,17 +483,26 @@ class ConnectFMUsDialog(QtGui.QDialog):
         if (fromFMU is None or inputVar is None or toFMU is None or outputVar is None):
             pass
         else:
+          if(fromFMU!=toFMU): 
             if(inputVar['type']==outputVar['type']):
-              if self._connectionsListModel.addConnection(fromFMU, inputVar, toFMU, outputVar):
-                  self._connectionsTableView.resizeColumnsToContents()
-              else:
-                  QtGui.QMessageBox().information(self, self.tr("Information"),
+               if(inputVar['causality']!=outputVar['causality']):
+                  if self._connectionsListModel.addConnection(fromFMU, inputVar, toFMU, outputVar):
+                     self._connectionsTableView.resizeColumnsToContents()
+                  else:
+                     QtGui.QMessageBox().information(self, self.tr("Information"),
                               self.tr("This connection already exists."), QtGui.QMessageBox.Ok)
+               else:
+                 causalitymismatch="Invalid connection of component"+' '+str(inputVar['causality'])+' '+'connected to' +' '+str(outputVar['causality'])
+                 QtGui.QMessageBox().information(self, self.tr("causality Mismatch"),
+                              self.tr(causalitymismatch), QtGui.QMessageBox.Ok)                
             else:
                  typemismatch="Invalid connection of type"+' '+str(inputVar['type'])+' '+'to'+' '+str(outputVar['type'])
                  QtGui.QMessageBox().information(self, self.tr("Type Mismatch"),
                               self.tr(typemismatch), QtGui.QMessageBox.Ok)
-             
+          else:
+                 QtGui.QMessageBox().information(self, self.tr("Type Mismatch"),
+                              self.tr("Algebraic Loop: Components of same instance should not be connected "), QtGui.QMessageBox.Ok)
+                        
     def removeFromToConnection(self):
         i = 0
         while i < len(self._connectionsTableView.selectedIndexes()):
