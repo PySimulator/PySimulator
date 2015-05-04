@@ -31,7 +31,7 @@ Created on 05.04.2012
 import numpy.polynomial.polynomial
 import sys
 import math
-from Plugins.Algorithms.Control import Misc
+from ...Control import Misc
 
 
 def transformRootsToPoly2(roots):

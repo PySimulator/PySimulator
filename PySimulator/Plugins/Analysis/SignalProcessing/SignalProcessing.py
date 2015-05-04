@@ -37,7 +37,7 @@ from chaco.tools.api import ZoomTool
 from chaco.tools.data_label_tool import DataLabelTool
 from chaco.tools.pan_tool import \
     PanTool  # there is some bug in in the default Pantools handling of the event "left_up"...
-from Plugins.Analysis.SignalProcessing.Algorithms import fft
+from .Algorithms import fft
 
 def printData2(widget):
     ''' Example callback function for plot specific actions

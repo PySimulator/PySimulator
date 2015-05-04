@@ -28,7 +28,7 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 '''
 
 import numpy
-from Plugins.Simulator.FMUSimulator import  FMUSimulator
+from ...Simulator.FMUSimulator import FMUSimulator
 
 import scipy.io
 

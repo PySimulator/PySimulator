@@ -33,13 +33,13 @@ import sys
 import shutil
 from bs4 import BeautifulSoup
 import webbrowser
+import datetime
 from PySide import QtGui, QtCore
-import Plugins.Simulator
-import Plugins.Simulator.SimulatorBase as SimulatorBase
-import Plugins.SimulationResult as SimulationResult
+from ... import Simulator 
+from ... import SimulationResult
 from multiprocessing import Pool
 
-def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdout, filewritehtml=None,resultfile=None,htmlfile=None):
+def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdout, filewritehtml=None,resultfile=None,htmlfile=None,file1=None):
     def prepareMatrix(t, y):
         if t is None or y is None:
             print "Not supported to prepare None-vector/matrix."
@@ -66,7 +66,11 @@ def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdou
     var2Name = var2.keys()
 
     print "Start of comparing results ..."
-
+    
+    ## count the number of total variables in each result file
+    model1var=str(len(var1))
+    model2var=str(len(var2))
+        
     allIdentical = True
     maxEstTol = 0.0
 
@@ -147,13 +151,24 @@ def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdou
                         nNeg = nNeg + (len(identical) - s)
                         nPos = nPos + s
                         '''Get the differed variables after comparison'''
+                        diff3=[]
+                        diff2=[]
                         diff=[]               
                         for m in xrange(len(identical)):
                             if not identical[m]:
                                 message = u"Results for " + namesBothSub[m] + u" are NOT identical within the tolerance " + unicode(tol) + u"; estimated Tolerance = " + unicode(estTol[m])
+                                message2=namesBothSub[m]+'-'+unicode(estTol[m])
+                                tupl=()
+                                tupl=(namesBothSub[m],unicode(estTol[m]))
                                 diff.append(namesBothSub[m])
+                                diff2.append(message2)
+                                diff3.append(tupl)
                                 fileOutput.write(message + u"\n")
-                    
+                        ## sort the differed variable by name        
+                        diff1=sorted(diff2)
+                        ## sort the differed variable by highest error        
+                        difftol=y=sorted(diff3,key=lambda x: x[1],reverse=True)
+
                         '''Pass the numpy matrix data to generate the html graph in the browser'''        
                         if htmlfile is not None:
                             if (len(diff)!=0):
@@ -184,7 +199,7 @@ def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdou
     message = u"Compared results of " + unicode(nPos + nNeg) + u" variables: " + unicode(nPos) + u" identical, " + unicode(nNeg) + u" differ" + messageOnce
     # print message
     fileOutput.write(message + u"\n")
-
+    totalComparedvar= unicode(nPos + nNeg)
     if allIdentical:
         message = u"The results for all compared variables are identical up to the given tolerance = " + unicode(tol)
         # print message
@@ -196,11 +211,11 @@ def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdou
     print "... done."
     ''' Function call to generate the overview report'''
     if htmlfile is not None:
-        htmloverview(filewritehtml,resultfile,htmlfile,diff,dircount)
+        htmloverview(filewritehtml,resultfile,htmlfile,file1,diff1,difftol,dircount,model1var,model2var,totalComparedvar,maxEstTol)
 
     return
 
-def htmloverview(fileouthtml,resultfile,file,diff,dircount):
+def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1var,model2var,totalComparedvar,maxEstTol):
     '''This function is used to present the users with the overall comparison report of different models, The report includes, for each model the number of variables 
        differed, and a link is provided to inspect the differed variables, if there are no differed variables then no link is provided '''
     os.getcwd()
@@ -211,35 +226,74 @@ def htmloverview(fileouthtml,resultfile,file,diff,dircount):
     os.chdir(p)
     filename=os.path.join(p,modelname1.replace(' ',''))
     fileerror=os.path.join(filename,'err.html').replace('\\','/')
-    messerr="""<html>
-<head> Differed variables </head>
-<li>"""     
+    filetolerance=os.path.join(filename,'tolerance.html').replace('\\','/')
+    filecommon=os.path.join(filename,'differ.html').replace('\\','/')
+    reference='<tr> <td> <b>Directory 1(reference)</b> </td>'+'<td>'+'<b>:</b>'+os.path.dirname(file1)+'</td></tr>'
+    comparison='<tr> <td> <b>Directory 2(comparison)</b> </td>'+'<td>'+'<b>:</b>'+os.path.dirname(file)+'</td></tr>'
+    comparedmodel='<tr> <td> <b>Compared Result file </b> </td>'+ '<td>'+'<b>:</b>'+os.path.basename(file)+'</td></tr>'
     
-    message1= '<a href=' + os.path.relpath(resultfile) + '>' + modelname + '</a>' +' </td>' 
-    if(len(diff)==0):
-         emptyhref='<a href="" style="text-decoration:none;">0</a>'
-         s = '\n'.join(['<tr>','<td>',message1,'<td bgcolor=#00FF00>',emptyhref,'</td>','</tr>']) 
+    messcommon="""<html> <head> <h2> List of Differed variables </h2> </head> <table>"""
+    messerr="""<html> <head> <h2> Sorted by Name </h2> </head> <table> <tr> <th> Name </th> <th> Estimated Tolerance </th> </td> """  
+    messtol="""<html> <head> <h2> Sorted by Highest Tolerance Error </h2> </head> <table> <tr> <th> Name </th> <th> Estimated Tolerance </th> </td> """  
+    
+    message1= '<a href=' + os.path.relpath(resultfile) + '>' + modelname +'-'+ model1var+'</a>' +' </td>' 
+    if(len(diff1)==0):
+         #emptyhref='<a href="" style="text-decoration:none;">0'+ '(' + str(totalvar) + 'variables)' +'</a>'
+         emptyhref='<a href="" style="text-decoration:none;">'+ model2var+'/'+ str(totalComparedvar) +'[' +str(maxEstTol)+ ']' +'</a>'
+         s = '\n'.join(['<tr>','<td id=2>',message1,'<td id=2 bgcolor=#00FF00>',emptyhref,'</td>','</tr>']) 
          fileouthtml.write(s)
          fileouthtml.write('\n')   
     
-    if(len(diff)>0): 
-         f=open(fileerror,'w')   
-         for z in xrange(len(diff)):
-             str1=''.join([modelname+'_'+diff[z]+'.html'])
-             x= '<a href='+str1.replace(' ','')+'>'+ diff[z]+ '</a>'+'</li>'
-             if(diff[z]==diff[-1]):
-                  x= '<a href='+str1.replace(' ','')+'>'+ diff[z]+ '</a>' +'</li>'+'</html>'      
-             if(z==0):
-               s = '\n'.join([messerr,x])
-             else:         
-               s = '\n'.join(['<li>',x])
-                
+    if(len(diff1)>0):         
+         d=open(filecommon,'w')
+         sortname='<p> <li> <a href="err.html">Sorted by Name</a> </li> </p>'
+         sorttol='<p> <li> <a href="tolerance.html">Sorted by Tolerance</a> </li> </p>'
+         s='\n'.join([messcommon,reference,comparison,comparedmodel,'</table>',sortname,sorttol,'</html>'])
+         d.write(s)
+         d.close() 
+         ## Html page to sort differed variable by name
+         f=open(fileerror,'w')         
+         for i in xrange(len(diff1)):
+             var=diff1[i].split('-') 
+             str1=''.join([modelname+'_'+var[0]+'.html'])
+             x1='<td>'+'<a href='+str1.replace(' ','')+'>'+ str(var[0])+ '</a>'+'</td>'
+             diff='<td>'+str(var[1])+'</td>'+'</tr>'
+             if(i==0):
+               s = '\n'.join([messerr,'<tr>',x1,diff])
+             else:
+               s = '\n'.join(['<tr>',x1,diff]) 
+             
              f.write(s)
              f.write('\n')
+         closetags ='\n'.join(['</table>','</html>'])
+         f.write(closetags)
+         f.write('\n')
          f.close()
          
-         diff = '<a href='+ os.path.relpath(fileerror) +'>'+str(len(diff))+'</a>'+'</td>'+'</tr>'      
-         s = '\n'.join(['<tr>','<td>',message1,'<td bgcolor=#FF0000>',diff])            
+         ## Html page to sort differed variable by highest error tolerance
+         tol=open(filetolerance,'w')         
+         for i in xrange(len(difftol)):
+             var=difftol[i][0]
+             var1=difftol[i][1]             
+             str1=''.join([modelname+'_'+var+'.html'])
+             x1='<td>'+'<a href='+str1.replace(' ','')+'>'+ str(var)+ '</a>'+'</td>'
+             diff='<td>'+str(var1)+'</td>'+'</tr>'
+             if(i==0):
+               s = '\n'.join([messtol,'<tr>',x1,diff])
+             else:
+               s = '\n'.join(['<tr>',x1,diff]) 
+             
+             tol.write(s)
+             tol.write('\n')
+         closetags ='\n'.join(['</table>','</html>'])
+         tol.write(closetags)
+         tol.write('\n')
+         tol.close()
+         
+         
+         #diff = '<a href='+ os.path.relpath(fileerror) +'>'+str(len(diff1))+'</a>'+ '(' + str(totalvar) +'variables)' + '[' +str(maxEstTol)+ ']' +'</td>'+'</tr>'      
+         diff = model2var + '/' + str(totalComparedvar)+ '/' + '<a href='+ os.path.relpath(filecommon) +'>'+str(len(diff1))+'</a>'+ '[' +str(maxEstTol)+ ']' +'</td>'+'</tr>'
+         s = '\n'.join(['<tr>','<td id=2>',message1,'<td id=2 bgcolor=#FF0000>',diff])            
          fileouthtml.write(s)
          fileouthtml.write('\n')
    
@@ -279,7 +333,7 @@ def generatehtml(model1,model2,namesBoth,col1var,col2var,htmlfile,resultfile,dir
         var2=col2var[z]
         if (name != 'Time'):
              try:
-                # for each variable get the appropriate column datas from model1 and model2 
+               #for each variable get the appropriate column datas from model1 and model2 
                fast_c = numpy.vstack([i, model1[numpy.in1d(model1[:,0], i), var1], model2[numpy.in1d(model2[:,0], i), var2]]).T
                dygraph_array= repr(fast_c).replace('array',' ').replace('(' ,' ').replace(')' ,' ')
                htmlreport=newpath+'\\'+report+'_'+name+'.html'     
@@ -287,7 +341,7 @@ def generatehtml(model1,model2,namesBoth,col1var,col2var,htmlfile,resultfile,dir
                with open(htmlreport, 'wb') as f:
                 message = """<html>
 <head>
-<script type="text/javascript" src="http://dygraphs.com/1.0.1/dygraph-combined.js"></script>
+<script type="text/javascript" src="../dygraph-combined.js"></script>
 <style type="text/css">
     #graphdiv {
       position: absolute;
@@ -494,7 +548,7 @@ def compareListMenu(model, gui):
             self.tolEdit = QtGui.QLineEdit("", self)
             mainGrid.addWidget(self.tolEdit, 3, 1)
 
-            result = QtGui.QLabel("Logging:", self)
+            result = QtGui.QLabel("Result Directory:", self)
             mainGrid.addWidget(result, 4, 0, QtCore.Qt.AlignRight)
             self.resultEdit = QtGui.QLineEdit("", self)
             mainGrid.addWidget(self.resultEdit, 4, 1)
@@ -517,6 +571,10 @@ def compareListMenu(model, gui):
             mainGrid.addWidget(self.closeButton, 7, 2)
             self.closeButton.clicked.connect(self._close_)
             
+            self.parallelrunButton = QtGui.QPushButton("Parallel analysis", self)
+            mainGrid.addWidget(self.parallelrunButton, 8, 1)
+            self.parallelrunButton.clicked.connect(self.parallelrun)
+            
             def _browseDir1Do():
                 dirName = QtGui.QFileDialog().getExistingDirectory(self, 'Open Directory of Results', os.getcwd())
                 dirName = dirName.replace('\\', '/')
@@ -531,16 +589,18 @@ def compareListMenu(model, gui):
                     self.directory.addItem(dirName)
 
             def _browseResultDo():
-                (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, 'Define Analysis Result File', os.getcwd(), '(*.log);;All Files(*.*)')
-                if fileName != '':
-                    self.resultEdit.setText(fileName)
+                #(fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, 'Define Analysis Result File', os.getcwd(), '(*.log);;All Files(*.*)')
+                dirName = QtGui.QFileDialog().getExistingDirectory(self, 'Select Directory of Results', os.getcwd())
+                dirName = dirName.replace('\\', '/')
+                if dirName != '':
+                    self.resultEdit.setText(dirName)
 
             browseDir1.clicked.connect(_browseDir1Do)
             browseDir2.clicked.connect(_browseDir2Do)
             browseResult.clicked.connect(_browseResultDo)
 
             self.tolEdit.setText('1e-3')
-            self.resultEdit.setText(os.getcwd().replace('\\', '/') + '/CompareAnalysis.log')
+            self.resultEdit.setText(os.getcwd().replace('\\', '/'))
             self.dir1Edit.setText(os.getcwd().replace('\\', '/'))
             #self.dir2Edit.setText(os.getcwd().replace('\\', '/'))
 
@@ -562,7 +622,7 @@ def compareListMenu(model, gui):
             # Get data from GUI
             dir1 = self.dir1Edit.text()
             #dir2 = self.dir2Edit.text()
-            logFile = self.resultEdit.text()
+            logDir = self.resultEdit.text()
             tol = float(self.tolEdit.text())
             
             listdirs=[]
@@ -577,7 +637,35 @@ def compareListMenu(model, gui):
                  
             # Run the analysis
             if (len(listdirs)!=0):
-                gui._compareThreadTesting = runCompareResultsInDirectories(gui.rootDir, dir1, listdirs, tol, logFile)
+                gui._compareThreadTesting = runCompareResultsInDirectories(gui.rootDir, dir1, listdirs, tol, logDir)
+            else:
+                print 'Select Directory 2 of results to be added to List of Directory to compare'
+                
+        def parallelrun(self):
+            if hasattr(gui, '_compareThreadTesting'):
+                if gui._compareThreadTesting.running:
+                    print "An analysis to compare result files is still running."
+                    return
+
+            # Get data from GUI
+            dir1 = self.dir1Edit.text()
+            #dir2 = self.dir2Edit.text()
+            logDir = self.resultEdit.text()
+            tol = float(self.tolEdit.text())
+            
+            listdirs=[]
+            sitems=self.directory.selectedItems()
+            if(len(sitems)!=0):
+               for item in self.directory.selectedItems():        
+                  listdirs.append(item.text())
+            else:
+               for i in xrange(self.directory.count()):
+                 item=self.directory.item(i).text()
+                 listdirs.append(item)
+                 
+            # Run the analysis
+            if (len(listdirs)!=0):
+                gui._compareThreadTesting = runParallelCompareResultsInDirectories(gui.rootDir, dir1, listdirs, tol, logDir)
             else:
                 print 'Select Directory 2 of results to be added to List of Directory to compare'
                 
@@ -739,6 +827,34 @@ class simulationParallelThread(QtCore.QThread):
             if not os.path.isdir(fullSimulatorResultPath):
                 os.makedirs(fullSimulatorResultPath)
                 
+            packageName = []
+            globalModelList = []
+            globalPackageList = []
+            for i in xrange(len(self.modelList['fileName'])):
+                modelName = self.modelList['modelName'][i]
+                packageName.append(self.modelList['fileName'][i])
+                if modelName != '':
+                    canLoadAllPackages = True
+                    for j in xrange(len(packageName)):
+                        sp = packageName[j].rsplit('.', 1)
+                        if len(sp) > 1:
+                            if not sp[1] in simulator.modelExtension:
+                                canLoadAllPackages = False
+                                break
+                        else:
+                            canLoadAllPackages = False
+                            break
+
+                    if canLoadAllPackages:
+                        globalModelList.append(modelName)
+                        for x in packageName:
+                            if x not in globalPackageList:
+                                globalPackageList.append(x)
+
+            ## Call prepareSimulationList to translate models in Dymola 
+            simulator.prepareSimulationList(globalPackageList, globalModelList, self.config)
+            
+            
             '''create a new list of resultpath, config, and simulatorname to be pickled by the multiprocessing pool.map()'''
             p=[]
             c=[]
@@ -755,27 +871,27 @@ class simulationParallelThread(QtCore.QThread):
             dir=os.getcwd()
             dirs=[]
             for z in xrange(len(self.modelList['modelName'])):
-                s=str(self.modelList['modelName'][z])
-                np=os.path.join(dir,s).replace('\\','/')
+                s=str(self.modelList['modelName'][z])+str(z)
+                np=os.path.join(fullSimulatorResultPath,s).replace('\\','/')
                 if not os.path.exists(np): 
                    os.mkdir(np)
                 dirs.append(np)
-                
+    
             #check the subdirectory for empty strings and replace it with 'N' for passing to pool.map(), as it cannot process empty list of strings to multiprocess module
             subdirlist= ["N" if not x else x for x in self.modelList['subDirectory']]
-            
+            ## Create a Pool of process and run the Simulation in Parallel
             pool=Pool()
             #startTime = time.time() 
-            pool.map(parallelsimulation, zip(self.modelList['fileName'],self.modelList['modelName'],subdirlist,self.modelList['tStart'],self.modelList['tStop'],self.modelList['tol'],self.modelList['stepSize'],self.modelList['nInterval'],self.modelList['includeEvents'],dirs,resultpath,config,simname))
+            pool.map(ParallelSimulation, zip(self.modelList['fileName'],self.modelList['modelName'],subdirlist,self.modelList['tStart'],self.modelList['tStop'],self.modelList['tol'],self.modelList['stepSize'],self.modelList['nInterval'],self.modelList['includeEvents'],dirs,resultpath,config,simname))
             pool.close()
             pool.join()
             #elapsedTime = time.time() - startTime
-            #print elapsedTime           
+            #print elapsedTime         
         print "Parallel simulation completed"
         self.running = False
             
   
-def parallelsimulation(modellists):
+def ParallelSimulation(modellists):
      'unpacks the modelists and run the simuations in parallel using the multiprocessing module'
      packname=[]
      packname.append(modellists[0])     
@@ -791,51 +907,80 @@ def parallelsimulation(modellists):
      path=modellists[10]
      config=modellists[11]
      simulator=modellists[12]
-     
+     filename,fileExtension = os.path.splitext(packname[0])
      os.chdir(dirname)
      try:
        '''load the Simulator Module like this, depending on the simulator selected by the users as the pool.map() cannot pickle module types '''
        if(simulator=='OpenModelica'):
-           import Plugins.Simulator.OpenModelica.OpenModelica as OpenModelica
-           model=OpenModelica.getNewModel(modelname, packname, config)
-       if(simulator=='Dymola'):
-           import Plugins.Simulator.Dymola.Dymola as Dymola
-           model=Dymola.getNewModel(modelname, packname, config)
-       if(simulator=='FMUSimulator'):
-           import Plugins.Simulator.FMUSimulator.FMUSimulator as FMUSimulator
-           model=FMUSimulator.getNewModel(modelname, packname, config)
-       if(simulator=='SimulationX'):
-           import Plugins.Simulator.SimulationX.SimulationX as SimulationX
-           model=SimulationX.getNewModel(modelname, packname, config)
-       if(simulator=='Wolfram'):
-           import Plugins.Simulator.Wolfram.Wolfram as Wolfram
-           model=Wolfram.getNewModel(modelname, packname, config)
+           from ...Simulator.OpenModelica import OpenModelica
+           extension=OpenModelica.modelExtension
+           checkextension = [s for s in extension if (fileExtension).replace('.','') in s]
+           if checkextension:
+              model=OpenModelica.getNewModel(modelname, packname, config)
+           else:
+              print "WARNING: Simulator OpenModelica " + " cannot handle files ", packname[0], " due to unknown file type(s)."
              
+       if(simulator=='Dymola'):
+           from ...Simulator.Dymola import Dymola
+           extension=Dymola.modelExtension
+           checkextension = [s for s in extension if (fileExtension).replace('.','') in s]
+           if checkextension:
+             model=Dymola.getNewModel(modelname, packname, config)
+           else:
+             print "WARNING: Simulator Dymola " + " cannot handle files ", packname[0], " due to unknown file type(s)."
+             
+       if(simulator=='FMUSimulator'):
+           from ...Simulator.FMUSimulator import FMUSimulator
+           extension=FMUSimulator.modelExtension
+           checkextension = [s for s in extension if (fileExtension).replace('.','') in s]
+           if checkextension:
+              model=FMUSimulator.getNewModel(modelname, packname, config)
+           else:
+             print "WARNING: Simulator FMUSimulator " + " cannot handle files ", packname[0], " due to unknown file type(s)."
+               
+       if(simulator=='SimulationX'):
+           from ...Simulator.SimulationX import SimulationX
+           extension=SimulationX.modelExtension
+           checkextension = [s for s in extension if (fileExtension).replace('.','') in s]
+           if checkextension:
+               model=SimulationX.getNewModel(modelname, packname, config)
+           else:
+             print "WARNING: Simulator SimulationX " + " cannot handle files ", packname[0], " due to unknown file type(s)."
+
+       if(simulator=='Wolfram'):
+           from ...Simulator.Wolfram import Wolfram
+           extension=Wolfram.modelExtension
+           checkextension = [s for s in extension if (fileExtension).replace('.','') in s]
+           if checkextension:
+              model=Wolfram.getNewModel(modelname, packname, config)
+           else:
+             print "WARNING: Simulator Wolfram " + " cannot handle files ", packname[0], " due to unknown file type(s)."
+ 
        if (subdir == 'N'):
           resultDir = path        
        else:
           resultDir = path + '/' + subdir
           if not os.path.isdir(resultDir):
               os.makedirs(resultDir)
-          
-
-       
-       resultFileName = resultDir + '/' + modelname + '.' + model.integrationSettings.resultFileExtension
-       model.integrationSettings.startTime = tstart
-       model.integrationSettings.stopTime  = tstop
-       model.integrationSettings.errorToleranceRel = tolerance
-       model.integrationSettings.fixedStepSize = stepsize
-       model.integrationSettings.gridPoints = interval
-       model.integrationSettings.gridPointsMode = 'NumberOf'
-       model.integrationSettings.resultFileIncludeEvents = events
-       model.integrationSettings.resultFileName = resultFileName     
-       print "Simulating %s by %s (result in %s)..." % (modelname,simulator,resultFileName)
-       model.simulate()
-       model.close()
+         
+       if checkextension:
+         resultFileName = resultDir + '/' + modelname + '.' + model.integrationSettings.resultFileExtension
+         model.integrationSettings.startTime = tstart
+         model.integrationSettings.stopTime  = tstop
+         model.integrationSettings.errorToleranceRel = tolerance
+         model.integrationSettings.fixedStepSize = stepsize
+         model.integrationSettings.gridPoints = interval
+         model.integrationSettings.gridPointsMode = 'NumberOf'
+         model.integrationSettings.resultFileIncludeEvents = events
+         model.integrationSettings.resultFileName = resultFileName     
+         print "Simulating %s by %s (result in %s)..." % (modelname,simulator,resultFileName)
+         model.simulate()
+         model.close()
      except Exception as e:
        import traceback
        traceback.print_exc(e,file=sys.stderr)
        print e
+       
 
 
 class simulationThread(QtCore.QThread):
@@ -854,7 +999,7 @@ class simulationThread(QtCore.QThread):
             # do nothing, since error message only indicates we are not in debug mode
             pass
         
-
+        #startTime=time.time() 
         for simulator in self.allSimulators:
             simulatorName = simulator.__name__.rsplit('.', 1)[-1]
             fullSimulatorResultPath = self.resultDir + '/' + simulatorName
@@ -901,6 +1046,7 @@ class simulationThread(QtCore.QThread):
                     haveCOM = True
                 except:
                     pass
+                
                 for i in xrange(len(self.modelList['fileName'])):
                     if self.stopRequest:
                         print "... Simulations canceled."
@@ -950,7 +1096,7 @@ class simulationThread(QtCore.QThread):
                                 print "Simulating %s by %s (result in %s)..." % (modelName,simulatorName,resultFileName)
                                 model.simulate()
 
-                            except Plugins.Simulator.SimulatorBase.Stopping:
+                            except Simulator.SimulatorBase.Stopping:
                                 print("Solver cancelled ... ")
                             except Exception as e:
                                 import traceback
@@ -970,26 +1116,257 @@ class simulationThread(QtCore.QThread):
                         pythoncom.CoUninitialize()  # Close the COM library on the current thread
                     except:
                         pass
-
+        #elapsedTime = time.time() - startTime
+        #print elapsedTime   
         print "... running the list of simulations done."
         self.running = False
         
 
-def runCompareResultsInDirectories(PySimulatorPath, dir1, listdirs, tol, logFile):
+def runCompareResultsInDirectories(PySimulatorPath, dir1, listdirs, tol, logDir):
 
     print "Start comparing results ..."
-
     compare = CompareThread(None)
+    compare.PySimulatorPath=PySimulatorPath
     compare.dir1 = dir1
     compare.listdirs= listdirs
     compare.tol = tol
-    compare.logFile = logFile
+    compare.logDir = logDir
     compare.stopRequest = False
     compare.running = False
     compare.start()
     return compare
-   
 
+
+def runParallelCompareResultsInDirectories(PySimulatorPath, dir1, listdirs, tol, logDir):
+    print "Start Parallel comparison results ..."
+    compare = CompareParallelThread(None)
+    compare.PySimulatorPath=PySimulatorPath
+    compare.dir1 = dir1
+    compare.listdirs= listdirs
+    compare.tol = tol
+    compare.logDir = logDir
+    compare.stopRequest = False
+    compare.running = False
+    compare.start()
+    return compare
+
+class CompareParallelThread(QtCore.QThread):
+    ''' Class for the simulation thread '''
+    def __init__(self, parent):
+        super(CompareParallelThread, self).__init__(parent)
+        
+    def run(self):
+      self.running = True
+      
+      ### create a new subdirectory if the user specifies in the directory of results in the GUI ###
+      subdir=self.logDir
+      if not os.path.exists(subdir): 
+            os.mkdir(subdir)
+      
+      ### copy the dygraph script from /Plugins/Analysis/Testing/ to the result directory ###      
+      dygraphpath=os.path.join(self.PySimulatorPath, 'Plugins/Analysis/Testing/dygraph-combined.js').replace('\\','/')
+      if os.path.exists(dygraphpath):     
+          shutil.copy(dygraphpath,self.logDir)
+      
+      ## create a temp file for writing results and use it later to generate the regression report
+      self.logFile=os.path.join(self.logDir,'Index.log').replace('\\','/')
+
+      resultfilesize=[]    
+      logfiles=[]   
+      list1dir=[]
+      tolerance=[]      
+      dir1 = self.dir1
+      listdirs=self.listdirs 
+      list1dir.append(dir1)
+      tolerance.append(self.tol)
+      
+      listdir1= list1dir*len(listdirs)
+      logfiles.append(self.logFile)
+      logfiles1=logfiles*len(listdirs)
+      tol=tolerance*len(listdirs)
+      
+      ## calculate the size of directory for regression report
+      dir1size=directorysize(dir1)
+      resultfilesize.append(dir1size)
+      
+      ## calculate the size of list of directories for regression report 
+      for size in xrange(len(listdirs)):
+        dir2=listdirs[size] 
+        dir2size=directorysize(dir2)
+        resultfilesize.append(dir2size)         
+      
+      dircount=[]
+      resultfiles=[]      
+      for i in xrange(len(logfiles1)):
+          dir_name=os.path.dirname(logfiles1[i])
+          filename=os.path.basename(logfiles1[i])
+          newlogfile=str(i)+filename
+          newlogfilepath=os.path.join(dir_name,newlogfile).replace('\\','/')
+          resultfiles.append(newlogfilepath)
+          dircount.append(i)
+      
+      ## Create a Pool of process and run the Compare Analysis in Parallel
+      pool=Pool()
+      startTime = time.time() 
+      pool.map(ParallelCompareAnalysis, zip(listdir1,listdirs,resultfiles,dircount,tol))
+      pool.close()
+      pool.join()
+      elapsedTime = time.time() - startTime
+      #print elapsedTime
+      print "Parallel Compare Analysis Completed"
+      totaldir=len(listdirs)
+      filecount=len(os.listdir(dir1))
+      resultdirsize=sum(resultfilesize)      
+      
+      genlogfilesreport(self.logFile)
+      genregressionreport(self.logFile,totaldir,filecount,elapsedTime,resultdirsize,dir1)      
+      
+      ## Remove the temporary logfiles and rfiles directories after the regression report completed
+      logfilesdir=os.path.join(os.path.dirname(self.logFile),'logfiles').replace('\\','/')
+      if os.path.exists(logfilesdir): 
+         shutil.rmtree(logfilesdir)
+               
+      regressionfilesdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
+      if os.path.exists(regressionfilesdir): 
+         shutil.rmtree(regressionfilesdir)
+      
+            
+      self.running = False
+
+def ParallelCompareAnalysis(directories):
+    'unpack the directories and start running the compare analysis in parallel'
+    
+    dir1=directories[0]
+    dir2=directories[1]
+    logfile=directories[2]
+    dircount=directories[3]
+    tolerance=directories[4]
+    
+    files1 = os.listdir(dir1)
+    files2 = os.listdir(dir2)
+    
+    encoding = sys.getfilesystemencoding()
+    
+    modelName1 = []
+    fileName1 = []
+    for fileName in files1:
+         splits = fileName.rsplit('.', 1)
+         if len(splits) > 1:
+            if splits[1] in SimulationResult.fileExtension:
+                 modelName1.append(splits[0])
+                 fileName1.append(fileName)
+                 
+    modelName2 = []
+    fileName2 = []
+    for fileName in files2:
+            splits = fileName.rsplit('.', 1)
+            if len(splits) > 1:
+                if splits[1] in SimulationResult.fileExtension:
+                    modelName2.append(splits[0])
+                    fileName2.append(fileName) 
+    
+    '''create a html result file '''
+    filename,fileExtension = os.path.splitext(logfile)
+    logfile1=logfile.replace(fileExtension,'.html') 
+    
+    fileOut = open(logfile, 'w')         
+    fileOuthtml= open(logfile1,'w')
+           
+    fileOut.write('Output file from comparison of list of simulation results within PySimulator\n')
+    fileOut.write('  directory 1 (reference) : ' + dir1.encode(encoding) + '\n')
+    fileOut.write('  directory 2 (comparison): ' + dir2.encode(encoding) + '\n')
+    
+    for index, name in enumerate(modelName1):                      
+            fileOut.write('\nCompare results from\n')            
+            fileOut.write('  Directory 1: ' + fileName1[index].encode(encoding) + '\n')  # Print name of file1
+            print "\nCompare results from "
+            print "  Directory 1: " + fileName1[index].encode(encoding)
+
+            try:
+                i = modelName2.index(name)
+            except:
+                fileOut.write('  Directory 2: NO equivalent found\n')
+                print '  Directory 2: NO equivalent found'
+                i = -1
+            if i >= 0:
+                fileOut.write('  Directory 2: ' + fileName2[i].encode(encoding) + '\n')  # Print name of file2
+                print "  Directory 2: " + fileName2[i].encode(encoding)
+
+
+                file1 = dir1 + '/' + fileName1[index]
+                file2 = dir2 + '/' + fileName2[i]
+               
+                from ...Simulator import SimulatorBase 
+                
+                model1 = SimulatorBase.Model(None, None, None)
+                model1.loadResultFile(file1)
+                model2 = SimulatorBase.Model(None, None, None)
+                model2.loadResultFile(file2)
+                compareResults(model1, model2, dircount, tolerance, fileOut, fileOuthtml,logfile,file2,file1)
+                
+    fileOut.write('\n')    
+    fileOut.write("******* Compare Analysis Completed   *******" + u"\n")
+    fileOut.write('\n') 
+    fileOut.close()      
+    fileOuthtml.close()
+    
+    green=[]
+    red=[]
+    '''open the html file to insert start html tags and add add headers of the directory name'''
+    with open(logfile1) as myfile:
+        htmldata=myfile.read()          
+        m1="<table><tr><th id=0>Model</th><th id=0>"+os.path.basename(os.path.dirname(file2))+'</th>'+'</tr>'
+        soup = BeautifulSoup(open(logfile1))
+        data=soup.find_all('td',{"bgcolor":["#00FF00","#FF0000"]})         
+        for i in xrange(len(data)):
+           x=BeautifulSoup(str(data[i]))
+           tag=x.td
+           checkcolor=tag['bgcolor']
+           if(checkcolor=="#00FF00"):
+               green.append(checkcolor)
+           else:
+               red.append(checkcolor)
+           
+        message='\n'.join(['<html>',m1])
+        f=open(logfile1,'w')
+        if len(red)==0:
+            m1='<tr><td></td><td id=1 bgcolor=#00FF00>'+ str(len(green))+'passed'+'/'+str(len(red))+'failed'+'</td></tr>'
+            percentage=str((len(green))*100/(len(green)+len(red)))+'%'+'passed'
+            m2='<tr><td></td><td id=100 bgcolor=#00FF00>'+percentage+'</td></tr>'
+            m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
+            f.write(m3)
+            f.write('\n')
+        else:
+            m1='<tr><td></td><td id=1 bgcolor=#FF0000>'+ str(len(green))+'passed'+'/'+str(len(red))+'failed'+'</td></tr>'
+            percentage=str((len(green))*100/(len(green)+len(red)))+'%'+'passed'
+            m2='<tr><td></td><td id=100 bgcolor=#FF0000>'+percentage+'</td></tr>'
+            m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
+            f.write(m3)
+            f.write('\n')     
+        f.close() 
+                   
+    logfiledir=os.path.dirname(logfile)
+    logfilename=os.path.basename(logfile)
+    logfilenp1=os.path.join(logfiledir,'logfiles').replace('\\','/')
+    logfilenp2=os.path.join(logfilenp1,logfilename).replace('\\','/')
+    
+    if not os.path.exists(logfilenp1): 
+       os.mkdir(logfilenp1)
+    shutil.move(logfile,logfilenp2)  
+    
+        
+    newpath=os.path.dirname(logfile1)
+    name=os.path.basename(logfile1)
+    np1=os.path.join(newpath,'rfiles').replace('\\','/')
+    np2=os.path.join(np1,name).replace('\\','/')
+        
+    #create a new directory to store the result files for each run, to prepare regression chart 
+    if not os.path.exists(np1): 
+       os.mkdir(np1)
+    shutil.move(logfile1,np2)  
+    
+    
+    
 class CompareThread(QtCore.QThread):
     ''' Class for the simulation thread '''
     def __init__(self, parent):
@@ -1009,19 +1386,37 @@ class CompareThread(QtCore.QThread):
       
       encoding = sys.getfilesystemencoding()
       
-      rdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
-      if os.path.exists(rdir): 
-         shutil.rmtree(rdir)
-         
+      ### create a new subdirectory if the user specifies in the directory of results in the GUI ###
+      subdir=self.logDir
+      if not os.path.exists(subdir): 
+          os.mkdir(subdir)
+            
+      ### copy the dygraph script from /Plugins/Analysis/Testing/ to the result directory ###      
+      dygraphpath=os.path.join(self.PySimulatorPath, 'Plugins/Analysis/Testing/dygraph-combined.js').replace('\\','/')
+      if os.path.exists(dygraphpath):     
+          shutil.copy(dygraphpath,self.logDir)
+          
+      resultfilesize=[]   
       dir1 = self.dir1
+      ## calculate the size of directory for regression report
+      dir1size=directorysize(dir1)
+      resultfilesize.append(dir1size)
+      
       listdirs=self.listdirs
       files1 = os.listdir(dir1) 
       
-      fileOut = open(self.logFile, 'w')       
+      ## create a temp file for writing results and use it later to generate the regression report
+      self.logFile=os.path.join(self.logDir,'Index.log').replace('\\','/')
+      
+      fileOut = open(self.logFile, 'w')
+      startTime = time.time()
       for dircount in xrange(len(listdirs)):
-        dir2=listdirs[dircount]    
-        files2 = os.listdir(dir2)
+        dir2=listdirs[dircount] 
+        ## calculate the size of list of directories for regression report
+        dir2size=directorysize(dir2)
+        resultfilesize.append(dir2size)                   
         
+        files2 = os.listdir(dir2)    
         modelName1 = []
         fileName1 = []
         for fileName in files1:
@@ -1075,31 +1470,56 @@ class CompareThread(QtCore.QThread):
 
                 file1 = dir1 + '/' + fileName1[index]
                 file2 = dir2 + '/' + fileName2[i]
-                model1 = SimulatorBase.Model(None, None, None)
+                model1 = Simulator.SimulatorBase.Model(None, None, None)
                 model1.loadResultFile(file1)
-                model2 = SimulatorBase.Model(None, None, None)
+                model2 = Simulator.SimulatorBase.Model(None, None, None)
                 model2.loadResultFile(file2)
-                compareResults(model1, model2, dircount, self.tol, fileOut, fileOuthtml,self.logFile,file2)
+                compareResults(model1, model2, dircount, self.tol, fileOut, fileOuthtml,self.logFile,file2,file1)
         
         fileOut.write('\n')    
         fileOut.write("******* Compare Analysis Completed   *******" + u"\n")
         fileOut.write('\n')                   
         fileOuthtml.close()
-     
-        '''open the html file to check the html tags are correctly closed for proper display of table and add headers'''
+        green=[]
+        red=[]
+        '''open the html file to insert start html tags and add add headers of the directory name'''
         with open(logfile1) as myfile:
-           data=myfile.read()
-           header='''<body><h1>Comparison Report </h1>
-<p><font style="background-color:#00FF00">Green</font> cells means success. <font style="background-color:#FF0000">Red</font> cells represents number of variables differed .</p>
-</body>'''          
-           m1="<table><tr><th>Model</th><th>"+os.path.basename(os.path.dirname(file2))+'</th>'+'</tr>'
-           message='\n'.join(['<html>',header,m1])
+           htmldata=myfile.read()          
+           m1="<table><tr><th id=0>Model</th><th id=0>"+os.path.basename(os.path.dirname(file2))+'</th>'+'</tr>'
+           soup = BeautifulSoup(open(logfile1))
+           data=soup.find_all('td',{"bgcolor":["#00FF00","#FF0000"]})         
+           for i in xrange(len(data)):
+              x=BeautifulSoup(str(data[i]))
+              tag=x.td
+              checkcolor=tag['bgcolor']
+              if(checkcolor=="#00FF00"):
+                   green.append(checkcolor)
+              else:
+                   red.append(checkcolor)
+           
+           message='\n'.join(['<html>',m1])
            f=open(logfile1,'w')
-           s = '\n'.join([message,data,'</table>','</html>']) 
-           f.write(s)                    
+           if len(red)==0:
+               m1='<tr><td></td><td id=1 bgcolor=#00FF00>'+ str(len(green))+'passed'+'/'+str(len(red))+'failed'+'</td></tr>'
+               percentage=str((len(green))*100/(len(green)+len(red)))+'%'+'passed'
+               m2='<tr><td></td><td id=100 bgcolor=#00FF00>'+percentage+'</td></tr>'
+               m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
+   
+               f.write(m3)
+               f.write('\n')
+           else:
+               m1='<tr><td></td><td id=1 bgcolor=#FF0000>'+ str(len(green))+'passed'+'/'+str(len(red))+'failed'+'</td></tr>'
+               percentage=str((len(green))*100/(len(green)+len(red)))+'%'+'passed'
+               m2='<tr><td></td><td id=100 bgcolor=#FF0000>'+percentage+'</td></tr>'
+               m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
+               f.write(m3)
+               f.write('\n')
+
+           #s = '\n'.join([message,str(m3),data,'</table>','</html>']) 
+           #f.write(s)                    
            f.close() 
        
-        '''Save the data to prepare regression report, if the user press the regression button'''
+        '''Save the data to prepare regression report'''
         
         newpath=os.path.dirname(logfile1)
         name=os.path.basename(logfile1)
@@ -1112,53 +1532,126 @@ class CompareThread(QtCore.QThread):
            os.mkdir(np1)
         shutil.copy(logfile1,np2)
                      
-      #print "... running the analysis done."
+      print "... running the analysis done."
+      elapsedTime = time.time() - startTime
       fileOut.close()
-      #import ctypes 
-      #ctypes.windll.user32.MessageBoxA(0, "running the analysis done", "Compare Analysis", 0)
+      totaldir=len(listdirs)
+      filecount=len(files1)
+      resultdirsize=sum(resultfilesize)      
+      genregressionreport(self.logFile,totaldir,filecount,elapsedTime,resultdirsize,dir1)
       
-      if(len(listdirs)>1):
-          genregressionreport(self.logFile)
-      else:
-          print "Comparison report generated"
-          webbrowser.open(logfile1)       
-          
+      ## remove the temporary rfiles directory after the Regression report generated
+      regressionfilesdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
+      if os.path.exists(regressionfilesdir): 
+         shutil.rmtree(regressionfilesdir)    
+         
       self.running = False
 
+def directorysize(dirname):
+  ## calculate the size of directory, traverses subdirectory and return the size in MB
+  folder_size = 0
+  for (path, dirs, files) in os.walk(dirname):
+    for file in files:
+      filename = os.path.join(path, file)
+      folder_size += os.path.getsize(filename)
+  size=folder_size/(1024*1024.0)
+  return round(size,1)
 
 def get_column(n,table):
    result = []
    for line in table:
       result.append(line[n])     
    return result
-    
-def genregressionreport(logfile):
+
+def genlogfilesreport(logfile):
+  ''' Read the log files from the directory and write to a single log file as separate log files are used when running in parallel compare analysis '''
+  dir1=os.path.dirname(logfile)
+  dir2=os.path.join(dir1,'logfiles').replace('\\','/')
+  if(os.path.isdir(dir2)):
+      files=os.listdir(dir2)
+      f=open(logfile,'w')
+      for i in xrange(len(files)):
+          os.chdir(dir2)      
+          logfileopen=open(files[i])
+          data=logfileopen.read()
+          f.write(data)
+          f.write('\n')
+      logfileopen.close()    
+      f.close()
+      
+      
+def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedir):
   ''' the function is used to parse the html files and collect the table datas from different html files and finally generate single regression chart'''
   dir1=os.path.dirname(logfile)
   dir2=os.path.join(dir1,'rfiles').replace('\\','/')
   if(os.path.isdir(dir2)):
     files=os.listdir(dir2)
+    percent=[]
+    header=[]
     hreflist=[]
     dirname=[]
     for i in xrange(len(files)):
          os.chdir(dir2)      
          soup = BeautifulSoup(open(files[i]))
-         data=soup.find_all('td')
-         dir=soup.find_all('th')
+         h=soup.find_all('td',{"id":1})
+         per=soup.find_all('td',{"id":100})
+         data=soup.find_all('td',{"id":2})
+         dir=soup.find_all('th',{"id":0})
          hreflist.append(data)
          dirname.append(dir)
-    
+         header.append(h)
+         percent.append(per)
+         
     os.chdir(dir1)
     filename,fileExtension = os.path.splitext(logfile)
     logfile1=logfile.replace(fileExtension,'.html')    
-    f=open(logfile1,'w')    
-    m1='''<body><h1>Regression Report </h1>
-<p><font style="background-color:#00FF00">Green</font> cells means success. <font style="background-color:#FF0000">Red</font> cells represents number of variables differed .</p>
-</body>'''
-    s='\n'.join(['<html>',m1,'<table>','<tr>','<th>','model','</th>'])
+    f=open(logfile1,'w') 
+    date_time_info = datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
+    date_time_info1 =' '.join(['<p>','<b>Generated:</b>',date_time_info,'</p>'])
+    tolerance=' '.join(['<p> <b>Given Error tolerance: </b> 1e-3 </p>'])
+    diskspace=' '.join(['<p> <b>Disk space of all used result files: </b>',str(resultdirsize),' ','MB','</p>'])
+    dircount=' '.join(['<p>','<b>Total number of compared files:</b>',str(int(totaldir)*int(filecount)),'against',str(filecount),'baseline files','</p>']) 
+    comparedvariable=' '.join(['<p id=var> </p>'])
+    resultspace=' '.join(['<p id=resultdir> </p>'])    
+    #filecounts=' '.join(['<h4>','Number of Files Compared:',str(filecount),'</h4>'])
+    
+    TotalTime =' '.join(['<p>','<b>Time Taken:</b>',time.strftime("%Hh:%Mm:%Ss", time.gmtime(Time)),'</p>'])
+
+    m1='''<body>
+    <style>
+      header {
+      }
+    nav {
+    line-height:14px;   
+    height:100px;
+    width:500px;
+    float:left;
+    padding:2px;	      
+        }
+    section {
+    line-height:14px;   
+    width:560px;
+    background-color:#eeeeee;
+    float:right;
+      }
+    footer {
+    clear:both;
+    text-align:center;
+    padding:5px;	 	 
+     }
+    </style>'''
+
+    head= '<header> <h1> Regression Report </h1> </header>'
+    sec='''<fieldset> <legend>Coloring:</legend>
+    <p><font style="background-color:#FF0000">Red:</font> <br> *Per failed: Comparison failed,(i.e.) at least one variable with large error <br> *Per column or row: Only 0-50% of the corresponding files passed the test</p>
+    <p><font style="background-color:#00FF00">Green</font> <br> *Per failed: Comparison passed, i.e. all compared variables passed the test <br> *Per column or row: 100% of the corresponding files passed the test <br> *Total: All files passed the test </p>
+    <p><font style="background-color:#FFA500">Orange</font> <br> *Per column or row: &gt;50% and &lt;100% of the corresponding files passed the test <br> *Total: &gt;50% and &lt; 100% of all files passed the test</p> </fieldset>'''
+    
+    s='\n'.join(['<html>',m1,head,'<nav>',tolerance,diskspace,dircount,comparedvariable,resultspace,date_time_info1,TotalTime,'</nav>','<section>',sec,'</section>','<footer>','<table>','<tr>','<th id=0>','Result Files','</th>','<th id=0>','Status','</th>''<th id=0>',os.path.basename(baselinedir),'</th>'])
     f.write(s)
     f.write('\n')
-           
+    
+    ## loop for first row directory names           
     for m in xrange(len(dirname[0])):
        if(m>0):
          dname=get_column(m,dirname)   
@@ -1170,17 +1663,94 @@ def genregressionreport(logfile):
                 f.write(s)
                 f.write('\n')
                 
+    ## loop for second row header status and regarding number of files passed and failed for each Directories of files
+    pstatus=[]
+    hstatus=[]
+    for h in xrange(len(header[0])):
+        hname=get_column(h,header)
+        m1='<tr><td></td><td id=hstatus></td><td></td>'
+        f.write(m1)
+        
+        passfiles=[]
+        failfiles=[]
+        for z in xrange(len(hname)):
+          d=str(hname[z].string).split('/')
+          passednumber=str(d[0]).split('passed')
+          failednumber=str(d[1]).split('failed')
+          passfiles.append(int(passednumber[0]))
+          failfiles.append(int(failednumber[0])) 
+               
+        p1=int(sum(passfiles))+int(sum(failfiles))
+        p2=int(sum(passfiles))*100/p1
+        pstatus.append(str(p2))
+        hstatus.append(str(sum(passfiles))+'/'+str(sum(failfiles)))
     
+        for i in xrange(len(hname)):
+           if(i==(len(hname)-1)):
+              s=''.join([str(hname[i]),'</tr>'])
+           else:
+              s=''.join([str(hname[i])])
+           f.write(s)
+           f.write('\n')  
+    
+    ## loop for third row percentage status of number of files passed and failed for each Directories of files
+          
+    for p in xrange(len(percent[0])):    
+       pname=get_column(p,percent)
+       m1='<tr><td></td><td id=pstatus></td><td></td>'
+       f.write(m1)
+       for i in xrange(len(pname)):
+          if(i==(len(pname)-1)):
+             s=''.join([str(pname[i]),'</tr>'])
+          else:
+             s=''.join([str(pname[i])])
+          f.write(s)
+          f.write('\n')  
+          
+       baseheader='<tr><td></td><td></td><td>Baseline<td>'
+       f.write(baseheader)
+    
+    ## loop for fourth row for calculating status of number of files passed and failed for individual files
+    status=[]
+    ## list variables to count the number of total number of variables and differed variables 
+    comparevar=[]
+    differedvar=[]
     for i in xrange(len(hreflist[0])):                       
       if(i%2==0):
          x=get_column(i,hreflist)
-         x1=x[0].find('a')           
-         s='\n'.join(['<tr>','<td>',str(x1),'</td>'])
+         x1=x[0].find('a').string
+         y=x1.split('-')
+         #href='<a href='+os.path.basename(logfile)+'>'+ x1 +'</a>'         
+         #s='\n'.join(['<tr>','<td>',href,'</td>'])
+         s='\n'.join(['<tr>','<td>',str(y[0]),'</td>','<td id=status>','</td>','<td>',str(y[-1]),'</td>'])
          f.write(s)
          f.write('\n')
          
       if(i%2!=0):
         x=get_column(i,hreflist)
+        green=[]
+        red=[]
+        ## loop for preparing status of the single file compared with several directory of the same file
+        for i in xrange(len(x)):
+          s=BeautifulSoup(str(x[i]))
+          tag=s.td
+          checkcolor=tag['bgcolor']
+          if(checkcolor=="#00FF00"):
+             green.append(checkcolor)
+             var1=str(x[i].find('a').string).split('[')
+             var2=var1[0].split('/')
+             comparevar.append(int(var2[-1]))
+          else:
+             red.append(checkcolor)
+             var1=str(x[i]).split('<a')
+             var2=str(var1[0]).split('/')
+             comparevar.append(int(var2[1]))            
+             diffvar=x[i].find('a').string
+             differedvar.append(int(diffvar)) 
+             
+        st=str(len(green))+'/'+str(len(red))+'/'+str(len(green)+len(red))
+        status.append(st)
+        ## loop for preparing the main table of Regression report from different files
         for z in xrange(len(x)): 
             if(z==(len(x)-1)):               
                s='\n'.join([str(x[z]),'</tr>'])
@@ -1190,13 +1760,72 @@ def genregressionreport(logfile):
             f.write('\n')
             
     if(i==len(hreflist[0])-1):
-         s='\n'.join(['</table>','</html>'])
+         s='\n'.join(['</table>','</footer>','</body>','</html>'])
          f.write(s)
          f.write('\n')
     
+    f.close()
+    
+    ## get the size of the result files directory
+    resultsize=directorysize(dir1)
+    
+    ## open the file to print the final status of the compared files
+    stat = BeautifulSoup(open(logfile1))
+    dat=stat.find_all('td',{"id":"status"})
+    hst=stat.find_all('td',{"id":"hstatus"})
+    pst=stat.find_all('td',{"id":"pstatus"})
+    totalvar=stat.find_all('p',{"id":"var"})
+    ressize=stat.find_all('p',{"id":"resultdir"})
+
+    totalvar[0].string="<b>Total number of Compared Variables:</b>"+str(sum(comparevar))+'('+str(sum(comparevar)-sum(differedvar))+'passed'+','+str(sum(differedvar))+'failed)'
+    ressize[0].string="<b>Disk space of full report directory:</b>"+str(resultsize)+' '+'MB'
+ 
+    ## condition for updating the percentage status and color code in first and  second row
+    if(pstatus[0]==100):
+      ## green color
+      hst[0]['bgcolor']="#00FF00"
+      hst[0].string=hstatus[0]
+      pst[0]['bgcolor']="#00FF00"
+      pst[0].string=pstatus[0]+'%'
+    else:
+      ## orange color
+      hst[0]['bgcolor']="#FFA500"
+      hst[0].string=hstatus[0]
+      pst[0]['bgcolor']="#FFA500"
+      pst[0].string=pstatus[0]+'%'      
+    ## red color
+    if(pstatus[0]<=50):
+       hst[0]['bgcolor']="#FF0000"
+       hst[0].string=hstatus[0]
+       pst[0]['bgcolor']="#FF0000"
+       pst[0].string=pstatus[0]+'%'
+    
+    ## loop for updating the status and color code of individual files in different directory, row comparison
+    for i in xrange(len(dat)):
+        d=str(status[i]).split('/')
+        percentage=int(d[0])*100/int(d[2])   
+        if (percentage==100):
+          ## green color
+          dat[i]['bgcolor']="#00FF00"
+          dat[i].string=d[0]+'/'+d[1]
+        else:
+          ## orange color
+          dat[i]['bgcolor']="#FFA500"
+          dat[i].string=d[0]+'/'+d[1]
+    
+        if (percentage<=50):
+          ## red color
+          dat[i]['bgcolor']="#FF0000"
+          dat[i].string=d[0]+'/'+d[1]
+    
+    html = stat.prettify("utf-8")
+    html = html.replace('&lt;b&gt;','<b>').replace('&lt;/b&gt;','</b>')
+    f=open(logfile1,'w') 
+    f.write(html)
     f.close()
     print "Regression report generated"
     webbrowser.open(logfile1)       
     
   else:
-    print 'Regression Report failed'  
+    print 'Regression Report failed'
+    

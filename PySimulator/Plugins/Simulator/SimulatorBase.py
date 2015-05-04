@@ -36,8 +36,7 @@ of a loaded model and provides functions to simulate it, write and read results,
 
 import copy
 import os
-import string
-import Plugins.SimulationResult.IntegrationResults as IntegrationResults
+from ..SimulationResult import IntegrationResults
 
 
 '''
@@ -172,8 +171,8 @@ class Model():
         '''
         if os.path.exists(fileName):
             sp = unicode.rsplit(fileName, '.', 1)
-            suffix = sp[1]
-            import Plugins.SimulationResult as SimulationResult
+            suffix = sp[1]            
+            from .. import SimulationResult            
             if suffix in SimulationResult.fileExtension:
                 i = SimulationResult.fileExtension.index(suffix)
                 self.integrationResults = SimulationResult.plugin[i].Results(fileName)

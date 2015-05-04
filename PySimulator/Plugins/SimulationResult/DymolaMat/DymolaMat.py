@@ -24,7 +24,7 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 '''
 
 import os, numpy, scipy.io, string, collections
-from Plugins.SimulationResult import IntegrationResults
+from .. import IntegrationResults
 
 # Exception classes
 class FileDoesNotExist     (Exception): pass

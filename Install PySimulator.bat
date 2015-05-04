@@ -23,8 +23,7 @@ cls
 echo PySimulator is based on Python and requires a valid Python installation along
 echo side a variaty of additional software libraries. Python XY offers all of this
 echo software in one package.
-echo During the installation please make sure to minimally install all default
-echo selected packages or select the option "Full".
+echo During the installation please make sure to select the option "Full".
 echo If unsure select "y"
 set /p installpxy=Download and start installer for Python XY 2.7.6?(Y/N):
 if /I not "%installpxy%"=="y" goto skippxy

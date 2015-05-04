@@ -44,16 +44,16 @@ import numpy
 
 import FMIDescription1 as FMIDescription
 import FMUInterface1 as FMUInterface
-from Plugins.Algorithms.Integrator.Sundials.AssimuloIntegrators import AssimuloCVode, AssimuloIda
-import Plugins.SimulationResult.IntegrationResults
-import Plugins.SimulationResult.Mtsf.Mtsf as Mtsf
-import Plugins.SimulationResult.Mtsf.MtsfFmi as MtsfFmi
-import Plugins.SimulationResult.Mtsf.pyMtsf as pyMtsf
-from Plugins.Simulator.FMUSimulator.FMUInterface1 import fmiTrue, fmiFalse
-import Plugins.Simulator.SimulatorBase
 
+from ...Algorithms.Integrator.Sundials.AssimuloIntegrators import AssimuloCVode, AssimuloIda
+from ...SimulationResult import IntegrationResults
+from ...SimulationResult.Mtsf import Mtsf
+from ...SimulationResult.Mtsf import MtsfFmi
+from ...SimulationResult.Mtsf import pyMtsf
+from .FMUInterface1 import fmiTrue, fmiFalse
+from .. import SimulatorBase
 
-class Model(Plugins.Simulator.SimulatorBase.Model):
+class Model(SimulatorBase.Model):
     ''' Class to describe a whole "model", including all FMU information
         and some more information that is needed.
     '''
@@ -83,7 +83,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             self.description = self.interface.description
 
         # modelName will not be used, because the modelName of FMIDescription is used
-        Plugins.Simulator.SimulatorBase.Model.__init__(self, self.description.modelName, modelFileName, config)
+        SimulatorBase.Model.__init__(self, self.description.modelName, modelFileName, config)
         self.modelType = 'FMU 1.0 Model Exchange' + ' in FMUSimulator'
 
         # Dummy object to get properties
@@ -103,7 +103,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
     def close(self):
         ''' Closing the model, release of resources
         '''
-        Plugins.Simulator.SimulatorBase.Model.close(self)
+        SimulatorBase.Model.close(self)
         print "Deleting model instance ", self.description.modelName
         self.interface.free()
 
@@ -329,6 +329,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
     def simulate(self):
         ''' The main simulation function
         '''
+
         def prepareResultFile():
             # Prepare result file
             fmi = self.description
@@ -356,7 +357,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
                                modelDescription, modelVariables, experimentSetup, simpleTypes, units, enumerations)
             if not mtsf.isAvailable:
                 print("Result file " + settings.resultFileName + " cannot be opened for write access.\n")
-                self.integrationResults = Plugins.SimulationResult.IntegrationResults.Results()
+                self.integrationResults = IntegrationResults.Results()
                 return False
 
             # Create fmi reference lists in categories
@@ -464,7 +465,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             # Check, if simulation shall be interrupted
             if self.simulationStopRequest:
                 finalize(solver)
-                raise(Plugins.Simulator.SimulatorBase.Stopping)
+                raise(SimulatorBase.Stopping)
 
             # Update integration statistics
             self.integrationStatistics.reachedTime = t
@@ -525,7 +526,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
                 print("terminated by model ... ")
                 # Raise exception to abort simulation...
                 finalize(solver)
-                raise(Plugins.Simulator.SimulatorBase.Stopping)
+                raise(SimulatorBase.Stopping)
 
             # handle_result(solver, solver.t, solver.y) here if your solver does not call it by itself(Assimulo does)
 
@@ -746,7 +747,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
                     variableAttribute += '\nFixed:' + chr(9) + str(v.type.fixed)
             valueEdit = True  # for the moment
             # ----> Here variable of self.variableTree is set (one entry of the dictionary)
-            self.variableTree.variable[vName] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(vName), v.type.start, valueEdit, v.type.unit, v.variability, variableAttribute)
+            self.variableTree.variable[vName] = SimulatorBase.TreeVariable(self.structureVariableName(vName), v.type.start, valueEdit, v.type.unit, v.variability, variableAttribute)
 
 
 class ExplicitEulerSolver():

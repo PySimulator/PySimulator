@@ -35,11 +35,8 @@ import threading
 
 import numpy
 
-from Plugins.Analysis import LinearSystemAnalysis
-from Plugins.Analysis.EigenvalueAnalysis.scatterInspector import \
-    myScatterInspectorOverlay
-from Plugins.Analysis.LinearSystemAnalysis.LinearSystemAnalysis import \
-    linearizeAndShowABCD
+from ..EigenvalueAnalysis.scatterInspector import myScatterInspectorOverlay
+from ..LinearSystemAnalysis.LinearSystemAnalysis import linearizeAndShowABCD
 from PySide import QtGui, QtCore
 from chaco.array_plot_data import ArrayPlotData
 from chaco.axis import PlotAxis
