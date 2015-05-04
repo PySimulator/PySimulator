@@ -236,7 +236,7 @@ def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1
     messerr="""<html> <head> <h2> Sorted by Name </h2> </head> <table> <tr> <th> Name </th> <th> Estimated Tolerance </th> </td> """  
     messtol="""<html> <head> <h2> Sorted by Highest Tolerance Error </h2> </head> <table> <tr> <th> Name </th> <th> Estimated Tolerance </th> </td> """  
     
-    message1= '<a href=' + os.path.relpath(resultfile) + '>' + modelname +'.'+ model1var+'</a>' +' </td>' 
+    message1= '<a href=' + os.path.relpath(resultfile) + '>' + modelname +'-'+ model1var+'</a>' +' </td>' 
     if(len(diff1)==0):
          #emptyhref='<a href="" style="text-decoration:none;">0'+ '(' + str(totalvar) + 'variables)' +'</a>'
          emptyhref='<a href="" style="text-decoration:none;">'+ model2var+'/'+ str(totalComparedvar) +'[' +str(maxEstTol)+ ']' +'</a>'
@@ -548,7 +548,7 @@ def compareListMenu(model, gui):
             self.tolEdit = QtGui.QLineEdit("", self)
             mainGrid.addWidget(self.tolEdit, 3, 1)
 
-            result = QtGui.QLabel("Logging:", self)
+            result = QtGui.QLabel("Result Directory:", self)
             mainGrid.addWidget(result, 4, 0, QtCore.Qt.AlignRight)
             self.resultEdit = QtGui.QLineEdit("", self)
             mainGrid.addWidget(self.resultEdit, 4, 1)
@@ -589,16 +589,18 @@ def compareListMenu(model, gui):
                     self.directory.addItem(dirName)
 
             def _browseResultDo():
-                (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, 'Define Analysis Result File', os.getcwd(), '(*.log);;All Files(*.*)')
-                if fileName != '':
-                    self.resultEdit.setText(fileName)
+                #(fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, 'Define Analysis Result File', os.getcwd(), '(*.log);;All Files(*.*)')
+                dirName = QtGui.QFileDialog().getExistingDirectory(self, 'Select Directory of Results', os.getcwd())
+                dirName = dirName.replace('\\', '/')
+                if dirName != '':
+                    self.resultEdit.setText(dirName)
 
             browseDir1.clicked.connect(_browseDir1Do)
             browseDir2.clicked.connect(_browseDir2Do)
             browseResult.clicked.connect(_browseResultDo)
 
             self.tolEdit.setText('1e-3')
-            self.resultEdit.setText(os.getcwd().replace('\\', '/') + '/CompareAnalysis.log')
+            self.resultEdit.setText(os.getcwd().replace('\\', '/'))
             self.dir1Edit.setText(os.getcwd().replace('\\', '/'))
             #self.dir2Edit.setText(os.getcwd().replace('\\', '/'))
 
@@ -620,7 +622,7 @@ def compareListMenu(model, gui):
             # Get data from GUI
             dir1 = self.dir1Edit.text()
             #dir2 = self.dir2Edit.text()
-            logFile = self.resultEdit.text()
+            logDir = self.resultEdit.text()
             tol = float(self.tolEdit.text())
             
             listdirs=[]
@@ -635,7 +637,7 @@ def compareListMenu(model, gui):
                  
             # Run the analysis
             if (len(listdirs)!=0):
-                gui._compareThreadTesting = runCompareResultsInDirectories(gui.rootDir, dir1, listdirs, tol, logFile)
+                gui._compareThreadTesting = runCompareResultsInDirectories(gui.rootDir, dir1, listdirs, tol, logDir)
             else:
                 print 'Select Directory 2 of results to be added to List of Directory to compare'
                 
@@ -648,7 +650,7 @@ def compareListMenu(model, gui):
             # Get data from GUI
             dir1 = self.dir1Edit.text()
             #dir2 = self.dir2Edit.text()
-            logFile = self.resultEdit.text()
+            logDir = self.resultEdit.text()
             tol = float(self.tolEdit.text())
             
             listdirs=[]
@@ -663,7 +665,7 @@ def compareListMenu(model, gui):
                  
             # Run the analysis
             if (len(listdirs)!=0):
-                gui._compareThreadTesting = runParallelCompareResultsInDirectories(gui.rootDir, dir1, listdirs, tol, logFile)
+                gui._compareThreadTesting = runParallelCompareResultsInDirectories(gui.rootDir, dir1, listdirs, tol, logDir)
             else:
                 print 'Select Directory 2 of results to be added to List of Directory to compare'
                 
@@ -877,7 +879,6 @@ class simulationParallelThread(QtCore.QThread):
     
             #check the subdirectory for empty strings and replace it with 'N' for passing to pool.map(), as it cannot process empty list of strings to multiprocess module
             subdirlist= ["N" if not x else x for x in self.modelList['subDirectory']]
-            
             ## Create a Pool of process and run the Simulation in Parallel
             pool=Pool()
             #startTime = time.time() 
@@ -885,7 +886,7 @@ class simulationParallelThread(QtCore.QThread):
             pool.close()
             pool.join()
             #elapsedTime = time.time() - startTime
-            #print elapsedTime           
+            #print elapsedTime         
         print "Parallel simulation completed"
         self.running = False
             
@@ -979,6 +980,7 @@ def ParallelSimulation(modellists):
        import traceback
        traceback.print_exc(e,file=sys.stderr)
        print e
+       
 
 
 class simulationThread(QtCore.QThread):
@@ -997,7 +999,7 @@ class simulationThread(QtCore.QThread):
             # do nothing, since error message only indicates we are not in debug mode
             pass
         
-
+        #startTime=time.time() 
         for simulator in self.allSimulators:
             simulatorName = simulator.__name__.rsplit('.', 1)[-1]
             fullSimulatorResultPath = self.resultDir + '/' + simulatorName
@@ -1044,6 +1046,7 @@ class simulationThread(QtCore.QThread):
                     haveCOM = True
                 except:
                     pass
+                
                 for i in xrange(len(self.modelList['fileName'])):
                     if self.stopRequest:
                         print "... Simulations canceled."
@@ -1113,12 +1116,13 @@ class simulationThread(QtCore.QThread):
                         pythoncom.CoUninitialize()  # Close the COM library on the current thread
                     except:
                         pass
-
+        #elapsedTime = time.time() - startTime
+        #print elapsedTime   
         print "... running the list of simulations done."
         self.running = False
         
 
-def runCompareResultsInDirectories(PySimulatorPath, dir1, listdirs, tol, logFile):
+def runCompareResultsInDirectories(PySimulatorPath, dir1, listdirs, tol, logDir):
 
     print "Start comparing results ..."
     compare = CompareThread(None)
@@ -1126,21 +1130,21 @@ def runCompareResultsInDirectories(PySimulatorPath, dir1, listdirs, tol, logFile
     compare.dir1 = dir1
     compare.listdirs= listdirs
     compare.tol = tol
-    compare.logFile = logFile
+    compare.logDir = logDir
     compare.stopRequest = False
     compare.running = False
     compare.start()
     return compare
 
 
-def runParallelCompareResultsInDirectories(PySimulatorPath, dir1, listdirs, tol, logFile):
+def runParallelCompareResultsInDirectories(PySimulatorPath, dir1, listdirs, tol, logDir):
     print "Start Parallel comparison results ..."
     compare = CompareParallelThread(None)
     compare.PySimulatorPath=PySimulatorPath
     compare.dir1 = dir1
     compare.listdirs= listdirs
     compare.tol = tol
-    compare.logFile = logFile
+    compare.logDir = logDir
     compare.stopRequest = False
     compare.running = False
     compare.start()
@@ -1155,15 +1159,18 @@ class CompareParallelThread(QtCore.QThread):
       self.running = True
       
       ### create a new subdirectory if the user specifies in the directory of results in the GUI ###
-      subdir=os.path.dirname(self.logFile)
+      subdir=self.logDir
       if not os.path.exists(subdir): 
             os.mkdir(subdir)
       
       ### copy the dygraph script from /Plugins/Analysis/Testing/ to the result directory ###      
       dygraphpath=os.path.join(self.PySimulatorPath, 'Plugins/Analysis/Testing/dygraph-combined.js').replace('\\','/')
       if os.path.exists(dygraphpath):     
-          shutil.copy(dygraphpath,os.path.dirname(self.logFile))
-     
+          shutil.copy(dygraphpath,self.logDir)
+      
+      ## create a temp file for writing results and use it later to generate the regression report
+      self.logFile=os.path.join(self.logDir,'Index.log').replace('\\','/')
+
       resultfilesize=[]    
       logfiles=[]   
       list1dir=[]
@@ -1380,15 +1387,15 @@ class CompareThread(QtCore.QThread):
       encoding = sys.getfilesystemencoding()
       
       ### create a new subdirectory if the user specifies in the directory of results in the GUI ###
-      subdir=os.path.dirname(self.logFile)
+      subdir=self.logDir
       if not os.path.exists(subdir): 
           os.mkdir(subdir)
             
       ### copy the dygraph script from /Plugins/Analysis/Testing/ to the result directory ###      
       dygraphpath=os.path.join(self.PySimulatorPath, 'Plugins/Analysis/Testing/dygraph-combined.js').replace('\\','/')
       if os.path.exists(dygraphpath):     
-          shutil.copy(dygraphpath,os.path.dirname(self.logFile))
-           
+          shutil.copy(dygraphpath,self.logDir)
+          
       resultfilesize=[]   
       dir1 = self.dir1
       ## calculate the size of directory for regression report
@@ -1397,6 +1404,9 @@ class CompareThread(QtCore.QThread):
       
       listdirs=self.listdirs
       files1 = os.listdir(dir1) 
+      
+      ## create a temp file for writing results and use it later to generate the regression report
+      self.logFile=os.path.join(self.logDir,'Index.log').replace('\\','/')
       
       fileOut = open(self.logFile, 'w')
       startTime = time.time()
@@ -1665,9 +1675,11 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
         failfiles=[]
         for z in xrange(len(hname)):
           d=str(hname[z].string).split('/')
-          passfiles.append(int(d[0][0]))
-          failfiles.append(int(d[1][0])) 
-         
+          passednumber=str(d[0]).split('passed')
+          failednumber=str(d[1]).split('failed')
+          passfiles.append(int(passednumber[0]))
+          failfiles.append(int(failednumber[0])) 
+               
         p1=int(sum(passfiles))+int(sum(failfiles))
         p2=int(sum(passfiles))*100/p1
         pstatus.append(str(p2))
@@ -1707,10 +1719,10 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
       if(i%2==0):
          x=get_column(i,hreflist)
          x1=x[0].find('a').string
-         y=x1.split('.')
+         y=x1.split('-')
          #href='<a href='+os.path.basename(logfile)+'>'+ x1 +'</a>'         
          #s='\n'.join(['<tr>','<td>',href,'</td>'])
-         s='\n'.join(['<tr>','<td>',str(y[0]),'</td>','<td id=status>','</td>','<td>',str(y[1]),'</td>'])
+         s='\n'.join(['<tr>','<td>',str(y[0]),'</td>','<td id=status>','</td>','<td>',str(y[-1]),'</td>'])
          f.write(s)
          f.write('\n')
          
