@@ -297,7 +297,7 @@ class FMUsListModel(QtCore.QAbstractItemModel):
 class ConnectFMUsDialog(QtGui.QDialog):
 
     def __init__(self, gui, fmuType, setupfile=None):
-        QtGui.QDialog.__init__(self)
+        QtGui.QDialog.__init__(self, gui)
         self.setMinimumWidth(500)
 
         self._fmuType = fmuType
@@ -373,7 +373,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
         horizontalLayout = QtGui.QHBoxLayout()
         horizontalLayout.addWidget(self._saveToFile, 0, QtCore.Qt.AlignLeft)
         horizontalLayout.addWidget(navigationButtonBox, 0, QtCore.Qt.AlignRight)
-        # set the widget layout
+        # set the dialog layout
         mainLayout = QtGui.QGridLayout()
         mainLayout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
         mainLayout.addWidget(QtGui.QLabel(self.tr("List of FMUs:")), 0, 0)
@@ -393,7 +393,12 @@ class ConnectFMUsDialog(QtGui.QDialog):
              ## Add fmu's to list with correct instance from xmlsetup
              for fmu in root.iter('fmu'):
                  location = fmu.get('path')
-                 fmuName=fmu.get('name')
+                 fmuName = fmu.get('name')
+                 # if fmu paths are relative then make them absolute properly
+                 fmuFileInfo = QtCore.QFileInfo(location)
+                 setupFileInfo = QtCore.QFileInfo(self._setupfile)
+                 if fmuFileInfo.isRelative():
+                     location = setupFileInfo.absolutePath() + '/' + location
                  self._fmusListModel.addFMU(location, fmuName)
                  self._fmusTableView.resizeColumnsToContents()
 
@@ -433,7 +438,6 @@ class ConnectFMUsDialog(QtGui.QDialog):
             self.setWindowTitle("Connect FMUs for Model Exchange")
         elif self._fmuType == 2:
             self.setWindowTitle("Connect FMUs for Co-Simulation")
-        self.setWindowIcon(QtGui.QIcon(gui.rootDir + '/Icons/pysimulator.ico'))
 
     def addFMUFile(self):
         (fileNames, trash) = QtGui.QFileDialog().getOpenFileNames(self, 'Open File', os.getcwd(), '(*.fmu)')
@@ -483,7 +487,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
         if (fromFMU is None or inputVar is None or toFMU is None or outputVar is None):
             pass
         else:
-          if(fromFMU!=toFMU): 
+          if(fromFMU!=toFMU):
             if(inputVar['type']==outputVar['type']):
                if(inputVar['causality']!=outputVar['causality']):
                   if self._connectionsListModel.addConnection(fromFMU, inputVar, toFMU, outputVar):
@@ -494,7 +498,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
                else:
                  causalitymismatch="Invalid connection of component"+' '+str(inputVar['causality'])+' '+'connected to' +' '+str(outputVar['causality'])
                  QtGui.QMessageBox().information(self, self.tr("causality Mismatch"),
-                              self.tr(causalitymismatch), QtGui.QMessageBox.Ok)                
+                              self.tr(causalitymismatch), QtGui.QMessageBox.Ok)
             else:
                  typemismatch="Invalid connection of type"+' '+str(inputVar['type'])+' '+'to'+' '+str(outputVar['type'])
                  QtGui.QMessageBox().information(self, self.tr("Type Mismatch"),
@@ -502,7 +506,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
           else:
                  QtGui.QMessageBox().information(self, self.tr("Type Mismatch"),
                               self.tr("Algebraic Loop: Components of same instance should not be connected "), QtGui.QMessageBox.Ok)
-                        
+
     def removeFromToConnection(self):
         i = 0
         while i < len(self._connectionsTableView.selectedIndexes()):
@@ -580,7 +584,7 @@ def StartSimulation(gui,xml):
    if True:
       import configobj
       config = configobj.ConfigObj(os.path.join(os.path.expanduser("~"), '.config', 'PySimulator', 'PySimulator.ini'), encoding='utf8')
-      
+
       instancename=[]
       filename=[]
       for z in xrange(len(connected_components)):
@@ -598,8 +602,8 @@ def StartSimulation(gui,xml):
              name=fmu.get('name')
              filename.append(file)
              instancename.append(name)
-             
-      model=ConnectedFMUSimulation.Model(instancename, filename, config)
+
+      model=ConnectedFMUSimulation.Model(instancename, filename, config, xml)
       gui._newModel(model)
 
    else:
@@ -795,3 +799,12 @@ def getModelCallbacks():
         containing a name for the function and a function pointer
     '''
     return [["New connected FMU for Model Exchange...", NewConnectME], ["New connected FMU for CoSimulation...", NewConnectCS], ["Open connected FMU...", OpenConnectFMU],["Settings...", Settings]]
+
+def export(model1, model2, gui):
+    if (model1.modelType <> 'Connected FMU Simulation'):
+        print 'Functionality is only available for connected FMUs.'
+        return
+    model1.export(gui)
+
+def getModelMenuCallbacks():
+    return [["Export", export]]

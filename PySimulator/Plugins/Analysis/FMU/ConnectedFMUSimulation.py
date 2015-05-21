@@ -1,36 +1,97 @@
-import getpass
-from operator import itemgetter
 import os
-import time
-import types
 import numpy
-import FMU
-import Plugins.Simulator.FMUSimulator.FMIDescription1 as FMIDescription
 import Plugins.Simulator.FMUSimulator.FMUInterface1 as FMUInterface
-from Plugins.Algorithms.Integrator.Sundials.AssimuloIntegrators import AssimuloCVode, AssimuloIda
 import Plugins.SimulationResult.IntegrationResults
 import Plugins.SimulationResult.Mtsf.Mtsf as Mtsf
-import Plugins.SimulationResult.Mtsf.MtsfFmi as MtsfFmi
-import Plugins.SimulationResult.Mtsf.pyMtsf as pyMtsf
-from Plugins.Simulator.FMUSimulator.FMUInterface1 import fmiTrue, fmiFalse
 import Plugins.Simulator.SimulatorBase
+from PySide import QtGui, QtCore
+from datetime import datetime
+import codecs
+import xml.etree.ElementTree as ET
 
+class ExportConnectFMUsDialog(QtGui.QDialog):
+
+    def __init__(self, xml, gui):
+        QtGui.QDialog.__init__(self, gui)
+        self.setWindowTitle("Export Connect FMUs")
+
+        self._xml = xml
+        # add export directory
+        exportDirLabel = QtGui.QLabel(self.tr("Export Directory:"))
+        self._exportDirTextBox = QtGui.QLineEdit()
+        browseExportDirButton = QtGui.QPushButton(self.tr("Browse"))
+        browseExportDirButton.clicked.connect(self.browseExportDirectory)
+        # ok and cancel buttons
+        okButton = QtGui.QPushButton(self.tr("OK"))
+        okButton.clicked.connect(self.exportConnectFMUs)
+        cancelButton = QtGui.QPushButton(self.tr("Cancel"))
+        cancelButton.clicked.connect(self.reject)
+        # add the buttons to button box
+        buttonsBox = QtGui.QDialogButtonBox(QtCore.Qt.Horizontal)
+        buttonsBox.addButton(okButton, QtGui.QDialogButtonBox.ActionRole)
+        buttonsBox.addButton(cancelButton, QtGui.QDialogButtonBox.ActionRole)
+        # set the dialog layout
+        mainLayout = QtGui.QGridLayout()
+        mainLayout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+        mainLayout.addWidget(exportDirLabel, 0, 0)
+        mainLayout.addWidget(self._exportDirTextBox, 0, 1)
+        mainLayout.addWidget(browseExportDirButton, 0, 2)
+        mainLayout.addWidget(buttonsBox, 1, 0, 1, 3, QtCore.Qt.AlignRight)
+        self.setLayout(mainLayout)
+
+    def browseExportDirectory(self):
+        directoryName = QtGui.QFileDialog().getExistingDirectory(self, self.tr("Choose Export Directory"), os.getcwd())
+        directoryName = directoryName.replace('\\', '/')
+        self._exportDirTextBox.setText(directoryName)
+
+    def exportConnectFMUs(self):
+        exportDirectory = self._exportDirTextBox.text() + '/connectedFMUs' + datetime.now().strftime('%Y%m%d%H%M%S')
+        if not QtCore.QDir().mkpath(exportDirectory):
+            print "Unable to create the path %s" % exportDirectory
+            return
+
+        # read the xml to know the FMUs locations and then copy them
+        rootElement = ET.fromstring(self._xml)
+        for fmu in rootElement.iter('fmu'):
+            fmuPath = fmu.get('path')
+            fmuFile = QtCore.QFile(fmuPath)
+            if fmuFile.exists():
+                fmuFileInfo = QtCore.QFileInfo(fmuPath)
+                fmuFile.copy(exportDirectory + '/' + fmuFileInfo.fileName())
+                fmu.set('path', fmuFileInfo.fileName())
+
+        # pretty print the xml
+        xml = ET.tostring(rootElement, "utf-8")
+        xml = '<?xml version="1.0" ?>\n' + xml
+
+        # write the updated xml to a file in the new exported directory
+        try:
+            xmlFile = codecs.open(exportDirectory + '/connectFMUs.xml', "w", "utf-8")
+            xmlFile.write(xml)
+            xmlFile.close()
+        except IOError, e:
+            print "Failed to write the xml file. %s" % e
+            return
+
+        print 'Files exported to %s' % exportDirectory
+        self.accept()
 
 class Model(Plugins.Simulator.SimulatorBase.Model):
-    
-    def __init__(self, instancename=None, modelFileName=None, config=None, loggingOn=False):
+
+    def __init__(self, instancename=None, modelFileName=None, config=None, xml=None, loggingOn=False):
          ''' ModelFilename are list of strings '''
-         
+
          self._interfaceinstance=[]
          self._descriptioninstance=[]
+         self._xml = xml
          for i in xrange(len(modelFileName)):
             self.interface = FMUInterface.FMUInterface(modelFileName[i], self, loggingOn, 'ConnectedFmu',instancename[i])
             self.description = self.interface.description
             self._interfaceinstance.append(self.interface)
             self._descriptioninstance.append(self.description)
-            
+
          Plugins.Simulator.SimulatorBase.Model.__init__(self, 'ConnectedFMUS', [], config)
-         self.modelType = 'Connected FMU Simulation ' + ' in FMUSimulator'
+         self.modelType = 'Connected FMU Simulation'
          self._availableIntegrationAlgorithms = ["BDF (IDA, Dassl like)", "BDF (CVode)", "Adams (CVode)", "Explicit Euler (fixed step size)"]
          self._IntegrationAlgorithmHasFixedStepSize = [False, False, False, True]
          self._IntegrationAlgorithmCanProvideStepSizeResults = [True, True, True, True]
@@ -39,16 +100,16 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
          self.integrationSettings.resultFileExtension = 'mtsf'
          self.integrationSettings.algorithmName = self._availableIntegrationAlgorithms[0]
          self.simulationStopRequest = False
-    
+
     def close(self):
         ''' Closing the model, release of resources
         '''
         Plugins.Simulator.SimulatorBase.Model.close(self)
         print "Deleting model instance"
-    
+
     def simulate(self):
         pass
-        
+
     def getAvailableIntegrationAlgorithms(self):
         return self._availableIntegrationAlgorithms
 
@@ -59,18 +120,18 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         return self._IntegrationAlgorithmCanProvideStepSizeResults[self._availableIntegrationAlgorithms.index(algorithmName)]
 
     def getIntegrationAlgorithmSupportsStateEvents(self, algorithmName):
-        return self._IntegrationAlgorithmSupportsStateEvents[self._availableIntegrationAlgorithms.index(algorithmName)]    
-        
+        return self._IntegrationAlgorithmSupportsStateEvents[self._availableIntegrationAlgorithms.index(algorithmName)]
+
     def setVariableTree(self):
       #Sets the variable tree to be displayed in the variable browser.
       #The data is set in self.variableTree that is an instance of the class SimulatorBase.VariableTree
 
       self.description=self._descriptioninstance
-      
+
       for i in xrange(len(self.description)):
         for vName, v in self.description[i].scalarVariables.iteritems():
             #text=(self.description[i].modelName).split('.')
-            #text=(self.description[i].modelName).replace('.','')                      
+            #text=(self.description[i].modelName).replace('.','')
             #varname=text+'.'+vName
             variableAttribute = ''
             if v.description is not None:
@@ -110,7 +171,11 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             valueEdit = True  # for the moment
             # ----> Here variable of self.variableTree is set (one entry of the dictionary)
             self.variableTree.variable[vName] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(vName), v.type.start, valueEdit, v.type.unit, v.variability, variableAttribute)
-        
+
+    def export(self, gui):
+        exportconnectedFMUsDialog = ExportConnectFMUsDialog(self._xml, gui)
+        exportconnectedFMUsDialog.exec_()
+
 class ExplicitEulerSolver():
     '''
         Integration method: Explicit Euler with event handling (without rootfinding)
