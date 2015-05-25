@@ -78,12 +78,13 @@ class ExportConnectFMUsDialog(QtGui.QDialog):
 
 class Model(Plugins.Simulator.SimulatorBase.Model):
 
-    def __init__(self, instancename=None, modelFileName=None, config=None, xml=None, loggingOn=False):
+    def __init__(self, instancename=None, modelFileName=None, config=None, xml=None, xmlFileName=None, loggingOn=False):
          ''' ModelFilename are list of strings '''
 
          self._interfaceinstance=[]
          self._descriptioninstance=[]
          self._xml = xml
+         self._xmlFileName = xmlFileName
          for i in xrange(len(modelFileName)):
             self.interface = FMUInterface.FMUInterface(modelFileName[i], self, loggingOn, 'ConnectedFmu',instancename[i])
             self.description = self.interface.description
@@ -175,6 +176,23 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
     def export(self, gui):
         exportconnectedFMUsDialog = ExportConnectFMUsDialog(self._xml, gui)
         exportconnectedFMUsDialog.exec_()
+
+    def save(self, gui):
+        if self._xmlFileName is None:
+            (fileName, trash) = QtGui.QFileDialog().getSaveFileName(gui, gui.tr("Save file"), os.getcwd(), '(*.xml)')
+            if fileName == '':
+                return
+            self._xmlFileName = fileName
+        else:
+            fileName = self._xmlFileName
+
+        if fileName is not None:
+          try:
+            xmlFile = codecs.open(fileName, "w", "utf-8")
+            xmlFile.write(self._xml)
+            xmlFile.close()
+          except IOError, e:
+            print "Failed to write the xml file. %s" % e
 
 class ExplicitEulerSolver():
     '''

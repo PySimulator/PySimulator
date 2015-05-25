@@ -312,7 +312,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
         self._fmusTableView.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         self._fmusTableView.setModel(self._fmusListModel)
         # add the fmu buttons to button box
-        addFmuButton = QtGui.QPushButton(self.tr("Add FMU"))
+        addFmuButton = QtGui.QPushButton(self.tr("Add FMU(s)"))
         addFmuButton.clicked.connect(self.addFMUFile)
         # input & output comboboxes
         self._fromFMUsComboBox = QtGui.QComboBox()
@@ -518,12 +518,13 @@ class ConnectFMUsDialog(QtGui.QDialog):
     def saveConnectionsXML(self):
         if (self._saveToFile.isChecked() and self._saveToFile.isEnabled()):
             (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, self.tr("Save file"), os.getcwd(), '(*.xml)')
-
+            if fileName == '':
+                return
         else:
             if self._setupfile is not None:
                fileName = self._setupfile
             else:
-               fileName = ''
+               fileName = None
 
         xmlTemplate = '<?xml version="1.0" encoding="utf-8"?><connectedFmus></connectedFmus>'
         rootElement = ET.fromstring(xmlTemplate)
@@ -541,18 +542,18 @@ class ConnectFMUsDialog(QtGui.QDialog):
         # pretty print the xml
         xml = prettify(rootElement)
 
-        if fileName:
+        if fileName is not None:
           try:
             xmlFile = codecs.open(fileName, "w", "utf-8")
             xmlFile.write(xml)
             xmlFile.close()
-            self.accept()
           except IOError, e:
             print "Failed to write the xml file. %s" % e
 
-        StartSimulation(self._gui,xml)
+        self.accept()
+        StartSimulation(self._gui, xml, fileName)
 
-def StartSimulation(gui,xml):
+def StartSimulation(gui, xml, xmlFileName):
    ###  Main function which starts the Simulation of Connected FMUS ###
 
    ## Parse the xml-setup and find the connection order from the connection tag as defined by the user
@@ -603,7 +604,7 @@ def StartSimulation(gui,xml):
              filename.append(file)
              instancename.append(name)
 
-      model=ConnectedFMUSimulation.Model(instancename, filename, config, xml)
+      model=ConnectedFMUSimulation.Model(instancename, filename, config, xml, xmlFileName)
       gui._newModel(model)
 
    else:
@@ -806,5 +807,11 @@ def export(model1, model2, gui):
         return
     model1.export(gui)
 
+def save(model1, model2, gui):
+    if (model1.modelType <> 'Connected FMU Simulation'):
+        print 'Functionality is only available for connected FMUs.'
+        return
+    model1.save(gui)
+
 def getModelMenuCallbacks():
-    return [["Export", export]]
+    return [["Export", export], ["Save", save]]
