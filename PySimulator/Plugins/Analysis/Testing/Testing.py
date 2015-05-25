@@ -167,7 +167,7 @@ def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdou
                         ## sort the differed variable by name        
                         diff1=sorted(diff2)
                         ## sort the differed variable by highest error        
-                        difftol=y=sorted(diff3,key=lambda x: x[1],reverse=True)
+                        difftol=sorted(diff3,key=lambda x: x[1],reverse=True)
 
                         '''Pass the numpy matrix data to generate the html graph in the browser'''        
                         if htmlfile is not None:
@@ -1200,7 +1200,7 @@ class CompareParallelThread(QtCore.QThread):
       for i in xrange(len(logfiles1)):
           dir_name=os.path.dirname(logfiles1[i])
           filename=os.path.basename(logfiles1[i])
-          newlogfile=str(i)+filename
+          newlogfile=str(i)+'_'+filename
           newlogfilepath=os.path.join(dir_name,newlogfile).replace('\\','/')
           resultfiles.append(newlogfilepath)
           dircount.append(i)
@@ -1523,7 +1523,7 @@ class CompareThread(QtCore.QThread):
         
         newpath=os.path.dirname(logfile1)
         name=os.path.basename(logfile1)
-        newname=''.join([str(dircount),name])
+        newname=''.join([str(dircount),'_',name])
         np1=os.path.join(newpath,'rfiles').replace('\\','/')
         np2=os.path.join(np1,newname).replace('\\','/')
         
@@ -1543,7 +1543,7 @@ class CompareThread(QtCore.QThread):
       ## remove the temporary rfiles directory after the Regression report generated
       regressionfilesdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
       if os.path.exists(regressionfilesdir): 
-         shutil.rmtree(regressionfilesdir)    
+         shutil.rmtree(regressionfilesdir)   
          
       self.running = False
 
@@ -1586,13 +1586,15 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
   dir2=os.path.join(dir1,'rfiles').replace('\\','/')
   if(os.path.isdir(dir2)):
     files=os.listdir(dir2)
+    ## sort the files to maintain the order of execution when reading from directory 
+    sortedfiles = sorted(files, key=lambda x: int(x.split('_')[0]))
     percent=[]
     header=[]
     hreflist=[]
     dirname=[]
-    for i in xrange(len(files)):
+    for i in xrange(len(sortedfiles)):
          os.chdir(dir2)      
-         soup = BeautifulSoup(open(files[i]))
+         soup = BeautifulSoup(open(sortedfiles[i]))
          h=soup.find_all('td',{"id":1})
          per=soup.find_all('td',{"id":100})
          data=soup.find_all('td',{"id":2})
