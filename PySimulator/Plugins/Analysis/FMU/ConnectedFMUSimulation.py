@@ -78,9 +78,8 @@ class ExportConnectFMUsDialog(QtGui.QDialog):
 
 class Model(Plugins.Simulator.SimulatorBase.Model):
 
-    def __init__(self, instancename=None, modelFileName=None, config=None, xml=None, xmlFileName=None, loggingOn=False):
+    def __init__(self, instancename=None, modelFileName=None, config=None, xml=None, xmlFileName=None, independentfmus=None, loggingOn=False):
          ''' ModelFilename are list of strings '''
-
          self._interfaceinstance=[]
          self._descriptioninstance=[]
          self._xml = xml

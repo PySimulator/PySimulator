@@ -569,10 +569,14 @@ def StartSimulation(gui, xml, xmlFileName):
    for connection in root.iter('connection'):
       fromFMU=connection.get('fromFmuName')
       toFMU=connection.get('toFmuName')
-      graph[fromFMU] = [toFMU]
-
+      True=graph.has_key(fromFMU)
+      if True:
+         graph[fromFMU].append(toFMU)
+      else:
+         graph[fromFMU] = [toFMU]
    ## Provide the the graph edges to find the strongly connected components using tarjan's algorithm
    connected_components = StronglyConnectedComponents(graph)
+   print 'order',connected_components
    #print connected_components
    ## Check for Algebraic loops  ##
    Algebraic_loops=[]
@@ -585,7 +589,8 @@ def StartSimulation(gui, xml, xmlFileName):
    if True:
       import configobj
       config = configobj.ConfigObj(os.path.join(os.path.expanduser("~"), '.config', 'PySimulator', 'PySimulator.ini'), encoding='utf8')
-
+      
+      independentfmus=[]
       instancename=[]
       filename=[]
       for z in xrange(len(connected_components)):
@@ -597,14 +602,15 @@ def StartSimulation(gui, xml, xmlFileName):
               if (len(checkname)==0):
                  filename.insert(0,fmu.get('path'))
                  instancename.insert(0,fmu.get('name'))
+                 independentfmus.append(fmu.get('path'))
            ## condition to create FMUS instance in the order obtained from tarjans algorithm
            if (connected_components[z][0]==fmuname):
              file=fmu.get('path')
              name=fmu.get('name')
              filename.append(file)
              instancename.append(name)
-
-      model=ConnectedFMUSimulation.Model(instancename, filename, config, xml, xmlFileName)
+ 
+      model=ConnectedFMUSimulation.Model(instancename, filename, config, xml, xmlFileName,independentfmus)
       gui._newModel(model)
 
    else:
