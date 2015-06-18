@@ -1772,26 +1772,30 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
 
     totalvar[0].string="<b>Total number of Compared Variables:</b>"+str(sum(comparevar))+'('+str(sum(comparevar)-sum(differedvar))+'passed'+','+str(sum(differedvar))+'failed)'
     ressize[0].string="<b>Disk space of full report directory:</b>"+str(resultsize)+' '+'MB'
- 
+    
     ## condition for updating the percentage status and color code in first and  second row
-    if(pstatus[0]==100):
-      ## green color
+    colorpercent=int(pstatus[0])
+    
+    ## green color
+    if(colorpercent==100):   
       hst[0]['bgcolor']="#00FF00"
       hst[0].string=hstatus[0]
       pst[0]['bgcolor']="#00FF00"
-      pst[0].string=pstatus[0]+'%'
-    else:
-      ## orange color
+      pst[0].string=str(colorpercent)+'%'
+    
+    ## orange color
+    if(colorpercent>=51 and colorpercent<=99):
       hst[0]['bgcolor']="#FFA500"
       hst[0].string=hstatus[0]
       pst[0]['bgcolor']="#FFA500"
-      pst[0].string=pstatus[0]+'%'      
+      pst[0].string=str(colorpercent)+'%' 
+      
     ## red color
-    if(pstatus[0]<=50):
+    if(colorpercent<=50):
        hst[0]['bgcolor']="#FF0000"
        hst[0].string=hstatus[0]
        pst[0]['bgcolor']="#FF0000"
-       pst[0].string=pstatus[0]+'%'
+       pst[0].string=str(colorpercent)+'%'
     
     ## loop for updating the status and color code of individual files in different directory, row comparison
     for i in xrange(len(dat)):
@@ -1801,11 +1805,10 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
           ## green color
           dat[i]['bgcolor']="#00FF00"
           dat[i].string=d[0]+'/'+d[1]
-        else:
+        if(percentage>=51 and percentage<=99):
           ## orange color
           dat[i]['bgcolor']="#FFA500"
-          dat[i].string=d[0]+'/'+d[1]
-    
+          dat[i].string=d[0]+'/'+d[1]   
         if (percentage<=50):
           ## red color
           dat[i]['bgcolor']="#FF0000"
