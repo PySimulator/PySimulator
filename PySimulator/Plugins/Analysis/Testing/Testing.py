@@ -1609,15 +1609,15 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
     logfile1=logfile.replace(fileExtension,'.html')    
     f=open(logfile1,'w') 
     date_time_info = datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
-    date_time_info1 =' '.join(['<p>','<b>Generated:</b>',date_time_info,'</p>'])
-    tolerance=' '.join(['<p> <b>Given Error tolerance: </b> 1e-3 </p>'])
-    diskspace=' '.join(['<p> <b>Disk space of all used result files: </b>',str(resultdirsize),' ','MB','</p>'])
-    dircount=' '.join(['<p>','<b>Total number of compared files:</b>',str(int(totaldir)*int(filecount)),'against',str(filecount),'baseline files','</p>']) 
-    comparedvariable=' '.join(['<p id=var> </p>'])
-    resultspace=' '.join(['<p id=resultdir> </p>'])    
+    date_time_info1 =' '.join(['<tr>','<td>','<b>Generated </td>','<td> <b>:</b>',date_time_info,'</td>','</tr>'])
+    tolerance=' '.join(['<tr>','<td> <b>Given Error Tolerance </b> </td>','<td><b>:</b>','1e-3','</td>','</tr>'])
+    diskspace=' '.join(['<tr>','<td> <b>Disk space of all used result files </b> </td>','<td><b>:</b>',str(resultdirsize),' ','MB','</td>','</tr>'])
+    dircount=' '.join(['<tr>','<td><b>Total number of compared files </b></td>','<td><b>:</b>',str(int(totaldir)*int(filecount)),'against',str(filecount),'baseline files','</td>','</tr>']) 
+    comparedvariable=' '.join(['<tr>','<td> <b>Total number of Compared Variables </b> </td>', '<td id=var> </td>','</tr>'])
+    resultspace=' '.join(['<tr>','<td> <b>Disk space of full report directory </b> </td>','<td id=resultdir> </td>','</tr>'])    
     #filecounts=' '.join(['<h4>','Number of Files Compared:',str(filecount),'</h4>'])
     
-    TotalTime =' '.join(['<p>','<b>Time Taken:</b>',time.strftime("%Hh:%Mm:%Ss", time.gmtime(Time)),'</p>'])
+    TotalTime =' '.join(['<tr>','<td>','<b>Time Taken</b></td>','<td><b>:</b>',time.strftime("%Hh:%Mm:%Ss", time.gmtime(Time)),'</td>','</tr>'])
 
     m1='''<body>
     <style>
@@ -1641,7 +1641,7 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
     <p><font style="background-color:#FFA500">Orange</font> <br> *Per column or row: &gt;50% and &lt;100% of the corresponding files passed the test <br> *Total: &gt;50% and &lt; 100% of all files passed the test</p> </fieldset> </a>
     <p align="center"><a href="Index.html">Return</a></p>'''
 
-    s='\n'.join(['<html>',m1,head,'<nav>',tolerance,diskspace,dircount,comparedvariable,resultspace,date_time_info1,TotalTime,'</nav>',colorlegend,'<footer>','<table>','<tr>','<th id=0>','Result Files','</th>','<th id=0>','Status','</th>''<th id=0>',os.path.basename(baselinedir),'</th>'])
+    s='\n'.join(['<html>',m1,head,'<nav>','<table>',tolerance,diskspace,dircount,comparedvariable,resultspace,date_time_info1,TotalTime,'</table>','</nav>',colorlegend,'<footer>','<table>','<tr>','<th id=0>','Result Files','</th>','<th id=0>','Status','</th>''<th id=0>',os.path.basename(baselinedir),'</th>'])
     f.write(s)
     f.write('\n')
     
@@ -1767,11 +1767,11 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
     dat=stat.find_all('td',{"id":"status"})
     hst=stat.find_all('td',{"id":"hstatus"})
     pst=stat.find_all('td',{"id":"pstatus"})
-    totalvar=stat.find_all('p',{"id":"var"})
-    ressize=stat.find_all('p',{"id":"resultdir"})
+    totalvar=stat.find_all('td',{"id":"var"})
+    ressize=stat.find_all('td',{"id":"resultdir"})
 
-    totalvar[0].string="<b>Total number of Compared Variables:</b>"+str(sum(comparevar))+'('+str(sum(comparevar)-sum(differedvar))+'passed'+','+str(sum(differedvar))+'failed)'
-    ressize[0].string="<b>Disk space of full report directory:</b>"+str(resultsize)+' '+'MB'
+    totalvar[0].string='<b>:</b>'+' '+str(sum(comparevar))+' ('+str(sum(comparevar)-sum(differedvar))+' passed'+','+str(sum(differedvar))+' failed)'
+    ressize[0].string='<b>:</b>'+' '+str(resultsize)+' '+'MB'
     
     ## condition for updating the percentage status and color code in first and  second row
     colorpercent=int(pstatus[0])
