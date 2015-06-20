@@ -37,6 +37,7 @@ import datetime
 from PySide import QtGui, QtCore
 from ... import Simulator 
 from ... import SimulationResult
+from decimal import Decimal
 from multiprocessing import Pool
 
 def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdout, filewritehtml=None,resultfile=None,htmlfile=None,file1=None):
@@ -231,7 +232,7 @@ def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1
     reference='<tr> <td> <b>Directory 1(reference)</b> </td>'+'<td>'+'<b>:</b>'+os.path.dirname(file1)+'</td></tr>'
     comparison='<tr> <td> <b>Directory 2(comparison)</b> </td>'+'<td>'+'<b>:</b>'+os.path.dirname(file)+'</td></tr>'
     comparedmodel='<tr> <td> <b>Compared Result file </b> </td>'+ '<td>'+'<b>:</b>'+os.path.basename(file)+'</td></tr>'
-    
+    maxEstTol="{:.1e}".format(Decimal(maxEstTol))
     messcommon="""<html> <head> <h2> List of Differed variables </h2> </head> <table>"""
     messerr="""<html> <head> <h2> Sorted by Name </h2> </head> <table> <tr> <th> Name </th> <th> Estimated Tolerance </th> </td> """  
     messtol="""<html> <head> <h2> Sorted by Highest Tolerance Error </h2> </head> <table> <tr> <th> Name </th> <th> Estimated Tolerance </th> </td> """  
@@ -239,8 +240,9 @@ def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1
     message1= '<a href=' + os.path.relpath(resultfile) + '>' + modelname +'-'+ model1var+'</a>' +' </td>' 
     if(len(diff1)==0):
          #emptyhref='<a href="" style="text-decoration:none;">0'+ '(' + str(totalvar) + 'variables)' +'</a>'
-         emptyhref='<a href="" style="text-decoration:none;">'+ model2var+'/'+ str(totalComparedvar) +'[' +str(maxEstTol)+ ']' +'</a>'
-         s = '\n'.join(['<tr>','<td id=2>',message1,'<td id=2 bgcolor=#00FF00>',emptyhref,'</td>','</tr>']) 
+         #emptyhref='<a href="" style="text-decoration:none;">'+ model2var+' / '+ str(totalComparedvar) +' [' +str(maxEstTol)+ ']' +'</a>'
+         emptyhref= model2var+' / '+ str(totalComparedvar) +' [' +str(maxEstTol)+ ']' 
+         s = '\n'.join(['<tr>','<td id=2>',message1,'<td id=2 bgcolor=#00FF00 align="center">',emptyhref,'</td>','</tr>']) 
          fileouthtml.write(s)
          fileouthtml.write('\n')   
     
@@ -292,8 +294,8 @@ def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1
          
          
          #diff = '<a href='+ os.path.relpath(fileerror) +'>'+str(len(diff1))+'</a>'+ '(' + str(totalvar) +'variables)' + '[' +str(maxEstTol)+ ']' +'</td>'+'</tr>'      
-         diff = model2var + '/' + str(totalComparedvar)+ '/' + '<a href='+ os.path.relpath(filecommon) +'>'+str(len(diff1))+'</a>'+ '[' +str(maxEstTol)+ ']' +'</td>'+'</tr>'
-         s = '\n'.join(['<tr>','<td id=2>',message1,'<td id=2 bgcolor=#FF0000>',diff])            
+         diff = model2var + ' / ' + str(totalComparedvar)+ ' / ' + '<a href='+ os.path.relpath(filecommon) +'>'+str(len(diff1))+'</a>'+ ' [' +str(maxEstTol)+ ']' +'</td>'+'</tr>'
+         s = '\n'.join(['<tr>','<td id=2>',message1,'<td id=2 bgcolor=#FF0000 align="center">',diff])            
          fileouthtml.write(s)
          fileouthtml.write('\n')
    
@@ -1330,16 +1332,16 @@ def ParallelCompareAnalysis(directories):
         message='\n'.join(['<html>',m1])
         f=open(logfile1,'w')
         if len(red)==0:
-            m1='<tr><td></td><td id=1 bgcolor=#00FF00>'+ str(len(green))+'passed'+'/'+str(len(red))+'failed'+'</td></tr>'
-            percentage=str((len(green))*100/(len(green)+len(red)))+'%'+'passed'
-            m2='<tr><td></td><td id=100 bgcolor=#00FF00>'+percentage+'</td></tr>'
+            m1='<tr><td></td><td id=1 bgcolor=#00FF00 align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
+            percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+            m2='<tr><td></td><td id=100 bgcolor=#00FF00 align="center">'+percentage+'</td></tr>'
             m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
             f.write(m3)
             f.write('\n')
         else:
-            m1='<tr><td></td><td id=1 bgcolor=#FF0000>'+ str(len(green))+'passed'+'/'+str(len(red))+'failed'+'</td></tr>'
-            percentage=str((len(green))*100/(len(green)+len(red)))+'%'+'passed'
-            m2='<tr><td></td><td id=100 bgcolor=#FF0000>'+percentage+'</td></tr>'
+            m1='<tr><td></td><td id=1 bgcolor=#FF0000 align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
+            percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+            m2='<tr><td></td><td id=100 bgcolor=#FF0000 align="center">'+percentage+'</td></tr>'
             m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
             f.write(m3)
             f.write('\n')     
@@ -1500,17 +1502,17 @@ class CompareThread(QtCore.QThread):
            message='\n'.join(['<html>',m1])
            f=open(logfile1,'w')
            if len(red)==0:
-               m1='<tr><td></td><td id=1 bgcolor=#00FF00>'+ str(len(green))+'passed'+'/'+str(len(red))+'failed'+'</td></tr>'
-               percentage=str((len(green))*100/(len(green)+len(red)))+'%'+'passed'
-               m2='<tr><td></td><td id=100 bgcolor=#00FF00>'+percentage+'</td></tr>'
+               m1='<tr><td></td><td id=1 bgcolor=#00FF00 align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
+               percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+               m2='<tr><td></td><td id=100 bgcolor=#00FF00 align="center">'+percentage+'</td></tr>'
                m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
    
                f.write(m3)
                f.write('\n')
            else:
-               m1='<tr><td></td><td id=1 bgcolor=#FF0000>'+ str(len(green))+'passed'+'/'+str(len(red))+'failed'+'</td></tr>'
-               percentage=str((len(green))*100/(len(green)+len(red)))+'%'+'passed'
-               m2='<tr><td></td><td id=100 bgcolor=#FF0000>'+percentage+'</td></tr>'
+               m1='<tr><td></td><td id=1 bgcolor=#FF0000 align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
+               percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+               m2='<tr><td></td><td id=100 bgcolor=#FF0000 align="center">'+percentage+'</td></tr>'
                m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
                f.write(m3)
                f.write('\n')
@@ -1662,7 +1664,7 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
     hstatus=[]
     for h in xrange(len(header[0])):
         hname=get_column(h,header)
-        m1='<tr><td></td><td id=hstatus></td><td></td>'
+        m1='<tr><td></td><td id=hstatus align="center"></td><td></td>'
         f.write(m1)
         
         passfiles=[]
@@ -1691,7 +1693,7 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
           
     for p in xrange(len(percent[0])):    
        pname=get_column(p,percent)
-       m1='<tr><td></td><td id=pstatus></td><td></td>'
+       m1='<tr><td></td><td id=pstatus align="center"></td><td></td>'
        f.write(m1)
        for i in xrange(len(pname)):
           if(i==(len(pname)-1)):
@@ -1701,7 +1703,7 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
           f.write(s)
           f.write('\n')  
           
-       baseheader='<tr><td></td><td></td><td>Baseline<td>'
+       baseheader='<tr><td></td><td></td><td align="center">Baseline<td>'
        f.write(baseheader)
     
     ## loop for fourth row for calculating status of number of files passed and failed for individual files
@@ -1716,7 +1718,7 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
          y=x1.split('-')
          #href='<a href='+os.path.basename(logfile)+'>'+ x1 +'</a>'         
          #s='\n'.join(['<tr>','<td>',href,'</td>'])
-         s='\n'.join(['<tr>','<td>',str(y[0]),'</td>','<td id=status>','</td>','<td>',str(y[-1]),'</td>'])
+         s='\n'.join(['<tr>','<td>',str(y[0]),'</td>','<td id=status align="center">','</td>','<td align="center">',str(y[-1]),'</td>'])
          f.write(s)
          f.write('\n')
          
@@ -1731,7 +1733,8 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
           checkcolor=tag['bgcolor']
           if(checkcolor=="#00FF00"):
              green.append(checkcolor)
-             var1=str(x[k].find('a').string).split('[')
+             #var1=str(x[k].find('a').string).split('[')
+             var1=str(x[k]).split('[')
              var2=var1[0].split('/')
              comparevar.append(int(var2[-1]))
           else:
