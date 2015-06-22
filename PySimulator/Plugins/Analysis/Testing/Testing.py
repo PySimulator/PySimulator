@@ -228,40 +228,31 @@ def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1
     filename=os.path.join(p,modelname1.replace(' ',''))
     fileerror=os.path.join(filename,'err.html').replace('\\','/')
     filetolerance=os.path.join(filename,'tolerance.html').replace('\\','/')
-    filecommon=os.path.join(filename,'differ.html').replace('\\','/')
-    reference='<tr> <td> <b>Directory 1(reference)</b> </td>'+'<td>'+'<b>:</b>'+os.path.dirname(file1)+'</td></tr>'
-    comparison='<tr> <td> <b>Directory 2(comparison)</b> </td>'+'<td>'+'<b>:</b>'+os.path.dirname(file)+'</td></tr>'
-    comparedmodel='<tr> <td> <b>Compared Result file </b> </td>'+ '<td>'+'<b>:</b>'+os.path.basename(file)+'</td></tr>'
+    reference='<tr> <td> <b> Baseline Directory </b> </td>'+'<td>'+'<b>:</b>'+' '+os.path.dirname(file1)+'</td></tr>'
+    comparison='<tr> <td> <b> Testing Directory </b> </td>'+'<td>'+'<b>:</b>'+' '+os.path.dirname(file)+'</td></tr>'
+    comparedmodel='<tr> <td> <b> Compared Result file </b> </td>'+ '<td>'+'<b>:</b>'+' '+os.path.basename(file)+'</td></tr>'
     maxEstTol="{:.1e}".format(Decimal(maxEstTol))
-    messcommon="""<html> <head> <h2> List of Differed variables </h2> </head> <table>"""
-    messerr="""<html> <head> <h2> Sorted by Name </h2> </head> <table> <tr> <th> Name </th> <th> Estimated Tolerance </th> </td> """  
-    messtol="""<html> <head> <h2> Sorted by Highest Tolerance Error </h2> </head> <table> <tr> <th> Name </th> <th> Estimated Tolerance </th> </td> """  
+    messcommon="""<html> <head> <h2> List of Differed Variables </h2> </head> <table>"""
+    messerr="""<table> <tr> <th> <a href="err.html">Name</a> </th> <th> <a href="tolerance.html">Detected Error</a> </th> """    
     
     message1= '<a href=' + os.path.relpath(resultfile) + '>' + modelname +'-'+ model1var+'</a>' +' </td>' 
     if(len(diff1)==0):
-         #emptyhref='<a href="" style="text-decoration:none;">0'+ '(' + str(totalvar) + 'variables)' +'</a>'
-         #emptyhref='<a href="" style="text-decoration:none;">'+ model2var+' / '+ str(totalComparedvar) +' [' +str(maxEstTol)+ ']' +'</a>'
          emptyhref= model2var+' / '+ str(totalComparedvar) +' [' +str(maxEstTol)+ ']' 
          s = '\n'.join(['<tr>','<td id=2>',message1,'<td id=2 bgcolor=#00FF00 align="center">',emptyhref,'</td>','</tr>']) 
          fileouthtml.write(s)
          fileouthtml.write('\n')   
     
     if(len(diff1)>0):         
-         d=open(filecommon,'w')
-         sortname='<p> <li> <a href="err.html">Sorted by Name</a> </li> </p>'
-         sorttol='<p> <li> <a href="tolerance.html">Sorted by Tolerance</a> </li> </p>'
-         s='\n'.join([messcommon,reference,comparison,comparedmodel,'</table>',sortname,sorttol,'</html>'])
-         d.write(s)
-         d.close() 
          ## Html page to sort differed variable by name
          f=open(fileerror,'w')         
          for i in xrange(len(diff1)):
              var=diff1[i].split('-') 
              str1=''.join([modelname+'_'+var[0]+'.html'])
              x1='<td>'+'<a href='+str1.replace(' ','')+'>'+ str(var[0])+ '</a>'+'</td>'
-             diff='<td>'+str(var[1])+'</td>'+'</tr>'
+             errval="{:.1e}".format(Decimal(var[1]))
+             diff='<td>'+str(errval)+'</td>'+'</tr>'
              if(i==0):
-               s = '\n'.join([messerr,'<tr>',x1,diff])
+               s = '\n'.join([messcommon,reference,comparison,comparedmodel,'</table>','<br>',messerr,'<tr>',x1,diff])
              else:
                s = '\n'.join(['<tr>',x1,diff]) 
              
@@ -279,9 +270,10 @@ def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1
              var1=difftol[i][1]             
              str1=''.join([modelname+'_'+var+'.html'])
              x1='<td>'+'<a href='+str1.replace(' ','')+'>'+ str(var)+ '</a>'+'</td>'
-             diff='<td>'+str(var1)+'</td>'+'</tr>'
+             errval="{:.1e}".format(Decimal(var1))
+             diff='<td>'+str(errval)+'</td>'+'</tr>'
              if(i==0):
-               s = '\n'.join([messtol,'<tr>',x1,diff])
+               s = '\n'.join([messcommon,reference,comparison,comparedmodel,'</table>','<br>',messerr,'<tr>',x1,diff])
              else:
                s = '\n'.join(['<tr>',x1,diff]) 
              
@@ -294,7 +286,7 @@ def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1
          
          
          #diff = '<a href='+ os.path.relpath(fileerror) +'>'+str(len(diff1))+'</a>'+ '(' + str(totalvar) +'variables)' + '[' +str(maxEstTol)+ ']' +'</td>'+'</tr>'      
-         diff = model2var + ' / ' + str(totalComparedvar)+ ' / ' + '<a href='+ os.path.relpath(filecommon) +'>'+str(len(diff1))+'</a>'+ ' [' +str(maxEstTol)+ ']' +'</td>'+'</tr>'
+         diff = model2var + ' / ' + str(totalComparedvar)+ ' / ' + '<a href='+ os.path.relpath(fileerror) +'>'+str(len(diff1))+'</a>'+ ' [' +str(maxEstTol)+ ']' +'</td>'+'</tr>'
          s = '\n'.join(['<tr>','<td id=2>',message1,'<td id=2 bgcolor=#FF0000 align="center">',diff])            
          fileouthtml.write(s)
          fileouthtml.write('\n')
@@ -1773,7 +1765,7 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
     totalvar=stat.find_all('td',{"id":"var"})
     ressize=stat.find_all('td',{"id":"resultdir"})
 
-    totalvar[0].string='<b>:</b>'+' '+str(sum(comparevar))+' ('+str(sum(comparevar)-sum(differedvar))+' passed'+','+str(sum(differedvar))+' failed)'
+    totalvar[0].string='<b>:</b>'+' '+str(sum(comparevar))+' ('+str(sum(comparevar)-sum(differedvar))+' passed'+' , '+str(sum(differedvar))+' failed)'
     ressize[0].string='<b>:</b>'+' '+str(resultsize)+' '+'MB'
     
     ## condition for updating the percentage status and color code in first and  second row
