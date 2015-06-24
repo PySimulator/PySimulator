@@ -121,7 +121,7 @@ class FMUInterface:
     ''' This class encapsulates the FMU C-Interface
         all fmi* functions are a public interface to the FMU-functions        
     '''
-    def __init__(self, fileName, parent=None, loggingOn=True, preferredFmiType='me'):
+    def __init__(self, fileName, parent=None, loggingOn=True, preferredFmiType='me',connectedFMU=None, instanceName=None):
         ''' Load an FMU-File and start a new instance
             @param fileName: complete path and name of FMU-file (.fmu)
             @type fileName: string
@@ -131,7 +131,6 @@ class FMUInterface:
         
         self._loggingOn = loggingOn
         self._tempDir = tempfile.mkdtemp()     
-
         ''' Open the given fmu-file (read only)'''
         try:
             self._file = zipfile.ZipFile(fileName, 'r')                  
@@ -154,7 +153,7 @@ class FMUInterface:
         except BaseException as e:
             raise FMUError.FMUError('Error when reading modelDescription.xml\n' + str(e) + '\n')
         
-        self.description = FMIDescription(xmlFileHandle)
+        self.description = FMIDescription(xmlFileHandle,self,connectedFMU,instanceName)
         if self.description.me is None:
             self.activeFmiType = 'cs'
         elif self.description.cs is None:

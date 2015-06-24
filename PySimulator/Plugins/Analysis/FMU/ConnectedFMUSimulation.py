@@ -1,6 +1,6 @@
 import os
 import numpy
-import Plugins.Simulator.FMUSimulator.FMUInterface1 as FMUInterface
+import Plugins.Simulator.FMUSimulator.FMUInterface2 as FMUInterface
 import Plugins.SimulationResult.IntegrationResults
 import Plugins.SimulationResult.Mtsf.Mtsf as Mtsf
 import Plugins.Simulator.SimulatorBase
@@ -85,7 +85,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
          self._xml = xml
          self._xmlFileName = xmlFileName
          for i in xrange(len(modelFileName)):
-            self.interface = FMUInterface.FMUInterface(modelFileName[i], self, loggingOn, 'ConnectedFmu',instancename[i])
+            self.interface = FMUInterface.FMUInterface(modelFileName[i], self, loggingOn, 'cs', 'ConnectedFmu',instancename[i])
             self.description = self.interface.description
             self._interfaceinstance.append(self.interface)
             self._descriptioninstance.append(self.description)
@@ -127,29 +127,24 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
       #The data is set in self.variableTree that is an instance of the class SimulatorBase.VariableTree
 
       self.description=self._descriptioninstance
-
       for i in xrange(len(self.description)):
         for vName, v in self.description[i].scalarVariables.iteritems():
-            #text=(self.description[i].modelName).split('.')
-            #text=(self.description[i].modelName).replace('.','')
-            #varname=text+'.'+vName
             variableAttribute = ''
             if v.description is not None:
                 variableAttribute += 'Description:' + chr(9) + v.description + '\n'
-            variableAttribute += 'Reference:' + chr(9) + str(v.valueReference)
+            variableAttribute += 'Reference:' + chr(9) + v.valueReference            
+            if v.causality is not None:
+                variableAttribute += '\nCausality:' + chr(9) + v.causality    
             if v.variability is not None:
                 variableAttribute += '\nVariability:' + chr(9) + v.variability
-            if v.causality is not None:
-                variableAttribute += '\nCausality:' + chr(9) + v.causality
-            if v.alias is not None:
-                if v.alias.lower() is not 'noalias':
-                    variableAttribute += '\nAlias:' + chr(9) + v.alias
-            if v.directDependency is not None:
-                variableAttribute += '\nDirect dep.:' + chr(9) + str(v.directDependency)
+            if v.initial is not None:
+                variableAttribute += '\nInitial:' + chr(9) + v.initial
+            if v.canHandleMultipleSetPerTimeInstant is not None:
+                variableAttribute += '\nMultipleSet:' + chr(9) + v.canHandleMultipleSetPerTimeInstant
             if v.type is not None:
-                variableAttribute += '\nType:' + chr(9) + v.type.type
-                if v.type.description is not None:
-                    variableAttribute += '\nType info:' + chr(9) + v.type.description
+                variableAttribute += '\nBasic type:' + chr(9) + v.type.basicType
+                if v.type.declaredType is not None:
+                    variableAttribute += '\nDeclared type:' + chr(9) + v.type.declaredType             
                 if v.type.quantity is not None:
                     variableAttribute += '\nQuantity:' + chr(9) + v.type.quantity
                 if v.type.unit is not None:
@@ -157,21 +152,27 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
                 if v.type.displayUnit is not None:
                     variableAttribute += '\nDisplay unit:' + chr(9) + v.type.displayUnit
                 if v.type.relativeQuantity is not None:
-                    variableAttribute += '\nRel. quantity:' + chr(9) + str(v.type.relativeQuantity)
+                    variableAttribute += '\nRel. quantity:' + chr(9) + v.type.relativeQuantity
                 if v.type.min is not None:
                     variableAttribute += '\nMin:' + chr(9) + v.type.min
                 if v.type.max is not None:
                     variableAttribute += '\nMax:' + chr(9) + v.type.max
                 if v.type.nominal is not None:
                     variableAttribute += '\nNominal:' + chr(9) + v.type.nominal
+                if v.type.unbounded is not None:
+                    variableAttribute += '\nUnbounded:' + chr(9) + v.type.unbounded                
                 if v.type.start is not None:
-                    variableAttribute += '\nStart:' + chr(9) + v.type.start
-                if v.type.fixed is not None:
-                    variableAttribute += '\nFixed:' + chr(9) + str(v.type.fixed)
+                    variableAttribute += '\nStart:' + chr(9) + v.type.start    
+                if v.type.derivative is not None:
+                    variableAttribute += '\nDerivative:' + chr(9) + v.type.derivative    
+                if v.type.reinit is not None:
+                    variableAttribute += '\nReinit:' + chr(9) + v.type.reinit    
+                 
+                                
             valueEdit = True  # for the moment
             # ----> Here variable of self.variableTree is set (one entry of the dictionary)
             self.variableTree.variable[vName] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(vName), v.type.start, valueEdit, v.type.unit, v.variability, variableAttribute)
-
+            
     def export(self, gui):
         exportconnectedFMUsDialog = ExportConnectFMUsDialog(self._xml, gui)
         exportconnectedFMUsDialog.exec_()

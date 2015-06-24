@@ -443,7 +443,31 @@ class ConnectFMUsDialog(QtGui.QDialog):
         (fileNames, trash) = QtGui.QFileDialog().getOpenFileNames(self, 'Open File', os.getcwd(), '(*.fmu)')
         for fileName in fileNames:
             fileName = fileName.replace('\\', '/')
-            if fileName != '':
+            ## check the FMIVersion of the file ##
+            try:
+              _file = zipfile.ZipFile(fileName, 'r')         
+            except BaseException as e:
+               print 'Error when reading zip-file.\n' + str(e) + '\n' 
+               
+            try:
+               xmlFile = _file.open('modelDescription.xml')
+            except BaseException as e:
+               print 'Error when reading modelDescription.xml\n' + str(e) + '\n' 
+            
+            try:
+               _document = ET.parse(xmlFile)
+            except BaseException as e:        
+               print 'Error when parsing FMU\'s xml-file.\n' + str(e) + '\n'
+            
+            _docroot = _document.getroot()           
+            fmiVersion = _docroot.get('fmiVersion')
+            
+            if fmiVersion == "1.0":
+               msg='The file '+str(fileName)+' is of version 1.0,Connected FMUS of version 1.0 is not supported'
+               QtGui.QMessageBox().information(self, self.tr("Information"),
+                              self.tr(msg), QtGui.QMessageBox.Ok)
+            else:
+              if fileName != '':
                 # add the FMU to FMUsListModel
                 self._fmusListModel.addFMU(fileName)
                 self._fmusTableView.resizeColumnsToContents()
@@ -486,7 +510,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
             outputVar = self._toListModel._inputsOutputs[self._toComboBox.currentIndex()]
         if (fromFMU is None or inputVar is None or toFMU is None or outputVar is None):
             pass
-        else:
+        else:        
           if(fromFMU!=toFMU):
             if(inputVar['type']==outputVar['type']):
                if(inputVar['causality']!=outputVar['causality']):

@@ -211,7 +211,7 @@ class FMIDescription:
         It parses an XML-file description as defined by FMI Version 2.0
         The model description (FMI) is usually part of a Functional Mock-Up Unit (FMU)
     '''
-    def __init__(self, xmlFile):
+    def __init__(self, xmlFile, parent=None, connectedFMU=None,instanceName=None):
         ''' Create FMIDescription from XML-file
             @param xmlFile: File object of the describing XML-Document
         '''
@@ -243,7 +243,8 @@ class FMIDescription:
         self.generationDateAndTime = None
         self.variableNamingConvention = 'flat'        
         self.numberOfEventIndicators = None
-        
+        self.connectedFMU=connectedFMU
+        self.instanceName=instanceName     
         
         if xmlFile is None:
             return
@@ -295,7 +296,7 @@ class FMIDescription:
                 self._parseModelStructure(child)
             else:
                 print('Unknown tag in FMI Model: %s\n' % child.tag)
-        
+
         ''' Update type values in scalar variables - use defaults from simple type definitions '''
         for var in self.scalarVariables.itervalues():
             if var.type.declaredType is not None:
@@ -424,7 +425,13 @@ class FMIDescription:
                 else:
                     scalarVariableType = ScalarVariableType(x)            
             
-            scalarName = scalar.get('name')
+            ''' Change some variable names '''
+            
+            if  self.connectedFMU is not None:
+               scalarName =self.instanceName+'.'+scalar.get('name')
+            else:
+               scalarName = scalar.get('name')
+            
             reference = scalar.get('valueReference')
             description = scalar.get('description')
             causality = defaultNone(scalar.get('causality'), 'local')
