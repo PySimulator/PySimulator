@@ -1,8 +1,15 @@
+import getpass
+from operator import itemgetter
+import types
+import time
 import os
 import numpy
 import Plugins.Simulator.FMUSimulator.FMUInterface2 as FMUInterface
 import Plugins.SimulationResult.IntegrationResults
 import Plugins.SimulationResult.Mtsf.Mtsf as Mtsf
+from ...SimulationResult.Mtsf import MtsfFmi2
+from ...SimulationResult.Mtsf import pyMtsf
+
 import Plugins.Simulator.SimulatorBase
 from PySide import QtGui, QtCore
 from datetime import datetime
@@ -108,8 +115,96 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         print "Deleting model instance"
 
     def simulate(self):
-        pass
+        
+        def prepareResultFile():
+            # Prepare result file
+            fmis=[]
+            for i in xrange(len(self._descriptioninstance)):
+                fmiinstance = self._descriptioninstance[i]
+                fmis.append(fmiinstance)
+                
+            (modelDescription, modelVariables, simpleTypes, units, enumerations) = MtsfFmi2.convertFromFmi('', fmis,'ConnectedFmu')
+            # Phase 1 of result file generation
+            settings = self.integrationSettings
+            experimentSetup = pyMtsf.ExperimentSetup(startTime=settings.startTime, stopTime=settings.stopTime,
+                                                     algorithm=settings.algorithmName, relativeTolerance=settings.errorToleranceRel,
+                                                     author=getpass.getuser(), description="",
+                                                     generationDateAndTime=time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime()),
+                                                     generationTool="PySimulator", machine=os.getenv('COMPUTERNAME'),
+                                                     cpuTime="")
+            modelVariables.allSeries[0].initialRows = 1  # Fixed
+            modelVariables.allSeries[2].initialRows = 10  # Discrete
+            if settings.gridPointsMode == 'NumberOf':
+                nGridPoints = settings.gridPoints
+            elif settings.gridPointsMode == 'Width':
+                nGridPoints = 1 + int((settings.stopTime - settings.startTime) / settings.gridWidth)
+            else:
+                nGridPoints = 1
+            modelVariables.allSeries[1].initialRows = max(nGridPoints, modelVariables.allSeries[2].initialRows)  # Continuous
 
+            # Create result object
+            mtsf = Mtsf.Results(settings.resultFileName,
+                               modelDescription, modelVariables, experimentSetup, simpleTypes, units, enumerations)
+            if not mtsf.isAvailable:
+                print("Result file " + settings.resultFileName + " cannot be opened for write access.\n")
+                self.integrationResults = IntegrationResults.Results()
+                return False
+
+            # Create fmi reference lists in categories
+            for series in mtsf._mtsf.results.series.values():
+                for category in series.category.values():
+                    category.references = FMUInterface.createfmiReferenceVector(category.nColumn)
+                    category.iReferences = -1
+                    dataType = pyMtsf.CategoryReverseMapping[category.name]
+                    if dataType == 'Real':
+                        category.fmiGetValues = self.interface.fmiGetReal
+                    elif dataType == 'Integer':
+                        category.fmiGetValues = self.interface.fmiGetInteger
+                    elif dataType == 'Boolean':
+                        category.fmiGetValues = self.interface.fmiGetBoolean
+                    elif dataType == 'String':
+                        category.fmiGetValues = self.interface.fmiGetString
+            for name, variable in modelVariables.variable.items():
+                if variable.aliasName is None:
+                    variable.category.iReferences += 1
+                    for z in xrange(len(fmis)):
+                       fmi=fmis[z]
+                       if name in fmi.scalarVariables:
+                          #print variable.seriesIndex, variable.category.name, name, variable.category.iReferences, len(variable.category.references)
+                          variable.category.references[variable.category.iReferences] = fmi.scalarVariables[name].valueReference
+                       else:
+                          # e.g. for time variables, that do not exist in fmi-world
+                          series = variable.category.series
+                          series.independentVariableCategory = variable.category
+                          variable.category.independentVariableColumn = variable.columnIndex
+                          variable.category.references[variable.category.iReferences] = 0
+
+            for series in mtsf._mtsf.results.series.values():
+                if hasattr(series, 'independentVariableCategory'):
+                    category = series.independentVariableCategory
+                    column = category.independentVariableColumn
+                    if column > 0:
+                        dummy = 0
+                    else:
+                        dummy = 1
+                    if category.references.shape[0] > dummy:
+                        category.references[column] = category.references[dummy]
+                    else:
+                        category.references = numpy.array([])
+                else:
+                    series.independentVariableCategory = None
+            self.integrationResults = mtsf
+            return True
+        
+        print 'Simulation Starts'
+        ''' *********************************
+            Here the simulate function starts:
+            **********************************
+        '''
+        if not prepareResultFile():
+            return
+        print 'Result file generated'
+        
     def getAvailableIntegrationAlgorithms(self):
         return self._availableIntegrationAlgorithms
 
@@ -121,6 +216,11 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
     def getIntegrationAlgorithmSupportsStateEvents(self, algorithmName):
         return self._IntegrationAlgorithmSupportsStateEvents[self._availableIntegrationAlgorithms.index(algorithmName)]
+    
+    def getReachedSimulationTime(self):
+        ''' Results are avialable up to the returned time
+        '''
+        return self.integrationStatistics.reachedTime
 
     def setVariableTree(self):
       #Sets the variable tree to be displayed in the variable browser.

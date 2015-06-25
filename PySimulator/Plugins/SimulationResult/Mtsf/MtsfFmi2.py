@@ -45,8 +45,8 @@ from ...Simulator.FMUSimulator.FMIDescription2 import FMIDescription
 
 StandardSeriesForFmi = [pyMtsf.Series('Fixed', None, 'constant', 1), pyMtsf.Series('Continuous', 'Time', 'linear', 100), pyMtsf.Series('Discrete', 'TimeDiscrete', 'constant', 10)]
 
-def convertFromFmi(fmuFilename, fmi=None):
-    ''' Returns data to initialize an MTSF result file from an FMU.
+def convertFromFmi(fmuFilename, fmis=None, ConnectedFmu=None):
+  ''' Returns data to initialize an MTSF result file from an FMU.
         The call to initialize an MTSF result file is
             pyMtsf.MTSF(resultFileName, modelDescription, modelVariables, experimentSetup, simpleTypes, units, enumerationsMatrix)
         The missing data is resultFileName and experimentSetup to be specified before initializing the MTSF object.
@@ -62,30 +62,33 @@ def convertFromFmi(fmuFilename, fmi=None):
            simpleTypes               list of pyMtsf.SimpleType
            units                     list of pyMtsf.Unit
            enumerationsMatrix        list of pyMtsf.Enumeration
-    '''
+  '''
 
-    def _None2Str(x):
-        if x is None:
-            return ''
-        else:
-            return x
+  def _None2Str(x):
+     if x is None:
+        return ''
+     else:
+        return x
 
-
-    # Load FMIDescription if necessary
-    if fmi is None:
+  '''
+  # Load FMIDescription if necessary
+  if fmi is None:
         fmuFile = zipfile.ZipFile(os.path.join(os.getcwd(), fmuFilename + u'.fmu'), 'r')
-        fmi = FMIDescription(fmuFile.open('modelDescription.xml'))
+        fmi = FMIDescription(fmuFile.open('modelDescription.xml'))'''
+  if ConnectedFmu is None:
+      fmis=[fmis]
 
-    # Prepare some variables
-    allSeriesNames = [x.name for x in StandardSeriesForFmi]
-    variable = collections.OrderedDict()
-    simpleTypes = []
-    units = []
-    enumerationsMatrix = []
-    variable['Time'] = pyMtsf.ScalarModelVariable('Continuous Time', 'input', 0, 'continuous', allSeriesNames.index('Continuous'), pyMtsf.StandardCategoryNames.index(pyMtsf.CategoryMapping['Real']), None, 0)
-    variable['TimeDiscrete'] = pyMtsf.ScalarModelVariable('Discrete Time at events', 'input', 0, 'discrete', allSeriesNames.index('Discrete'), pyMtsf.StandardCategoryNames.index(pyMtsf.CategoryMapping['Real']), None, 0)
+  # Prepare some variables
+  allSeriesNames = [x.name for x in StandardSeriesForFmi]
+  variable = collections.OrderedDict()
+  simpleTypes = []
+  units = []
+  enumerationsMatrix = []
+  variable['Time'] = pyMtsf.ScalarModelVariable('Continuous Time', 'input', 0, 'continuous', allSeriesNames.index('Continuous'), pyMtsf.StandardCategoryNames.index(pyMtsf.CategoryMapping['Real']), None, 0)
+  variable['TimeDiscrete'] = pyMtsf.ScalarModelVariable('Discrete Time at events', 'input', 0, 'discrete', allSeriesNames.index('Discrete'), pyMtsf.StandardCategoryNames.index(pyMtsf.CategoryMapping['Real']), None, 0)
     
-    
+  for i in xrange(len(fmis)):  
+    fmi=fmis[i]  
     # Searching aliases
     referenceList = [(x, fmi.scalarVariables[x].valueReference) for x in fmi.scalarVariables.keys()]
     referenceList.sort(key = itemgetter(1))
@@ -263,7 +266,7 @@ def convertFromFmi(fmuFilename, fmi=None):
     modelDescription = pyMtsf.ModelDescription(_None2Str(fmi.modelName), _None2Str(fmi.description), _None2Str(fmi.author), _None2Str(fmi.version), _None2Str(fmi.generationTool), _None2Str(fmi.generationDateAndTime), fmi.variableNamingConvention)
     modelVariables = pyMtsf.ModelVariables(variable, StandardSeriesForFmi, pyMtsf.StandardCategoryNames)
 
-    return modelDescription, modelVariables, simpleTypes, units, enumerationsMatrix
+  return modelDescription, modelVariables, simpleTypes, units, enumerationsMatrix
 
 
 
