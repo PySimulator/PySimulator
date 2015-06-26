@@ -167,7 +167,7 @@ def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdou
                         ## sort the differed variable by name        
                         diff1=sorted(diff2)
                         ## sort the differed variable by highest error        
-                        difftol=y=sorted(diff3,key=lambda x: x[1],reverse=True)
+                        difftol=sorted(diff3,key=lambda x: x[1],reverse=True)
 
                         '''Pass the numpy matrix data to generate the html graph in the browser'''        
                         if htmlfile is not None:
@@ -1200,7 +1200,7 @@ class CompareParallelThread(QtCore.QThread):
       for i in xrange(len(logfiles1)):
           dir_name=os.path.dirname(logfiles1[i])
           filename=os.path.basename(logfiles1[i])
-          newlogfile=str(i)+filename
+          newlogfile=str(i)+'_'+filename
           newlogfilepath=os.path.join(dir_name,newlogfile).replace('\\','/')
           resultfiles.append(newlogfilepath)
           dircount.append(i)
@@ -1523,7 +1523,7 @@ class CompareThread(QtCore.QThread):
         
         newpath=os.path.dirname(logfile1)
         name=os.path.basename(logfile1)
-        newname=''.join([str(dircount),name])
+        newname=''.join([str(dircount),'_',name])
         np1=os.path.join(newpath,'rfiles').replace('\\','/')
         np2=os.path.join(np1,newname).replace('\\','/')
         
@@ -1543,7 +1543,7 @@ class CompareThread(QtCore.QThread):
       ## remove the temporary rfiles directory after the Regression report generated
       regressionfilesdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
       if os.path.exists(regressionfilesdir): 
-         shutil.rmtree(regressionfilesdir)    
+         shutil.rmtree(regressionfilesdir)   
          
       self.running = False
 
@@ -1586,13 +1586,15 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
   dir2=os.path.join(dir1,'rfiles').replace('\\','/')
   if(os.path.isdir(dir2)):
     files=os.listdir(dir2)
+    ## sort the files to maintain the order of execution when reading from directory 
+    sortedfiles = sorted(files, key=lambda x: int(x.split('_')[0]))
     percent=[]
     header=[]
     hreflist=[]
     dirname=[]
-    for i in xrange(len(files)):
+    for i in xrange(len(sortedfiles)):
          os.chdir(dir2)      
-         soup = BeautifulSoup(open(files[i]))
+         soup = BeautifulSoup(open(sortedfiles[i]))
          h=soup.find_all('td',{"id":1})
          per=soup.find_all('td',{"id":100})
          data=soup.find_all('td',{"id":2})
@@ -1622,32 +1624,24 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
       header {
       }
     nav {
-    line-height:14px;   
-    height:100px;
-    width:500px;
-    float:left;
-    padding:2px;	      
+    line-height:10px;   
+    padding:20px;	      
         }
-    section {
-    line-height:14px;   
-    width:560px;
-    background-color:#eeeeee;
-    float:right;
-      }
     footer {
-    clear:both;
-    text-align:center;
-    padding:5px;	 	 
+    margin-bottom:10px;    
+    padding:0px;	 	 
      }
     </style>'''
 
     head= '<header> <h1> Regression Report </h1> </header>'
-    sec='''<fieldset> <legend>Coloring:</legend>
+    colorlegend='<p><a href="#color">Legend</a></p>'
+    colorinfo='''<a name="color"> <fieldset style="width:560px"> <legend>Coloring:</legend>
     <p><font style="background-color:#FF0000">Red:</font> <br> *Per failed: Comparison failed,(i.e.) at least one variable with large error <br> *Per column or row: Only 0-50% of the corresponding files passed the test</p>
     <p><font style="background-color:#00FF00">Green</font> <br> *Per failed: Comparison passed, i.e. all compared variables passed the test <br> *Per column or row: 100% of the corresponding files passed the test <br> *Total: All files passed the test </p>
-    <p><font style="background-color:#FFA500">Orange</font> <br> *Per column or row: &gt;50% and &lt;100% of the corresponding files passed the test <br> *Total: &gt;50% and &lt; 100% of all files passed the test</p> </fieldset>'''
-    
-    s='\n'.join(['<html>',m1,head,'<nav>',tolerance,diskspace,dircount,comparedvariable,resultspace,date_time_info1,TotalTime,'</nav>','<section>',sec,'</section>','<footer>','<table>','<tr>','<th id=0>','Result Files','</th>','<th id=0>','Status','</th>''<th id=0>',os.path.basename(baselinedir),'</th>'])
+    <p><font style="background-color:#FFA500">Orange</font> <br> *Per column or row: &gt;50% and &lt;100% of the corresponding files passed the test <br> *Total: &gt;50% and &lt; 100% of all files passed the test</p> </fieldset> </a>
+    <p align="center"><a href="Index.html">Return</a></p>'''
+
+    s='\n'.join(['<html>',m1,head,'<nav>',tolerance,diskspace,dircount,comparedvariable,resultspace,date_time_info1,TotalTime,'</nav>',colorlegend,'<footer>','<table>','<tr>','<th id=0>','Result Files','</th>','<th id=0>','Status','</th>''<th id=0>',os.path.basename(baselinedir),'</th>'])
     f.write(s)
     f.write('\n')
     
@@ -1731,21 +1725,21 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
         green=[]
         red=[]
         ## loop for preparing status of the single file compared with several directory of the same file
-        for i in xrange(len(x)):
-          s=BeautifulSoup(str(x[i]))
+        for k in xrange(len(x)):
+          s=BeautifulSoup(str(x[k]))
           tag=s.td
           checkcolor=tag['bgcolor']
           if(checkcolor=="#00FF00"):
              green.append(checkcolor)
-             var1=str(x[i].find('a').string).split('[')
+             var1=str(x[k].find('a').string).split('[')
              var2=var1[0].split('/')
              comparevar.append(int(var2[-1]))
           else:
              red.append(checkcolor)
-             var1=str(x[i]).split('<a')
+             var1=str(x[k]).split('<a')
              var2=str(var1[0]).split('/')
              comparevar.append(int(var2[1]))            
-             diffvar=x[i].find('a').string
+             diffvar=x[k].find('a').string
              differedvar.append(int(diffvar)) 
              
         st=str(len(green))+'/'+str(len(red))+'/'+str(len(green)+len(red))
@@ -1758,9 +1752,8 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
                s='\n'.join([str(x[z])])            
             f.write(s)
             f.write('\n')
-            
     if(i==len(hreflist[0])-1):
-         s='\n'.join(['</table>','</footer>','</body>','</html>'])
+         s='\n'.join(['</table>','</footer>',colorinfo,'</body>','</html>'])
          f.write(s)
          f.write('\n')
     
