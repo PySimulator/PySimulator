@@ -86,36 +86,36 @@ class ExportConnectFMUsDialog(QtGui.QDialog):
 class Model(Plugins.Simulator.SimulatorBase.Model):
 
     def __init__(self, instancename=None, modelFileName=None, config=None, xml=None, xmlFileName=None, fmiType=None, independentfmus=None, loggingOn=False):
-         ''' ModelFilename are list of strings '''
-         self._interfaceinstance=[]
-         self._descriptioninstance=[]
-         self._xml = xml
-         self._xmlFileName = xmlFileName
-         self._fmiType = fmiType
-         for i in xrange(len(modelFileName)):
+        ''' ModelFilename are list of strings '''
+        self._interfaceinstance=[]
+        self._descriptioninstance=[]
+        self._xml = xml
+        self._xmlFileName = xmlFileName
+        self._fmiType = fmiType
+        for i in xrange(len(modelFileName)):
             self.interface = FMUInterface.FMUInterface(modelFileName[i], self, loggingOn, self._fmiType, 'ConnectedFmu', instancename[i])
             self.description = self.interface.description
             self._interfaceinstance.append(self.interface)
             self._descriptioninstance.append(self.description)
 
-         Plugins.Simulator.SimulatorBase.Model.__init__(self, 'ConnectedFMUS', [], config)
-         # do not change the following line. It is used in FMU.py functions export & save.
-         self.modelType = 'Connected FMU Simulation'
-         self.integrationResults = Mtsf.Results('')
-         self.integrationSettings.resultFileExtension = 'mtsf'
-         if self._fmiType == 'me':
-             self._availableIntegrationAlgorithms = ["BDF (IDA, Dassl like)", "BDF (CVode)", "Adams (CVode)", "Explicit Euler (fixed step size)"]
-             self._IntegrationAlgorithmHasFixedStepSize = [False, False, False, True]
-             self._IntegrationAlgorithmCanProvideStepSizeResults = [True, True, True, True]
-             self._IntegrationAlgorithmSupportsStateEvents = [True, True, True, True]
-         elif self._fmiType == 'cs':
-             self._availableIntegrationAlgorithms = ["Integration method by FMU for CoSimulation"]
-             self._IntegrationAlgorithmHasFixedStepSize = [False]
-             self._IntegrationAlgorithmCanProvideStepSizeResults = [False]
-             self._IntegrationAlgorithmSupportsStateEvents = [False]
+        Plugins.Simulator.SimulatorBase.Model.__init__(self, 'ConnectedFMUS', [], config)
+        # do not change the following line. It is used in FMU.py functions export & save.
+        self.modelType = 'Connected FMU Simulation'
+        self.integrationResults = Mtsf.Results('')
+        self.integrationSettings.resultFileExtension = 'mtsf'
+        if self._fmiType == 'me':
+            self._availableIntegrationAlgorithms = ["BDF (IDA, Dassl like)", "BDF (CVode)", "Adams (CVode)", "Explicit Euler (fixed step size)"]
+            self._IntegrationAlgorithmHasFixedStepSize = [False, False, False, True]
+            self._IntegrationAlgorithmCanProvideStepSizeResults = [True, True, True, True]
+            self._IntegrationAlgorithmSupportsStateEvents = [True, True, True, True]
+        elif self._fmiType == 'cs':
+            self._availableIntegrationAlgorithms = ["Integration method by FMU for CoSimulation"]
+            self._IntegrationAlgorithmHasFixedStepSize = [False]
+            self._IntegrationAlgorithmCanProvideStepSizeResults = [False]
+            self._IntegrationAlgorithmSupportsStateEvents = [False]
 
-             self.integrationSettings.algorithmName = self._availableIntegrationAlgorithms[0]
-             self.simulationStopRequest = False
+            self.integrationSettings.algorithmName = self._availableIntegrationAlgorithms[0]
+            self.simulationStopRequest = False
 
     def close(self):
         ''' Closing the model, release of resources
@@ -177,16 +177,16 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
                 if variable.aliasName is None:
                     variable.category.iReferences += 1
                     for z in xrange(len(fmis)):
-                       fmi=fmis[z]
-                       if name in fmi.scalarVariables:
-                          #print variable.seriesIndex, variable.category.name, name, variable.category.iReferences, len(variable.category.references)
-                          variable.category.references[variable.category.iReferences] = fmi.scalarVariables[name].valueReference
-                       else:
-                          # e.g. for time variables, that do not exist in fmi-world
-                          series = variable.category.series
-                          series.independentVariableCategory = variable.category
-                          variable.category.independentVariableColumn = variable.columnIndex
-                          variable.category.references[variable.category.iReferences] = 0
+                        fmi=fmis[z]
+                        if name in fmi.scalarVariables:
+                            #print variable.seriesIndex, variable.category.name, name, variable.category.iReferences, len(variable.category.references)
+                            variable.category.references[variable.category.iReferences] = fmi.scalarVariables[name].valueReference
+                        else:
+                            # e.g. for time variables, that do not exist in fmi-world
+                            series = variable.category.series
+                            series.independentVariableCategory = variable.category
+                            variable.category.independentVariableColumn = variable.columnIndex
+                            variable.category.references[variable.category.iReferences] = 0
 
             for series in mtsf._mtsf.results.series.values():
                 if hasattr(series, 'independentVariableCategory'):
@@ -232,55 +232,55 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         return self.integrationStatistics.reachedTime
 
     def setVariableTree(self):
-      #Sets the variable tree to be displayed in the variable browser.
-      #The data is set in self.variableTree that is an instance of the class SimulatorBase.VariableTree
+        #Sets the variable tree to be displayed in the variable browser.
+        #The data is set in self.variableTree that is an instance of the class SimulatorBase.VariableTree
 
-      self.description=self._descriptioninstance
-      for i in xrange(len(self.description)):
-        for vName, v in self.description[i].scalarVariables.iteritems():
-            variableAttribute = ''
-            if v.description is not None:
-                variableAttribute += 'Description:' + chr(9) + v.description + '\n'
-            variableAttribute += 'Reference:' + chr(9) + v.valueReference
-            if v.causality is not None:
-                variableAttribute += '\nCausality:' + chr(9) + v.causality
-            if v.variability is not None:
-                variableAttribute += '\nVariability:' + chr(9) + v.variability
-            if v.initial is not None:
-                variableAttribute += '\nInitial:' + chr(9) + v.initial
-            if v.canHandleMultipleSetPerTimeInstant is not None:
-                variableAttribute += '\nMultipleSet:' + chr(9) + v.canHandleMultipleSetPerTimeInstant
-            if v.type is not None:
-                variableAttribute += '\nBasic type:' + chr(9) + v.type.basicType
-                if v.type.declaredType is not None:
-                    variableAttribute += '\nDeclared type:' + chr(9) + v.type.declaredType
-                if v.type.quantity is not None:
-                    variableAttribute += '\nQuantity:' + chr(9) + v.type.quantity
-                if v.type.unit is not None:
-                    variableAttribute += '\nUnit:' + chr(9) + v.type.unit
-                if v.type.displayUnit is not None:
-                    variableAttribute += '\nDisplay unit:' + chr(9) + v.type.displayUnit
-                if v.type.relativeQuantity is not None:
-                    variableAttribute += '\nRel. quantity:' + chr(9) + v.type.relativeQuantity
-                if v.type.min is not None:
-                    variableAttribute += '\nMin:' + chr(9) + v.type.min
-                if v.type.max is not None:
-                    variableAttribute += '\nMax:' + chr(9) + v.type.max
-                if v.type.nominal is not None:
-                    variableAttribute += '\nNominal:' + chr(9) + v.type.nominal
-                if v.type.unbounded is not None:
-                    variableAttribute += '\nUnbounded:' + chr(9) + v.type.unbounded
-                if v.type.start is not None:
-                    variableAttribute += '\nStart:' + chr(9) + v.type.start
-                if v.type.derivative is not None:
-                    variableAttribute += '\nDerivative:' + chr(9) + v.type.derivative
-                if v.type.reinit is not None:
-                    variableAttribute += '\nReinit:' + chr(9) + v.type.reinit
+        self.description=self._descriptioninstance
+        for i in xrange(len(self.description)):
+            for vName, v in self.description[i].scalarVariables.iteritems():
+                variableAttribute = ''
+                if v.description is not None:
+                    variableAttribute += 'Description:' + chr(9) + v.description + '\n'
+                variableAttribute += 'Reference:' + chr(9) + v.valueReference
+                if v.causality is not None:
+                    variableAttribute += '\nCausality:' + chr(9) + v.causality
+                if v.variability is not None:
+                    variableAttribute += '\nVariability:' + chr(9) + v.variability
+                if v.initial is not None:
+                    variableAttribute += '\nInitial:' + chr(9) + v.initial
+                if v.canHandleMultipleSetPerTimeInstant is not None:
+                    variableAttribute += '\nMultipleSet:' + chr(9) + v.canHandleMultipleSetPerTimeInstant
+                if v.type is not None:
+                    variableAttribute += '\nBasic type:' + chr(9) + v.type.basicType
+                    if v.type.declaredType is not None:
+                        variableAttribute += '\nDeclared type:' + chr(9) + v.type.declaredType
+                    if v.type.quantity is not None:
+                        variableAttribute += '\nQuantity:' + chr(9) + v.type.quantity
+                    if v.type.unit is not None:
+                        variableAttribute += '\nUnit:' + chr(9) + v.type.unit
+                    if v.type.displayUnit is not None:
+                        variableAttribute += '\nDisplay unit:' + chr(9) + v.type.displayUnit
+                    if v.type.relativeQuantity is not None:
+                        variableAttribute += '\nRel. quantity:' + chr(9) + v.type.relativeQuantity
+                    if v.type.min is not None:
+                        variableAttribute += '\nMin:' + chr(9) + v.type.min
+                    if v.type.max is not None:
+                        variableAttribute += '\nMax:' + chr(9) + v.type.max
+                    if v.type.nominal is not None:
+                        variableAttribute += '\nNominal:' + chr(9) + v.type.nominal
+                    if v.type.unbounded is not None:
+                        variableAttribute += '\nUnbounded:' + chr(9) + v.type.unbounded
+                    if v.type.start is not None:
+                        variableAttribute += '\nStart:' + chr(9) + v.type.start
+                    if v.type.derivative is not None:
+                        variableAttribute += '\nDerivative:' + chr(9) + v.type.derivative
+                    if v.type.reinit is not None:
+                        variableAttribute += '\nReinit:' + chr(9) + v.type.reinit
 
 
-            valueEdit = True  # for the moment
-            # ----> Here variable of self.variableTree is set (one entry of the dictionary)
-            self.variableTree.variable[vName] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(vName), v.type.start, valueEdit, v.type.unit, v.variability, variableAttribute)
+                valueEdit = True  # for the moment
+                # ----> Here variable of self.variableTree is set (one entry of the dictionary)
+                self.variableTree.variable[vName] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(vName), v.type.start, valueEdit, v.type.unit, v.variability, variableAttribute)
 
     def export(self, gui):
         exportconnectedFMUsDialog = ExportConnectFMUsDialog(self._xml, gui)
@@ -296,12 +296,12 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             fileName = self._xmlFileName
 
         if fileName is not None:
-          try:
-            xmlFile = codecs.open(fileName, "w", "utf-8")
-            xmlFile.write(self._xml)
-            xmlFile.close()
-          except IOError, e:
-            print "Failed to write the xml file. %s" % e
+            try:
+                xmlFile = codecs.open(fileName, "w", "utf-8")
+                xmlFile.write(self._xml)
+                xmlFile.close()
+            except IOError, e:
+                print "Failed to write the xml file. %s" % e
 
 class ExplicitEulerSolver():
     '''
@@ -408,4 +408,3 @@ class ExplicitEulerSolver():
                 nextOutputPoint = min(Tstart + outputStepCounter * dOutput, Tend)
 
         self.finalize(None)
-
