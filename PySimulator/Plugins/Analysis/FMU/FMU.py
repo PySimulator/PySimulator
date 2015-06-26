@@ -389,7 +389,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
              tree = ET.parse(self._setupfile)
              root = tree.getroot()
 
-             self._fmuType = int(root.get('type'))
+             self._fmuType = root.get('type')
              ## Add fmu's to list with correct instance from xmlsetup
              for fmu in root.iter('fmu'):
                  location = fmu.get('path')
@@ -434,9 +434,9 @@ class ConnectFMUsDialog(QtGui.QDialog):
                     self._connectionsListModel.addConnection(fromFMU, inputVar, toFMU, outputVar)
                     self._connectionsTableView.resizeColumnsToContents()
 
-        if self._fmuType == 1:
+        if self._fmuType == 'me':
             self.setWindowTitle("Connect FMUs for Model Exchange")
-        elif self._fmuType == 2:
+        elif self._fmuType == 'cs':
             self.setWindowTitle("Connect FMUs for Co-Simulation")
 
     def addFMUFile(self):
@@ -445,23 +445,23 @@ class ConnectFMUsDialog(QtGui.QDialog):
             fileName = fileName.replace('\\', '/')
             ## check the FMIVersion of the file ##
             try:
-              _file = zipfile.ZipFile(fileName, 'r')         
+              _file = zipfile.ZipFile(fileName, 'r')
             except BaseException as e:
-               print 'Error when reading zip-file.\n' + str(e) + '\n' 
-               
+               print 'Error when reading zip-file.\n' + str(e) + '\n'
+
             try:
                xmlFile = _file.open('modelDescription.xml')
             except BaseException as e:
-               print 'Error when reading modelDescription.xml\n' + str(e) + '\n' 
-            
+               print 'Error when reading modelDescription.xml\n' + str(e) + '\n'
+
             try:
                _document = ET.parse(xmlFile)
-            except BaseException as e:        
+            except BaseException as e:
                print 'Error when parsing FMU\'s xml-file.\n' + str(e) + '\n'
-            
-            _docroot = _document.getroot()           
+
+            _docroot = _document.getroot()
             fmiVersion = _docroot.get('fmiVersion')
-            
+
             if fmiVersion == "1.0":
                msg='The file '+str(fileName)+' is of version 1.0,Connected FMUS of version 1.0 is not supported'
                QtGui.QMessageBox().information(self, self.tr("Information"),
@@ -510,7 +510,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
             outputVar = self._toListModel._inputsOutputs[self._toComboBox.currentIndex()]
         if (fromFMU is None or inputVar is None or toFMU is None or outputVar is None):
             pass
-        else:        
+        else:
           if(fromFMU!=toFMU):
             if(inputVar['type']==outputVar['type']):
                if(inputVar['causality']!=outputVar['causality']):
@@ -552,7 +552,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
 
         xmlTemplate = '<?xml version="1.0" encoding="utf-8"?><connectedFmus></connectedFmus>'
         rootElement = ET.fromstring(xmlTemplate)
-        rootElement.attrib["type"] = str(self._fmuType)
+        rootElement.attrib["type"] = self._fmuType
         # add fmus to file
         fmusElement = ET.SubElement(rootElement, "fmus")
         for fmu in self._fmusListModel._fmus:
@@ -575,9 +575,9 @@ class ConnectFMUsDialog(QtGui.QDialog):
             print "Failed to write the xml file. %s" % e
 
         self.accept()
-        StartSimulation(self._gui, xml, fileName)
+        StartSimulation(self._gui, xml, fileName, self._fmuType)
 
-def StartSimulation(gui, xml, xmlFileName):
+def StartSimulation(gui, xml, xmlFileName, fmiType):
    ###  Main function which starts the Simulation of Connected FMUS ###
 
    ## Parse the xml-setup and find the connection order from the connection tag as defined by the user
@@ -613,7 +613,7 @@ def StartSimulation(gui, xml, xmlFileName):
    if True:
       import configobj
       config = configobj.ConfigObj(os.path.join(os.path.expanduser("~"), '.config', 'PySimulator', 'PySimulator.ini'), encoding='utf8')
-      
+
       independentfmus=[]
       instancename=[]
       filename=[]
@@ -633,8 +633,8 @@ def StartSimulation(gui, xml, xmlFileName):
              name=fmu.get('name')
              filename.append(file)
              instancename.append(name)
- 
-      model=ConnectedFMUSimulation.Model(instancename, filename, config, xml, xmlFileName,independentfmus)
+
+      model=ConnectedFMUSimulation.Model(instancename, filename, config, xml, xmlFileName, fmiType, independentfmus)
       gui._newModel(model)
 
    else:
@@ -759,7 +759,7 @@ def NewConnectME(model, gui):
     pass
 
 def NewConnectCS(model, gui):
-    connectFMUsDialog = ConnectFMUsDialog(gui, 2, None)
+    connectFMUsDialog = ConnectFMUsDialog(gui, 'cs', None)
     connectFMUsDialog.exec_()
 
 def OpenConnectFMU(model, gui):
