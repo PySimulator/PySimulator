@@ -233,7 +233,7 @@ def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1
     comparedmodel='<tr> <td> <b> Compared Result file </b> </td>'+ '<td>'+'<b>:</b>'+' '+os.path.basename(file)+'</td></tr>'
     maxEstTol="{:.1e}".format(Decimal(maxEstTol))
     messcommon="""<html> <head> <h2> List of Differed Variables </h2> </head> <table>"""
-    messerr="""<table> <tr> <th> <a href="name.html">Name</a> </th> <th> <a href="error.html">Detected Error</a> </th> """
+    messerr="""<table style="empty-cells: hide" border="1"> <tr> <th> <a href="name.html">Name</a> </th> <th> <a href="error.html">Detected Error</a> </th> """
 
     message1= '<a href=' + os.path.relpath(resultfile) + '>' + modelname +'-'+ model1var+'</a>' +' </td>'
     if(len(diff1)==0):
@@ -1635,7 +1635,7 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
     <p><font style="background-color:#FFA500">Orange</font> <br> *Per column or row: &gt;50% and &lt;100% of the corresponding files passed the test <br> *Total: &gt;50% and &lt; 100% of all files passed the test</p> </fieldset> </a>
     <p align="center"><a href="Index.html">Return</a></p>'''
 
-    s='\n'.join(['<html>',m1,head,'<nav>','<table>',tolerance,diskspace,dircount,comparedvariable,resultspace,date_time_info1,TotalTime,'</table>','</nav>',colorlegend,'<footer>','<table>','<tr>','<th id=0>','Result Files','</th>','<th id=0>','Status','</th>''<th id=0>',os.path.basename(baselinedir),'</th>'])
+    s='\n'.join(['<html>',m1,head,'<nav>','<table>',tolerance,diskspace,dircount,comparedvariable,resultspace,date_time_info1,TotalTime,'</table>','</nav>',colorlegend,'<footer>','<table style="empty-cells: hide" border="1">','<tr>','<th id=0>','Result Files','</th>','<th id=0>','Status','</th>''<th id=0>',os.path.basename(baselinedir),'</th>'])
     f.write(s)
     f.write('\n')
     
