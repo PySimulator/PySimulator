@@ -226,16 +226,16 @@ def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1
     p=os.path.dirname(resultfile)
     os.chdir(p)
     filename=os.path.join(p,modelname1.replace(' ',''))
-    fileerror=os.path.join(filename,'err.html').replace('\\','/')
-    filetolerance=os.path.join(filename,'tolerance.html').replace('\\','/')
+    fileerror=os.path.join(filename,'name.html').replace('\\','/')
+    filetolerance=os.path.join(filename,'error.html').replace('\\','/')
     reference='<tr> <td> <b> Baseline Directory </b> </td>'+'<td>'+'<b>:</b>'+' '+os.path.dirname(file1)+'</td></tr>'
     comparison='<tr> <td> <b> Testing Directory </b> </td>'+'<td>'+'<b>:</b>'+' '+os.path.dirname(file)+'</td></tr>'
     comparedmodel='<tr> <td> <b> Compared Result file </b> </td>'+ '<td>'+'<b>:</b>'+' '+os.path.basename(file)+'</td></tr>'
     maxEstTol="{:.1e}".format(Decimal(maxEstTol))
     messcommon="""<html> <head> <h2> List of Differed Variables </h2> </head> <table>"""
-    messerr="""<table> <tr> <th> <a href="err.html">Name</a> </th> <th> <a href="tolerance.html">Detected Error</a> </th> """    
-    
-    message1= '<a href=' + os.path.relpath(resultfile) + '>' + modelname +'-'+ model1var+'</a>' +' </td>' 
+    messerr="""<table> <tr> <th> <a href="name.html">Name</a> </th> <th> <a href="error.html">Detected Error</a> </th> """
+
+    message1= '<a href=' + os.path.relpath(resultfile) + '>' + modelname +'-'+ model1var+'</a>' +' </td>'
     if(len(diff1)==0):
          emptyhref= model2var+' / '+ str(totalComparedvar) +' [' +str(maxEstTol)+ ']' 
          s = '\n'.join(['<tr>','<td id=2>',message1,'<td id=2 bgcolor=#00FF00 align="center">',emptyhref,'</td>','</tr>']) 
@@ -1163,7 +1163,7 @@ class CompareParallelThread(QtCore.QThread):
           shutil.copy(dygraphpath,self.logDir)
       
       ## create a temp file for writing results and use it later to generate the regression report
-      self.logFile=os.path.join(self.logDir,'Index.log').replace('\\','/')
+      self.logFile=os.path.join(self.logDir,'index.log').replace('\\','/')
 
       resultfilesize=[]    
       logfiles=[]   
@@ -1400,7 +1400,7 @@ class CompareThread(QtCore.QThread):
       files1 = os.listdir(dir1) 
       
       ## create a temp file for writing results and use it later to generate the regression report
-      self.logFile=os.path.join(self.logDir,'Index.log').replace('\\','/')
+      self.logFile=os.path.join(self.logDir, "index.log").replace('\\','/')
       
       fileOut = open(self.logFile, 'w')
       startTime = time.time()
