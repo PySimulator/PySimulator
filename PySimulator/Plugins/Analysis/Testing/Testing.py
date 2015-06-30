@@ -228,9 +228,9 @@ def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1
     filename=os.path.join(p,modelname1.replace(' ',''))
     fileerror=os.path.join(filename,'name.html').replace('\\','/')
     filetolerance=os.path.join(filename,'error.html').replace('\\','/')
-    reference='<tr> <td> <b> Baseline Directory </b> </td>'+'<td>'+'<b>:</b>'+' '+os.path.dirname(file1)+'</td></tr>'
-    comparison='<tr> <td> <b> Testing Directory </b> </td>'+'<td>'+'<b>:</b>'+' '+os.path.dirname(file)+'</td></tr>'
-    comparedmodel='<tr> <td> <b> Compared Result file </b> </td>'+ '<td>'+'<b>:</b>'+' '+os.path.basename(file)+'</td></tr>'
+    reference='<tr> <td align="right"> <b> Baseline Directory: </b> </td>'+'<td>'+' '+os.path.dirname(file1)+'</td></tr>'
+    comparison='<tr> <td align="right"> <b> Testing Directory: </b> </td>'+'<td>'+' '+os.path.dirname(file)+'</td></tr>'
+    comparedmodel='<tr> <td align="right"> <b> Compared Result file: </b> </td>'+ '<td>'+' '+os.path.basename(file)+'</td></tr>'
     maxEstTol="{:.1e}".format(Decimal(maxEstTol))
     messcommon="""<html> <a href="../index.html"> Home </a> <head> <h2> List of Differed Variables </h2> </head> <table>"""
     messerr="""<table style="empty-cells: hide" border="1"> <tr> <th> <a href="name.html">Name</a> </th> <th> <a href="error.html">Detected Error</a> </th> """
@@ -1608,15 +1608,15 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
     logfile1=logfile.replace(fileExtension,'.html')    
     f=open(logfile1,'w') 
     date_time_info = datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
-    date_time_info1 =' '.join(['<tr>','<td>','<b>Generated </td>','<td> <b>:</b>',date_time_info,'</td>','</tr>'])
-    tolerance=' '.join(['<tr>','<td> <b>Given Error Tolerance </b> </td>','<td><b>:</b>','1e-3','</td>','</tr>'])
-    diskspace=' '.join(['<tr>','<td> <b>Disk space of all used result files </b> </td>','<td><b>:</b>',str(resultdirsize),' ','MB','</td>','</tr>'])
-    dircount=' '.join(['<tr>','<td><b>Total number of compared files </b></td>','<td><b>:</b>',str(int(totaldir)*int(filecount)),'against',str(filecount),'baseline files','</td>','</tr>']) 
-    comparedvariable=' '.join(['<tr>','<td> <b>Total number of Compared Variables </b> </td>', '<td id=var> </td>','</tr>'])
-    resultspace=' '.join(['<tr>','<td> <b>Disk space of full report directory </b> </td>','<td id=resultdir> </td>','</tr>'])    
+    date_time_info1 =' '.join(['<tr>','<td align="right">','<b>Generated: </td>','<td>',date_time_info,'by PySimulator','</td>','</tr>'])
+    tolerance=' '.join(['<tr>','<td align="right"> <b>Given Error Tolerance: </b> </td>','<td>','1e-3','</td>','</tr>'])
+    diskspace=' '.join(['<tr>','<td align="right"> <b>Disk space of all used result files: </b> </td>','<td>',str(resultdirsize),' ','MB','</td>','</tr>'])
+    dircount=' '.join(['<tr>','<td align="right"> <b>Total number of compared files: </b></td>','<td>',str(int(totaldir)*int(filecount)),'against',str(filecount),'baseline files','</td>','</tr>'])
+    comparedvariable=' '.join(['<tr>','<td align="right"> <b>Total number of Compared Variables: </b> </td>', '<td id=var> </td>','</tr>'])
+    resultspace=' '.join(['<tr>','<td align="right"> <b>Disk space of full report directory: </b> </td>','<td id=resultdir> </td>','</tr>'])
     #filecounts=' '.join(['<h4>','Number of Files Compared:',str(filecount),'</h4>'])
     
-    TotalTime =' '.join(['<tr>','<td>','<b>Time Taken</b></td>','<td><b>:</b>',time.strftime("%Hh:%Mm:%Ss", time.gmtime(Time)),'</td>','</tr>'])
+    TotalTime =' '.join(['<tr>','<td align="right">','<b>Time Taken:</b></td>','<td>',time.strftime("%Hh:%Mm:%Ss", time.gmtime(Time)),'</td>','</tr>'])
 
     m1='''<body>
     <style>
@@ -1634,11 +1634,24 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
 
     head= '<header> <h1> Regression Report </h1> </header>'
     colorlegend='<p><a href="#color">Legend</a></p>'
-    colorinfo='''<a name="color"> <fieldset style="width:560px"> <legend>Coloring:</legend>
+    '''
+    colorinfo=<a name="color"> <fieldset style="width:560px"> <legend>Coloring:</legend>
     <p><font style="background-color:#FF0000">Red:</font> <br> *Per failed: Comparison failed,(i.e.) at least one variable with large error <br> *Per column or row: Only 0-50% of the corresponding files passed the test</p>
     <p><font style="background-color:#00FF00">Green</font> <br> *Per failed: Comparison passed, i.e. all compared variables passed the test <br> *Per column or row: 100% of the corresponding files passed the test <br> *Total: All files passed the test </p>
     <p><font style="background-color:#FFA500">Orange</font> <br> *Per column or row: &gt;50% and &lt;100% of the corresponding files passed the test <br> *Total: &gt;50% and &lt; 100% of all files passed the test</p> </fieldset> </a>
-    <p align="center"><a href="Index.html">Return</a></p>'''
+    <p align="center"><a href="index.html">Return</a></p>
+    '''
+    colorinfo='''<h3> <a name="color"> Coloring </a> </h3> <table border="1"> <tr> <td> <font style="background-color:#FF0000">
+    Red: </font> </td> </tr> <tr> <td align="right"><b>Per Failed: </b> </td> <td>Comparison failed,(i.e.) at least one variable with large error </td> </tr>
+    <tr> <td align="right"><b>Per Column or Row: </b> </td> <td>Only 0-50% of the corresponding files passed the test </td> </tr>
+    <tr> <td> <font style="background-color:#00FF00"> Green: </font> </td> </tr> <tr> <td align="right">
+    <b>Per Failed: </b> </td> <td> Comparison passed, (i.e.) all compared variables passed the test </td> </tr>
+    <tr> <td align="right"> <b>Per Column or Row:</b> </td> <td> 100% of the corresponding files passed the test </td> </tr>
+    <tr> <td align="right"> <b>Total:</b></td> <td> All files passed the test </td> </tr>  <tr> <td> <font style="background-color:#FFA500">
+    Orange:</font> </td> </tr> <tr> <td align="right">
+    <b>Per Column or Row: </b> </td> <td>&gt;50% and &lt;100% of the corresponding files passed the test </td> </tr>
+    <tr> <td align="right"> <b>Total: </b> </td> <td> &gt;50% and &lt; 100% of all files passed the test </td></tr> </table> <br>
+    <p align="center"><a href="index.html">Return</a></p>'''
 
     s='\n'.join(['<html>',m1,head,'<nav>','<table>',tolerance,diskspace,dircount,comparedvariable,resultspace,date_time_info1,TotalTime,'</table>','</nav>',colorlegend,'<footer>','<table style="empty-cells: hide" border="1">','<tr>','<th id=0>','Result Files','</th>','<th id=0>','Status','</th>''<th id=0>',os.path.basename(baselinedir),'</th>'])
     f.write(s)
@@ -1676,7 +1689,7 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
         p1=int(sum(passfiles))+int(sum(failfiles))
         p2=int(sum(passfiles))*100/p1
         pstatus.append(str(p2))
-        hstatus.append(str(sum(passfiles))+'/'+str(sum(failfiles)))
+        hstatus.append(str(sum(passfiles))+' / '+str(sum(failfiles)))
     
         for i in xrange(len(hname)):
            if(i==(len(hname)-1)):
@@ -1770,8 +1783,8 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
     totalvar=stat.find_all('td',{"id":"var"})
     ressize=stat.find_all('td',{"id":"resultdir"})
 
-    totalvar[0].string='<b>:</b>'+' '+str(sum(comparevar))+' ('+str(sum(comparevar)-sum(differedvar))+' passed'+' , '+str(sum(differedvar))+' failed)'
-    ressize[0].string='<b>:</b>'+' '+str(resultsize)+' '+'MB'
+    totalvar[0].string=str(sum(comparevar))+' ('+str(sum(comparevar)-sum(differedvar))+' passed'+', '+str(sum(differedvar))+' failed)'
+    ressize[0].string=str(resultsize)+' '+'MB'
     
     ## condition for updating the percentage status and color code in first and  second row
     colorpercent=int(pstatus[0])
@@ -1804,15 +1817,15 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
         if (percentage==100):
           ## green color
           dat[i]['bgcolor']="#00FF00"
-          dat[i].string=d[0]+'/'+d[1]
+          dat[i].string=d[0]+' / '+d[1]
         if(percentage>=51 and percentage<=99):
           ## orange color
           dat[i]['bgcolor']="#FFA500"
-          dat[i].string=d[0]+'/'+d[1]   
+          dat[i].string=d[0]+' / '+d[1]
         if (percentage<=50):
           ## red color
           dat[i]['bgcolor']="#FF0000"
-          dat[i].string=d[0]+'/'+d[1]
+          dat[i].string=d[0]+' / '+d[1]
     
     html = stat.prettify("utf-8")
     html = html.replace('&lt;b&gt;','<b>').replace('&lt;/b&gt;','</b>')
