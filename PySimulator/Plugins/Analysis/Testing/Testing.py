@@ -231,13 +231,13 @@ def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1
     reference='<tr> <td align="right"> <b> Baseline Directory: </b> </td>'+'<td>'+' '+os.path.dirname(file1)+'</td></tr>'
     comparison='<tr> <td align="right"> <b> Testing Directory: </b> </td>'+'<td>'+' '+os.path.dirname(file)+'</td></tr>'
     comparedmodel='<tr> <td align="right"> <b> Compared Result file: </b> </td>'+ '<td>'+' '+os.path.basename(file)+'</td></tr>'
-    maxEstTol="{:.1e}".format(Decimal(maxEstTol))
+    maxerror="{:.1e}".format(Decimal(str(maxEstTol)))
     messcommon="""<html> <a href="../index.html"> Home </a> <head> <h2> List of Differed Variables </h2> </head> <table>"""
     messerr="""<table style="empty-cells: hide" border="1"> <tr> <th> <a href="name.html">Name</a> </th> <th> <a href="error.html">Detected Error</a> </th> """
 
     message1= '<a href=' + os.path.relpath(resultfile) + '>' + modelname +'-'+ model1var+'</a>' +' </td>'
     if(len(diff1)==0):
-         emptyhref= model2var+' / '+ str(totalComparedvar) +' [' +str(maxEstTol)+ ']' 
+         emptyhref= model2var+' / '+ str(totalComparedvar) +' [' +str(maxerror)+ ']'
          s = '\n'.join(['<tr>','<td id=2>',message1,'<td id=2 bgcolor=#00FF00 align="center">',emptyhref,'</td>','</tr>']) 
          fileouthtml.write(s)
          fileouthtml.write('\n')   
@@ -286,7 +286,7 @@ def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1
          
          
          #diff = '<a href='+ os.path.relpath(fileerror) +'>'+str(len(diff1))+'</a>'+ '(' + str(totalvar) +'variables)' + '[' +str(maxEstTol)+ ']' +'</td>'+'</tr>'      
-         diff = model2var + ' / ' + str(totalComparedvar)+ ' / ' + '<a href='+ os.path.relpath(fileerror) +'>'+str(len(diff1))+'</a>'+ ' [' +str(maxEstTol)+ ']' +'</td>'+'</tr>'
+         diff = model2var + ' / ' + str(totalComparedvar)+ ' / ' + '<a href='+ os.path.relpath(fileerror) +'>'+str(len(diff1))+'</a>'+ ' [' +str(maxerror)+ ']' +'</td>'+'</tr>'
          s = '\n'.join(['<tr>','<td id=2>',message1,'<td id=2 bgcolor=#FF0000 align="center">',diff])
          fileouthtml.write(s)
          fileouthtml.write('\n')
