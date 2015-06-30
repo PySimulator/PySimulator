@@ -287,7 +287,7 @@ def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1
          
          #diff = '<a href='+ os.path.relpath(fileerror) +'>'+str(len(diff1))+'</a>'+ '(' + str(totalvar) +'variables)' + '[' +str(maxEstTol)+ ']' +'</td>'+'</tr>'      
          diff = model2var + ' / ' + str(totalComparedvar)+ ' / ' + '<a href='+ os.path.relpath(fileerror) +'>'+str(len(diff1))+'</a>'+ ' [' +str(maxEstTol)+ ']' +'</td>'+'</tr>'
-         s = '\n'.join(['<tr>','<td id=2>',message1,'<td id=2 bgcolor=#FF0000 align="center">',diff])            
+         s = '\n'.join(['<tr>','<td id=2>',message1,'<td id=2 bgcolor=#FF0000 align="center">',diff])
          fileouthtml.write(s)
          fileouthtml.write('\n')
    
@@ -1495,9 +1495,11 @@ class CompareThread(QtCore.QThread):
                    green.append(checkcolor)
               else:
                    red.append(checkcolor)
-           
+
            message='\n'.join(['<html>',m1])
            f=open(logfile1,'w')
+           colorpercent=int((len(green))*100/(len(green)+len(red)))
+           print colorpercent,type(colorpercent)
            if len(red)==0:
                m1='<tr><td></td><td id=1 bgcolor=#00FF00 align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
                percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
@@ -1538,11 +1540,11 @@ class CompareThread(QtCore.QThread):
       filecount=len(files1)
       resultdirsize=sum(resultfilesize)      
       genregressionreport(self.logFile,totaldir,filecount,elapsedTime,resultdirsize,dir1)
-      
+
       ## remove the temporary rfiles directory after the Regression report generated
       regressionfilesdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
       if os.path.exists(regressionfilesdir): 
-         shutil.rmtree(regressionfilesdir)   
+         shutil.rmtree(regressionfilesdir)
          
       self.running = False
 
@@ -1641,16 +1643,23 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
     <p><font style="background-color:#FFA500">Orange</font> <br> *Per column or row: &gt;50% and &lt;100% of the corresponding files passed the test <br> *Total: &gt;50% and &lt; 100% of all files passed the test</p> </fieldset> </a>
     <p align="center"><a href="index.html">Return</a></p>
     '''
-    colorinfo='''<h3> <a name="color"> Coloring </a> </h3> <table border="1"> <tr> <td> <font style="background-color:#FF0000">
-    Red: </font> </td> </tr> <tr> <td align="right"><b>Per Failed: </b> </td> <td>Comparison failed,(i.e.) at least one variable with large error </td> </tr>
+    colorinfo='''<h3> <a name="color"> Coloring </a> </h3>
+    <table border="1">
+    <tr>
+    <td>
+    <font style="background-color:#FF0000"> Red: </font> </td> </tr>
+    <tr> <td align="right"><b>Per Failed: </b> </td> <td>Comparison failed,(i.e.) at least one variable with large error </td> </tr>
     <tr> <td align="right"><b>Per Column or Row: </b> </td> <td>Only 0-50% of the corresponding files passed the test </td> </tr>
-    <tr> <td> <font style="background-color:#00FF00"> Green: </font> </td> </tr> <tr> <td align="right">
-    <b>Per Failed: </b> </td> <td> Comparison passed, (i.e.) all compared variables passed the test </td> </tr>
+    <tr>
+    <td> <font style="background-color:#00FF00"> Green: </font> </td> </tr>
+    <tr> <td align="right"><b>Per Failed: </b> </td> <td> Comparison passed, (i.e.) all compared variables passed the test </td> </tr>
     <tr> <td align="right"> <b>Per Column or Row:</b> </td> <td> 100% of the corresponding files passed the test </td> </tr>
-    <tr> <td align="right"> <b>Total:</b></td> <td> All files passed the test </td> </tr>  <tr> <td> <font style="background-color:#FFA500">
-    Orange:</font> </td> </tr> <tr> <td align="right">
-    <b>Per Column or Row: </b> </td> <td>&gt;50% and &lt;100% of the corresponding files passed the test </td> </tr>
-    <tr> <td align="right"> <b>Total: </b> </td> <td> &gt;50% and &lt; 100% of all files passed the test </td></tr> </table> <br>
+    <tr> <td align="right"> <b>Total:</b></td> <td> All files passed the test </td> </tr>
+    <tr>
+    <td> <font style="background-color:#FFA500">Orange:</font> </td> </tr>
+    <tr> <td align="right"><b>Per Column or Row: </b> </td> <td>&gt; 50% and &lt; 100% of the corresponding files passed the test </td> </tr>
+    <tr> <td align="right"> <b>Total: </b> </td> <td> &gt; 50% and &lt; 100% of all files passed the test </td></tr>
+    </table> <br>
     <p align="center"><a href="index.html">Return</a></p>'''
 
     s='\n'.join(['<html>',m1,head,'<nav>','<table>',tolerance,diskspace,dircount,comparedvariable,resultspace,date_time_info1,TotalTime,'</table>','</nav>',colorlegend,'<footer>','<table style="empty-cells: hide" border="1">','<tr>','<th id=0>','Result Files','</th>','<th id=0>','Status','</th>''<th id=0>',os.path.basename(baselinedir),'</th>'])
@@ -1826,9 +1835,9 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
           ## red color
           dat[i]['bgcolor']="#FF0000"
           dat[i].string=d[0]+' / '+d[1]
-    
-    html = stat.prettify("utf-8")
-    html = html.replace('&lt;b&gt;','<b>').replace('&lt;/b&gt;','</b>')
+    #html = stat.prettify("utf-8")
+    html = str(stat)
+    #html = html.replace('&lt;b&gt;','<b>').replace('&lt;/b&gt;','</b>')
     f=open(logfile1,'w') 
     f.write(html)
     f.close()
