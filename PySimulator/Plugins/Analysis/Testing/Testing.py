@@ -542,7 +542,7 @@ def compareListMenu(model, gui):
             self.tolEdit = QtGui.QLineEdit("", self)
             mainGrid.addWidget(self.tolEdit, 3, 1)
 
-            result = QtGui.QLabel("Result Directory:", self)
+            result = QtGui.QLabel("Report Directory:", self)
             mainGrid.addWidget(result, 4, 0, QtCore.Qt.AlignRight)
             self.resultEdit = QtGui.QLineEdit("", self)
             mainGrid.addWidget(self.resultEdit, 4, 1)
@@ -594,7 +594,12 @@ def compareListMenu(model, gui):
             browseResult.clicked.connect(_browseResultDo)
 
             self.tolEdit.setText('1e-3')
-            self.resultEdit.setText(os.getcwd().replace('\\', '/'))
+            self.resultEdit.setText(os.getcwd().replace('\\', '/')+'/RegressionReport')
+
+            ##create a RegressionReport Directory in the current working directory
+            reportdir =os.path.join(os.getcwd(),'RegressionReport').replace('\\','/')
+            if not os.path.exists(reportdir):
+                os.mkdir(reportdir)
             self.dir1Edit.setText(os.getcwd().replace('\\', '/'))
             #self.dir2Edit.setText(os.getcwd().replace('\\', '/'))
 
@@ -628,13 +633,13 @@ def compareListMenu(model, gui):
                for i in xrange(self.directory.count()):
                  item=self.directory.item(i).text()
                  listdirs.append(item)
-                 
+
             # Run the analysis
             if (len(listdirs)!=0):
                 gui._compareThreadTesting = runCompareResultsInDirectories(gui.rootDir, dir1, listdirs, tol, logDir)
             else:
-                print 'Select Directory 2 of results to be added to List of Directory to compare'
-                
+                print 'Select List of Directories to compare'
+
         def parallelrun(self):
             if hasattr(gui, '_compareThreadTesting'):
                 if gui._compareThreadTesting.running:
@@ -646,7 +651,7 @@ def compareListMenu(model, gui):
             #dir2 = self.dir2Edit.text()
             logDir = self.resultEdit.text()
             tol = float(self.tolEdit.text())
-            
+
             listdirs=[]
             sitems=self.directory.selectedItems()
             if(len(sitems)!=0):
@@ -661,7 +666,7 @@ def compareListMenu(model, gui):
             if (len(listdirs)!=0):
                 gui._compareThreadTesting = runParallelCompareResultsInDirectories(gui.rootDir, dir1, listdirs, tol, logDir)
             else:
-                print 'Select Directory 2 of results to be added to List of Directory to compare'
+                print 'Select List of Directories to compare'
                 
         def stop(self):
             if hasattr(gui, '_compareThreadTesting'):
