@@ -1328,20 +1328,28 @@ def ParallelCompareAnalysis(directories):
            
         message='\n'.join(['<html>',m1])
         f=open(logfile1,'w')
-        if len(red)==0:
-            m1='<tr><td></td><td id=1 bgcolor=#00FF00 align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
+        colorpercent=int((len(green))*100/(len(green)+len(red)))
+        if (colorpercent==100):
+            m1='<tr><td></td><td id=1 bgcolor="#00FF00" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
             percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
-            m2='<tr><td></td><td id=100 bgcolor=#00FF00 align="center">'+percentage+'</td></tr>'
+            m2='<tr><td></td><td id=100 bgcolor="#00FF00" align="center">'+percentage+'</td></tr>'
             m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
             f.write(m3)
             f.write('\n')
-        else:
-            m1='<tr><td></td><td id=1 bgcolor=#FF0000 align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
+        if(colorpercent>=51 and colorpercent<=99):
+            m1='<tr><td></td><td id=1 bgcolor="#FFA500" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
             percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
-            m2='<tr><td></td><td id=100 bgcolor=#FF0000 align="center">'+percentage+'</td></tr>'
+            m2='<tr><td></td><td id=100 bgcolor="#FFA500" align="center">'+percentage+'</td></tr>'
             m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
             f.write(m3)
-            f.write('\n')     
+            f.write('\n')
+        if(colorpercent<=50):
+            m1='<tr><td></td><td id=1 bgcolor="#FF0000" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
+            percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+            m2='<tr><td></td><td id=100 bgcolor="#FF0000" align="center">'+percentage+'</td></tr>'
+            m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
+            f.write(m3)
+            f.write('\n')
         f.close() 
                    
     logfiledir=os.path.dirname(logfile)
@@ -1499,26 +1507,28 @@ class CompareThread(QtCore.QThread):
            message='\n'.join(['<html>',m1])
            f=open(logfile1,'w')
            colorpercent=int((len(green))*100/(len(green)+len(red)))
-           print colorpercent,type(colorpercent)
-           if len(red)==0:
-               m1='<tr><td></td><td id=1 bgcolor=#00FF00 align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
+           if (colorpercent==100):
+               m1='<tr><td></td><td id=1 bgcolor="#00FF00" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
                percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
-               m2='<tr><td></td><td id=100 bgcolor=#00FF00 align="center">'+percentage+'</td></tr>'
-               m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
-   
-               f.write(m3)
-               f.write('\n')
-           else:
-               m1='<tr><td></td><td id=1 bgcolor=#FF0000 align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
-               percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
-               m2='<tr><td></td><td id=100 bgcolor=#FF0000 align="center">'+percentage+'</td></tr>'
+               m2='<tr><td></td><td id=100 bgcolor="#00FF00" align="center">'+percentage+'</td></tr>'
                m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
                f.write(m3)
                f.write('\n')
-
-           #s = '\n'.join([message,str(m3),data,'</table>','</html>']) 
-           #f.write(s)                    
-           f.close() 
+           if(colorpercent>=51 and colorpercent<=99):
+               m1='<tr><td></td><td id=1 bgcolor="#FFA500" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
+               percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+               m2='<tr><td></td><td id=100 bgcolor="#FFA500" align="center">'+percentage+'</td></tr>'
+               m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
+               f.write(m3)
+               f.write('\n')
+           if(colorpercent<=50):
+               m1='<tr><td></td><td id=1 bgcolor="#FF0000" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
+               percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+               m2='<tr><td></td><td id=100 bgcolor="#FF0000" align="center">'+percentage+'</td></tr>'
+               m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
+               f.write(m3)
+               f.write('\n')
+           f.close()
        
         '''Save the data to prepare regression report'''
         
