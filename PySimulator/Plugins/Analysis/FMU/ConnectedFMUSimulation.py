@@ -1,13 +1,8 @@
-import getpass
-import time
 import os
-import numpy
 import copy
-import Plugins.Simulator.FMUSimulator.FMUInterface2 as FMUInterface
 import Plugins.Simulator.FMUSimulator.FMUSimulator2 as FMUSimulator
 import Plugins.SimulationResult.IntegrationResults
 import Plugins.SimulationResult.Mtsf.Mtsf as Mtsf
-from ...SimulationResult.Mtsf import pyMtsf
 
 import Plugins.Simulator.SimulatorBase
 from PySide import QtGui, QtCore
@@ -86,21 +81,11 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
     def __init__(self, instancename=None, modelFileName=None, config=None, xml=None, xmlFileName=None, fmiType=None, independentfmus=None, loggingOn=False):
         ''' ModelFilename are list of strings '''
-#==============================================================================
-#         self._interfaceinstance = []
-#         self._descriptioninstance = []
-#==============================================================================
         self._FMUSimulators = []
         self._xml = xml
         self._xmlFileName = xmlFileName
         self._fmiType = fmiType
         for i in xrange(len(modelFileName)):
-#==============================================================================
-#             self.interface = FMUInterface.FMUInterface(modelFileName[i], self, loggingOn, self._fmiType, 'ConnectedFmu', instancename[i])
-#             self.description = self.interface.description
-#             self._interfaceinstance.append(self.interface)
-#             self._descriptioninstance.append(self.description)
-#==============================================================================
             FMUSimulatorObj = FMUSimulator.Model(instancename[i], [modelFileName[i]], config)
             self._FMUSimulators.append(FMUSimulatorObj)
 
@@ -142,91 +127,6 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             self._FMUSimulators[i].loadResultFile(self._FMUSimulators[i].integrationSettings.resultFileName)
 
     def simulate(self):
-
-        def prepareResultFile():
-            # Prepare result file
-            return True
-            (modelDescription, modelVariables, simpleTypes, units, enumerations) = MtsfFmi2.convertFromFmi('', fmis,'ConnectedFmu')
-            # Phase 1 of result file generation
-            settings = self.integrationSettings
-            experimentSetup = pyMtsf.ExperimentSetup(startTime=settings.startTime, stopTime=settings.stopTime,
-                                                     algorithm=settings.algorithmName, relativeTolerance=settings.errorToleranceRel,
-                                                     author=getpass.getuser(), description="",
-                                                     generationDateAndTime=time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime()),
-                                                     generationTool="PySimulator", machine=os.getenv('COMPUTERNAME'),
-                                                     cpuTime="")
-            modelVariables.allSeries[0].initialRows = 1  # Fixed
-            modelVariables.allSeries[2].initialRows = 10  # Discrete
-            if settings.gridPointsMode == 'NumberOf':
-                nGridPoints = settings.gridPoints
-            elif settings.gridPointsMode == 'Width':
-                nGridPoints = 1 + int((settings.stopTime - settings.startTime) / settings.gridWidth)
-            else:
-                nGridPoints = 1
-            modelVariables.allSeries[1].initialRows = max(nGridPoints, modelVariables.allSeries[2].initialRows)  # Continuous
-
-            # Create result object
-            mtsf = Mtsf.Results(settings.resultFileName,
-                               modelDescription, modelVariables, experimentSetup, simpleTypes, units, enumerations)
-            if not mtsf.isAvailable:
-                print("Result file " + settings.resultFileName + " cannot be opened for write access.\n")
-                self.integrationResults = IntegrationResults.Results()
-                return False
-
-            # Create fmi reference lists in categories
-            for series in mtsf._mtsf.results.series.values():
-                for category in series.category.values():
-                    category.references = FMUInterface.createfmiReferenceVector(category.nColumn)
-                    category.iReferences = -1
-                    dataType = pyMtsf.CategoryReverseMapping[category.name]
-                    if dataType == 'Real':
-                        category.fmiGetValues = self.interface.fmiGetReal
-                    elif dataType == 'Integer':
-                        category.fmiGetValues = self.interface.fmiGetInteger
-                    elif dataType == 'Boolean':
-                        category.fmiGetValues = self.interface.fmiGetBoolean
-                    elif dataType == 'String':
-                        category.fmiGetValues = self.interface.fmiGetString
-            for name, variable in modelVariables.variable.items():
-                if variable.aliasName is None:
-                    variable.category.iReferences += 1
-                    for z in xrange(len(fmis)):
-                        fmi=fmis[z]
-                        if name in fmi.scalarVariables:
-                            #print variable.seriesIndex, variable.category.name, name, variable.category.iReferences, len(variable.category.references)
-                            variable.category.references[variable.category.iReferences] = fmi.scalarVariables[name].valueReference
-                        else:
-                            # e.g. for time variables, that do not exist in fmi-world
-                            series = variable.category.series
-                            series.independentVariableCategory = variable.category
-                            variable.category.independentVariableColumn = variable.columnIndex
-                            variable.category.references[variable.category.iReferences] = 0
-
-            for series in mtsf._mtsf.results.series.values():
-                if hasattr(series, 'independentVariableCategory'):
-                    category = series.independentVariableCategory
-                    column = category.independentVariableColumn
-                    if column > 0:
-                        dummy = 0
-                    else:
-                        dummy = 1
-                    if category.references.shape[0] > dummy:
-                        category.references[column] = category.references[dummy]
-                    else:
-                        category.references = numpy.array([])
-                else:
-                    series.independentVariableCategory = None
-            self.integrationResults = mtsf
-            return True
-
-        print 'Simulation Starts'
-        ''' *********************************
-            Here the simulate function starts:
-            **********************************
-        '''
-        if not prepareResultFile():
-            return
-
         Tstart = self.integrationSettings.startTime
         Tend = self.integrationSettings.stopTime
         # Initialize integration statistics
@@ -237,23 +137,18 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
         for i in xrange(len(self._FMUSimulators)):
             self._FMUSimulators[i].integrationSettings = copy.copy(self.integrationSettings)
-            print self._FMUSimulators[i].integrationSettings.resultFileName
             self._FMUSimulators[i].integrationSettings.resultFileName = unicode(self._FMUSimulators[i].name + "_1.mtsf")
-            print self._FMUSimulators[i].name
-            print self._FMUSimulators[i].integrationSettings.resultFileName
             self._FMUSimulators[i].simulate()
 
+        i = 0
+        while True:
+            if i >= len(self._FMUSimulators):
+                self.integrationStatistics.reachedTime = Tend
+                break
+            if self._FMUSimulators[i].integrationStatistics.reachedTime == Tend:
+                i = i + 1
 #==============================================================================
-#         i = 0
-#         while True:
-#             if i >= len(self._FMUSimulators):
-#                 self.integrationStatistics.reachedTime = Tend
-#                 break
-#             print "self._FMUSimulators[i].integrationStatistics.reachedTime = " + str(self._FMUSimulators[i].integrationStatistics.reachedTime)
-#             if self._FMUSimulators[i].integrationStatistics.reachedTime == Tend:
-#                 i = i + 1
-#
-#         print "self.integrationStatistics.reachedTime = " + str(self.integrationStatistics.reachedTime)
+#          print "self.integrationStatistics.reachedTime = " + str(self.integrationStatistics.reachedTime)
 #         # Initialize integration statistics
 #         self.integrationStatistics.nTimeEvents = 4
 #         self.integrationStatistics.nStateEvents = 5
@@ -286,54 +181,6 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             self._FMUSimulators[i].setVariableTree()
             for vName, treeVariable in self._FMUSimulators[i].variableTree.variable.iteritems():
                 self.variableTree.variable[self._FMUSimulators[i].name + '.' + vName] = Plugins.Simulator.SimulatorBase.TreeVariable(self._FMUSimulators[i].name + '.' + vName, treeVariable.value, treeVariable.valueEdit, treeVariable.unit, treeVariable.variability, treeVariable.attribute)
-        return
-
-        self.description=self._descriptioninstance
-        for i in xrange(len(self.description)):
-            for vName, v in self.description[i].scalarVariables.iteritems():
-                variableAttribute = ''
-                if v.description is not None:
-                    variableAttribute += 'Description:' + chr(9) + v.description + '\n'
-                variableAttribute += 'Reference:' + chr(9) + v.valueReference
-                if v.causality is not None:
-                    variableAttribute += '\nCausality:' + chr(9) + v.causality
-                if v.variability is not None:
-                    variableAttribute += '\nVariability:' + chr(9) + v.variability
-                if v.initial is not None:
-                    variableAttribute += '\nInitial:' + chr(9) + v.initial
-                if v.canHandleMultipleSetPerTimeInstant is not None:
-                    variableAttribute += '\nMultipleSet:' + chr(9) + v.canHandleMultipleSetPerTimeInstant
-                if v.type is not None:
-                    variableAttribute += '\nBasic type:' + chr(9) + v.type.basicType
-                    if v.type.declaredType is not None:
-                        variableAttribute += '\nDeclared type:' + chr(9) + v.type.declaredType
-                    if v.type.quantity is not None:
-                        variableAttribute += '\nQuantity:' + chr(9) + v.type.quantity
-                    if v.type.unit is not None:
-                        variableAttribute += '\nUnit:' + chr(9) + v.type.unit
-                    if v.type.displayUnit is not None:
-                        variableAttribute += '\nDisplay unit:' + chr(9) + v.type.displayUnit
-                    if v.type.relativeQuantity is not None:
-                        variableAttribute += '\nRel. quantity:' + chr(9) + v.type.relativeQuantity
-                    if v.type.min is not None:
-                        variableAttribute += '\nMin:' + chr(9) + v.type.min
-                    if v.type.max is not None:
-                        variableAttribute += '\nMax:' + chr(9) + v.type.max
-                    if v.type.nominal is not None:
-                        variableAttribute += '\nNominal:' + chr(9) + v.type.nominal
-                    if v.type.unbounded is not None:
-                        variableAttribute += '\nUnbounded:' + chr(9) + v.type.unbounded
-                    if v.type.start is not None:
-                        variableAttribute += '\nStart:' + chr(9) + v.type.start
-                    if v.type.derivative is not None:
-                        variableAttribute += '\nDerivative:' + chr(9) + v.type.derivative
-                    if v.type.reinit is not None:
-                        variableAttribute += '\nReinit:' + chr(9) + v.type.reinit
-
-
-                valueEdit = True  # for the moment
-                # ----> Here variable of self.variableTree is set (one entry of the dictionary)
-                self.variableTree.variable[vName] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(vName), v.type.start, valueEdit, v.type.unit, v.variability, variableAttribute)
 
     def getFMUSimulator(self, name):
         for i in xrange(len(self._FMUSimulators)):
