@@ -123,7 +123,6 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         # mark this model integration results as available
         self.integrationResults.isAvailable = True
         for i in xrange(len(self._FMUSimulators)):
-            print self._FMUSimulators[i].integrationSettings.resultFileName
             self._FMUSimulators[i].loadResultFile(self._FMUSimulators[i].integrationSettings.resultFileName)
 
     def simulate(self):
