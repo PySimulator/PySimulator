@@ -722,8 +722,23 @@ class DefaultPlotWidget(PlotWidget):
         if not self.plotActive:
             self.activatePlot()
         PlotWidget.addVariable(self, model, variable)
+        print model.integrationResults
+        print model.integrationResults.isAvailable
+        print model.modelType
+        variables = variable.split('.', 1)
+        print variables
         if (model.integrationResults.isAvailable):
-            y, x, interpolationMethod = model.integrationResults.readData(variable)
+            if (model.modelType == 'Connected FMU Simulation'):
+                variables = variable.split('.', 1)
+                FMUSimulatorObj = model.getFMUSimulator(variables[0])
+                print FMUSimulatorObj.integrationResults.fileName
+                y, x, interpolationMethod = FMUSimulatorObj.integrationResults.readData(variables[1])
+                print y, x, interpolationMethod
+            else:
+                print model.integrationResults.fileName
+                y, x, interpolationMethod = model.integrationResults.readData(variable)
+                print y, x, interpolationMethod
+
             if len(x) > self.maxDisplayPoints:
                 dPoints = max(1, math.ceil(float(len(x)) / self.maxDisplayPoints))
                 x = x[::dPoints]

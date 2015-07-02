@@ -91,7 +91,7 @@ class SimulatorGui(QtGui.QMainWindow):
         subMenu = menu.addMenu('File')
         openModelMenu = subMenu.addMenu("Open Model")
         simulatorKeys = list(self.simulatorPlugins.keys())
-        simulatorKeys.sort()            
+        simulatorKeys.sort()
         for key in simulatorKeys:
             value = self.simulatorPlugins[key]
             image = None
@@ -606,7 +606,7 @@ class SimulatorGui(QtGui.QMainWindow):
     def closeEvent(self, event):
         for model in self.models.itervalues():
             model.close()
-        
+
         for pluginName, plugin in self.simulatorPlugins.items():  # and self.analysisPlugins
             try:
                 plugin.closeSimulatorPlugin()
@@ -615,9 +615,11 @@ class SimulatorGui(QtGui.QMainWindow):
                 print "Closing of Simulator Plugin " + pluginName + " failed."
         sys.stdout = self._origStdout
 
-
-
-
+    def center(self):
+        qr = self.frameGeometry()
+        cp = QtGui.QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
 
 ''' Just launches the application
 '''
@@ -659,6 +661,7 @@ def start_PySimulator():
     compileall.compile_dir(os.getcwd(), force=True, quiet=True)
     sg = SimulatorGui()
     sg.show()
+    sg.center()
     splash.finish(sg)
 
     if runBenchmark:
