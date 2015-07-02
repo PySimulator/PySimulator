@@ -1,13 +1,12 @@
 import getpass
-from operator import itemgetter
-import types
 import time
 import os
 import numpy
+import copy
 import Plugins.Simulator.FMUSimulator.FMUInterface2 as FMUInterface
+import Plugins.Simulator.FMUSimulator.FMUSimulator2 as FMUSimulator
 import Plugins.SimulationResult.IntegrationResults
 import Plugins.SimulationResult.Mtsf.Mtsf as Mtsf
-from ...SimulationResult.Mtsf import MtsfFmi2
 from ...SimulationResult.Mtsf import pyMtsf
 
 import Plugins.Simulator.SimulatorBase
@@ -87,16 +86,23 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
     def __init__(self, instancename=None, modelFileName=None, config=None, xml=None, xmlFileName=None, fmiType=None, independentfmus=None, loggingOn=False):
         ''' ModelFilename are list of strings '''
-        self._interfaceinstance=[]
-        self._descriptioninstance=[]
+#==============================================================================
+#         self._interfaceinstance = []
+#         self._descriptioninstance = []
+#==============================================================================
+        self._FMUSimulators = []
         self._xml = xml
         self._xmlFileName = xmlFileName
         self._fmiType = fmiType
         for i in xrange(len(modelFileName)):
-            self.interface = FMUInterface.FMUInterface(modelFileName[i], self, loggingOn, self._fmiType, 'ConnectedFmu', instancename[i])
-            self.description = self.interface.description
-            self._interfaceinstance.append(self.interface)
-            self._descriptioninstance.append(self.description)
+#==============================================================================
+#             self.interface = FMUInterface.FMUInterface(modelFileName[i], self, loggingOn, self._fmiType, 'ConnectedFmu', instancename[i])
+#             self.description = self.interface.description
+#             self._interfaceinstance.append(self.interface)
+#             self._descriptioninstance.append(self.description)
+#==============================================================================
+            FMUSimulatorObj = FMUSimulator.Model(instancename[i], [modelFileName[i]], config)
+            self._FMUSimulators.append(FMUSimulatorObj)
 
         Plugins.Simulator.SimulatorBase.Model.__init__(self, 'ConnectedFMUS', [], config)
         # do not change the following line. It is used in FMU.py functions export & save.
@@ -121,17 +127,25 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         ''' Closing the model, release of resources
         '''
         Plugins.Simulator.SimulatorBase.Model.close(self)
-        print "Deleting model instance"
+        for i in xrange(len(self._FMUSimulators)):
+            self._FMUSimulators[i].close()
+
+    def closeIntegrationResults(self):
+        for i in xrange(len(self._FMUSimulators)):
+            self._FMUSimulators[i].integrationResults.close()
+
+    def loadIntegrationResults(self):
+        # mark this model integration results as available
+        self.integrationResults.isAvailable = True
+        for i in xrange(len(self._FMUSimulators)):
+            print self._FMUSimulators[i].integrationSettings.resultFileName
+            self._FMUSimulators[i].loadResultFile(self._FMUSimulators[i].integrationSettings.resultFileName)
 
     def simulate(self):
 
         def prepareResultFile():
             # Prepare result file
-            fmis=[]
-            for i in xrange(len(self._descriptioninstance)):
-                fmiinstance = self._descriptioninstance[i]
-                fmis.append(fmiinstance)
-
+            return True
             (modelDescription, modelVariables, simpleTypes, units, enumerations) = MtsfFmi2.convertFromFmi('', fmis,'ConnectedFmu')
             # Phase 1 of result file generation
             settings = self.integrationSettings
@@ -212,7 +226,41 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         '''
         if not prepareResultFile():
             return
-        print 'Result file generated'
+
+        Tstart = self.integrationSettings.startTime
+        Tend = self.integrationSettings.stopTime
+        # Initialize integration statistics
+        self.integrationStatistics.nTimeEvents = 0
+        self.integrationStatistics.nStateEvents = 0
+        self.integrationStatistics.nGridPoints = 0
+        self.integrationStatistics.reachedTime = Tstart
+
+        for i in xrange(len(self._FMUSimulators)):
+            self._FMUSimulators[i].integrationSettings = copy.copy(self.integrationSettings)
+            print self._FMUSimulators[i].integrationSettings.resultFileName
+            self._FMUSimulators[i].integrationSettings.resultFileName = unicode(self._FMUSimulators[i].name + "_1.mtsf")
+            print self._FMUSimulators[i].name
+            print self._FMUSimulators[i].integrationSettings.resultFileName
+            self._FMUSimulators[i].simulate()
+
+#==============================================================================
+#         i = 0
+#         while True:
+#             if i >= len(self._FMUSimulators):
+#                 self.integrationStatistics.reachedTime = Tend
+#                 break
+#             print "self._FMUSimulators[i].integrationStatistics.reachedTime = " + str(self._FMUSimulators[i].integrationStatistics.reachedTime)
+#             if self._FMUSimulators[i].integrationStatistics.reachedTime == Tend:
+#                 i = i + 1
+#
+#         print "self.integrationStatistics.reachedTime = " + str(self.integrationStatistics.reachedTime)
+#         # Initialize integration statistics
+#         self.integrationStatistics.nTimeEvents = 4
+#         self.integrationStatistics.nStateEvents = 5
+#         self.integrationStatistics.nGridPoints = 6
+#==============================================================================
+        print 'Result files generated'
+        return
 
     def getAvailableIntegrationAlgorithms(self):
         return self._availableIntegrationAlgorithms
@@ -234,6 +282,11 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
     def setVariableTree(self):
         #Sets the variable tree to be displayed in the variable browser.
         #The data is set in self.variableTree that is an instance of the class SimulatorBase.VariableTree
+        for i in xrange(len(self._FMUSimulators)):
+            self._FMUSimulators[i].setVariableTree()
+            for vName, treeVariable in self._FMUSimulators[i].variableTree.variable.iteritems():
+                self.variableTree.variable[self._FMUSimulators[i].name + '.' + vName] = Plugins.Simulator.SimulatorBase.TreeVariable(self._FMUSimulators[i].name + '.' + vName, treeVariable.value, treeVariable.valueEdit, treeVariable.unit, treeVariable.variability, treeVariable.attribute)
+        return
 
         self.description=self._descriptioninstance
         for i in xrange(len(self.description)):
@@ -282,6 +335,12 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
                 # ----> Here variable of self.variableTree is set (one entry of the dictionary)
                 self.variableTree.variable[vName] = Plugins.Simulator.SimulatorBase.TreeVariable(self.structureVariableName(vName), v.type.start, valueEdit, v.type.unit, v.variability, variableAttribute)
 
+    def getFMUSimulator(self, name):
+        for i in xrange(len(self._FMUSimulators)):
+            if (self._FMUSimulators[i].name == name):
+                return self._FMUSimulators[i]
+        return None
+
     def export(self, gui):
         exportconnectedFMUsDialog = ExportConnectFMUsDialog(self._xml, gui)
         exportconnectedFMUsDialog.exec_()
@@ -302,109 +361,3 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
                 xmlFile.close()
             except IOError, e:
                 print "Failed to write the xml file. %s" % e
-
-class ExplicitEulerSolver():
-    '''
-        Integration method: Explicit Euler with event handling (without rootfinding)
-    '''
-    def simulate(self, Tstart, dt, Tend, y0, nOutputIntervals, gridWidth):
-        ''' Simulates an ODE-system defined by different functions
-            from Tstart to Tend by the explicit Euler method with the fixed step size dt.
-            The initial start values of the states are given by the vector y0.
-            Time or state events are handled after a successful step if necessary.
-            Result points are defined by the number of output intervals 'nOutputIntervals'
-            that define a time grid between Tstart and Tend with constant width.
-            The grid width can be equal to dt or less or greater than dt.
-        '''
-
-        # euler_basic.run_example()
-
-        self.t_cur = Tstart
-        self.y_cur = y0.copy()
-        y_cur0 = y0.copy()
-        # Define vectors for crossing and indicator functions
-        z = self.state_events(self.t_cur, self.y_cur, None)
-        zb = numpy.empty(len(z))
-        zb_new = zb.copy()
-        for i in xrange(len(z)):
-            zb[i] = (z[i] > 0.0)
-        nextTimeEvent = self.time_events(self.t_cur, self.y_cur, None)
-        # Write initial values to results
-        self.handle_result(None, self.t_cur, self.y_cur)
-        # Define next step point and next output point
-        stepCounter = 1
-        nextStepPoint = min(Tstart + dt, Tend)
-        if nOutputIntervals > 0:
-            dOutput = (Tend - Tstart) / nOutputIntervals
-        else:
-            dOutput = dt
-        outputStepCounter = 1
-        nextOutputPoint = min(Tstart + dOutput, Tend)
-
-        # Start the integration loop
-        while self.t_cur < Tend:
-            # Define stepsize h, next step point, t_new and time_event
-            if nextTimeEvent is None or nextStepPoint < nextTimeEvent:
-                time_event = False
-                h = min(dt, Tend - self.t_cur)
-                stepCounter += 1
-                t_new = nextStepPoint
-                nextStepPoint = min(Tstart + stepCounter * dt, Tend)
-            else:
-                time_event = True
-                h = nextTimeEvent - self.t_cur
-                t_new = nextTimeEvent
-                if nextStepPoint == nextTimeEvent:
-                    stepCounter += 1
-                    nextStepPoint = min(Tstart + stepCounter * dt, Tend)
-
-            # Do the explicit Euler step
-            temp = self.y_cur
-            self.y_cur = y_cur0
-            self.y_cur[:] = temp[:]
-            y_cur0 = temp
-            t_cur0 = self.t_cur
-            self.y_cur = self.y_cur + h * self.rhs(self.t_cur, self.y_cur)
-            self.t_cur = t_new
-
-            # Check for state events
-            z = self.state_events(self.t_cur, self.y_cur, None)
-            for i in xrange(len(z)):
-                zb_new[i] = (z[i] > 0.0)
-            state_event = (zb_new != zb)
-            temp = zb
-            zb = zb_new
-            zb_new = temp
-
-            # Inform about completed step
-            self.completed_step(self)
-
-            def interpolateLinear(a1, b1, a2, b2, t):
-                return (b2 - b1) / (a2 - a1) * (t - a1) + b1
-
-            # Write output points until the current time
-            while nextOutputPoint < self.t_cur:
-                y_Output = interpolateLinear(t_cur0, y_cur0, self.t_cur, self.y_cur, nextOutputPoint)
-                self.handle_result(None, nextOutputPoint, y_Output)
-                outputStepCounter += 1
-                nextOutputPoint = min(Tstart + outputStepCounter * dOutput, Tend)
-
-            # Depending on events have been detected do different tasks
-            if state_event.any() or time_event:
-                # Event handling
-                event_info = [state_event, time_event]
-                self.t = self.t_cur
-                self.y = self.y_cur
-                if not self.handle_event(self, event_info):
-                    break
-                z = self.state_events(self.t_cur, self.y_cur, None)
-                for i in xrange(len(z)):
-                    zb[i] = (z[i] > 0.0)
-                nextTimeEvent = self.time_events(self.t_cur, self.y_cur, None)
-            elif nextOutputPoint == self.t_cur:
-                y_Output = interpolateLinear(t_cur0, y_cur0, self.t_cur, self.y_cur, nextOutputPoint)
-                self.handle_result(self, nextOutputPoint, y_Output)
-                outputStepCounter += 1
-                nextOutputPoint = min(Tstart + outputStepCounter * dOutput, Tend)
-
-        self.finalize(None)
