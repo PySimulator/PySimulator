@@ -3,8 +3,9 @@ import copy
 import Plugins.Simulator.FMUSimulator.FMUSimulator2 as FMUSimulator
 import Plugins.SimulationResult.IntegrationResults
 import Plugins.SimulationResult.Mtsf.Mtsf as Mtsf
+from Plugins.Simulator.FMUSimulator.FMUInterface2 import fmiTrue
+from Plugins.Simulator import SimulatorBase
 
-import Plugins.Simulator.SimulatorBase
 from PySide import QtGui, QtCore
 from datetime import datetime
 import codecs
@@ -126,33 +127,110 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             self._FMUSimulators[i].loadResultFile(self._FMUSimulators[i].integrationSettings.resultFileName)
 
     def simulate(self):
+        # prepare result files for each FMU
+        for i in xrange(len(self._FMUSimulators)):
+            self._FMUSimulators[i].integrationSettings = copy.copy(self.integrationSettings)
+            fileName = self._FMUSimulators[i].name + "_" + datetime.now().strftime("%Y%m%d%H%M%S") + ".mtsf"
+            self._FMUSimulators[i].integrationSettings.resultFileName = unicode(fileName)
+            self._FMUSimulators[i].prepareResultFile()
+
+        # Set Simulation options
         Tstart = self.integrationSettings.startTime
         Tend = self.integrationSettings.stopTime
+        IntegrationMethod = self.integrationSettings.algorithmName
+        if "BDF (CVode)" in IntegrationMethod:
+            IntegrationMethod = 'BDF'
+        elif 'Adams' in IntegrationMethod:
+            IntegrationMethod = 'Adams'
+        if self.integrationSettings.gridPointsMode == 'NumberOf':
+            nIntervals = self.integrationSettings.gridPoints - 1
+            gridWidth = None
+        elif self.integrationSettings.gridPointsMode == 'Width':
+            nIntervals = None
+            gridWidth = self.integrationSettings.gridWidth
+        else:
+            nIntervals = 0
+            gridWidth = None
+        ErrorTolerance = self.integrationSettings.errorToleranceRel
+
         # Initialize integration statistics
         self.integrationStatistics.nTimeEvents = 0
         self.integrationStatistics.nStateEvents = 0
         self.integrationStatistics.nGridPoints = 0
         self.integrationStatistics.reachedTime = Tstart
 
+        # Run the integration
         for i in xrange(len(self._FMUSimulators)):
-            self._FMUSimulators[i].integrationSettings = copy.copy(self.integrationSettings)
-            self._FMUSimulators[i].integrationSettings.resultFileName = unicode(self._FMUSimulators[i].name + "_1.mtsf")
-            self._FMUSimulators[i].simulate()
+            # set simulation options
+            self._FMUSimulators[i].setSimulationOptions()
+            # Initialize model
+            (status, nextTimeEvent) = self._FMUSimulators[i].initialize(Tstart, Tend, ErrorTolerance if self._fmiType == 'cs' else min(1e-15, ErrorTolerance*1e-5))
+            if status > 1:
+                print("Instance %s initialization failed with fmiStatus %s" % (self._FMUSimulators[i].name, str(status)))
+                return
 
-        i = 0
-        while True:
-            if i >= len(self._FMUSimulators):
-                self.integrationStatistics.reachedTime = Tend
-                break
-            if self._FMUSimulators[i].integrationStatistics.reachedTime == Tend:
-                i = i + 1
-#==============================================================================
-#          print "self.integrationStatistics.reachedTime = " + str(self.integrationStatistics.reachedTime)
-#         # Initialize integration statistics
-#         self.integrationStatistics.nTimeEvents = 4
-#         self.integrationStatistics.nStateEvents = 5
-#         self.integrationStatistics.nGridPoints = 6
-#==============================================================================
+            if 'Fixed' in self._FMUSimulators[i].integrationResults._mtsf.results.series:
+                # Write parameter values
+                self._FMUSimulators[i].writeResults('Fixed', Tstart)
+
+            if self._fmiType == 'me':
+                return
+            elif self._fmiType == 'cs':
+                if gridWidth is None:
+                    gridWidth = (Tend-Tstart) / nIntervals
+
+                t = Tstart
+                lastStep = False
+                doLoop = Tend > Tstart
+                if gridWidth <= Tend-t:
+                    dt = gridWidth
+                else:
+                    dt = Tend - t
+                    lastStep = True
+                k = 1
+
+                self._FMUSimulators[i].writeResults('Continuous', t)
+                if 'Discrete' in self._FMUSimulators[i].integrationResults._mtsf.results.series:
+                    # Write discrete Variables
+                    self._FMUSimulators[i].writeResults('Discrete', t)
+
+                while doLoop:
+                    status = self._FMUSimulators[i].doStep(t, dt)
+                    if status == 2:  # Discard
+                        status, info = self._FMUSimulators[i].interface.fmiGetBooleanStatus(3) # fmi2Terminated
+                        if info == fmiTrue:
+                            status, lastTime = self._FMUSimulators[i].interface.fmiGetRealStatus(2)       # fmi2LastSuccessfulTime
+                            t = lastTime
+                            doLoop = False
+                        else:
+                            print("Not supported status in doStep at time = {:.2e}".format(t))
+                            # Raise exception to abort simulation...
+                            self._FMUSimulators[i].finalize()
+                            raise(SimulatorBase.Stopping)
+                    elif status < 2:
+                        t = t + dt
+                    else:
+                        # should not occur
+                        pass
+
+                    self._FMUSimulators[i].handle_result(None, t)
+                    if 'Discrete' in self._FMUSimulators[i].integrationResults._mtsf.results.series:
+                        # Write discrete Variables
+                        self._FMUSimulators[i].writeResults('Discrete', t)
+
+                    if lastStep:
+                        doLoop = False
+                    else:
+                        #Compute next communication point
+                        if gridWidth <= Tend-t:
+                            k += 1
+                            dt = (Tstart + k*gridWidth) - t
+                        else:
+                            dt = Tend - t
+                            lastStep = True
+
+                self._FMUSimulators[i].finalize()
+
         print 'Result files generated'
         return
 
