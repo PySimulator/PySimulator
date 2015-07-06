@@ -599,9 +599,17 @@ class SimulatorGui(QtGui.QMainWindow):
         ''' The user entered a new value for a variable in the variable browser.
             Store this information in the model. '''
         print(u'Variable value changed: %s: %s = %s' % (numberedModelName, variableName, value))
-        self.models[numberedModelName].changedStartValue[variableName] = value
-        # Delete pluginData because values of parameters have been changed
-        self.models[numberedModelName].pluginData.clear()
+        if (self.models[numberedModelName].modelType == 'Connected FMU Simulation'):
+            variables = variableName.split('.', 1)
+            FMUSimulatorObj = self.models[numberedModelName].getFMUSimulator(variables[0])
+            FMUSimulatorObj.changedStartValue[variables[1]] = value
+            # Delete pluginData because values of parameters have been changed
+            FMUSimulatorObj.pluginData.clear()
+            self.models[numberedModelName].pluginData.clear()
+        else:
+            self.models[numberedModelName].changedStartValue[variableName] = value
+            # Delete pluginData because values of parameters have been changed
+            self.models[numberedModelName].pluginData.clear()
 
     def closeEvent(self, event):
         for model in self.models.itervalues():

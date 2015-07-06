@@ -789,7 +789,12 @@ class DefaultPlotWidget(PlotWidget):
             self.addVariable(model, variable)
         else:
             dPoints = 1
-            y, x, interpolationMethod = model.integrationResults.readData(variable)
+            if (model.modelType == 'Connected FMU Simulation'):
+                variables = variable.split('.', 1)
+                FMUSimulatorObj = model.getFMUSimulator(variables[0])
+                y, x, interpolationMethod = FMUSimulatorObj.integrationResults.readData(variables[1])
+            else:
+                y, x, interpolationMethod = model.integrationResults.readData(variable)
             if x is None:
                 return
             if len(x) > self.maxDisplayPoints:
