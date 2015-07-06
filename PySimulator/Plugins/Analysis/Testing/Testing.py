@@ -37,6 +37,7 @@ import datetime
 from PySide import QtGui, QtCore
 from ... import Simulator 
 from ... import SimulationResult
+from decimal import Decimal
 from multiprocessing import Pool
 
 def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdout, filewritehtml=None,resultfile=None,htmlfile=None,file1=None):
@@ -225,41 +226,33 @@ def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1
     p=os.path.dirname(resultfile)
     os.chdir(p)
     filename=os.path.join(p,modelname1.replace(' ',''))
-    fileerror=os.path.join(filename,'err.html').replace('\\','/')
-    filetolerance=os.path.join(filename,'tolerance.html').replace('\\','/')
-    filecommon=os.path.join(filename,'differ.html').replace('\\','/')
-    reference='<tr> <td> <b>Directory 1(reference)</b> </td>'+'<td>'+'<b>:</b>'+os.path.dirname(file1)+'</td></tr>'
-    comparison='<tr> <td> <b>Directory 2(comparison)</b> </td>'+'<td>'+'<b>:</b>'+os.path.dirname(file)+'</td></tr>'
-    comparedmodel='<tr> <td> <b>Compared Result file </b> </td>'+ '<td>'+'<b>:</b>'+os.path.basename(file)+'</td></tr>'
-    
-    messcommon="""<html> <head> <h2> List of Differed variables </h2> </head> <table>"""
-    messerr="""<html> <head> <h2> Sorted by Name </h2> </head> <table> <tr> <th> Name </th> <th> Estimated Tolerance </th> </td> """  
-    messtol="""<html> <head> <h2> Sorted by Highest Tolerance Error </h2> </head> <table> <tr> <th> Name </th> <th> Estimated Tolerance </th> </td> """  
-    
-    message1= '<a href=' + os.path.relpath(resultfile) + '>' + modelname +'-'+ model1var+'</a>' +' </td>' 
+    fileerror=os.path.join(filename,'name.html').replace('\\','/')
+    filetolerance=os.path.join(filename,'error.html').replace('\\','/')
+    reference='<tr> <td align="right"> <b> Baseline Directory: </b> </td>'+'<td>'+' '+os.path.dirname(file1)+'</td></tr>'
+    comparison='<tr> <td align="right"> <b> Testing Directory: </b> </td>'+'<td>'+' '+os.path.dirname(file)+'</td></tr>'
+    comparedmodel='<tr> <td align="right"> <b> Compared Result file: </b> </td>'+ '<td>'+' '+os.path.basename(file)+'</td></tr>'
+    maxerror="{:.1e}".format(Decimal(str(maxEstTol)))
+    messcommon="""<html> <a href="../index.html"> Home </a> <head> <h2> List of Differed Variables </h2> </head> <table>"""
+    messerr="""<table style="empty-cells: hide" border="1"> <tr> <th> <a href="name.html">Name</a> </th> <th> <a href="error.html">Detected Error</a> </th> """
+
+    message1= '<a href=' + os.path.relpath(resultfile) + '>' + modelname +'-'+ model1var+'</a>' +' </td>'
     if(len(diff1)==0):
-         #emptyhref='<a href="" style="text-decoration:none;">0'+ '(' + str(totalvar) + 'variables)' +'</a>'
-         emptyhref='<a href="" style="text-decoration:none;">'+ model2var+'/'+ str(totalComparedvar) +'[' +str(maxEstTol)+ ']' +'</a>'
-         s = '\n'.join(['<tr>','<td id=2>',message1,'<td id=2 bgcolor=#00FF00>',emptyhref,'</td>','</tr>']) 
+         emptyhref= model2var+' / '+ str(totalComparedvar) +' [' +str(maxerror)+ ']'
+         s = '\n'.join(['<tr>','<td id=2>',message1,'<td id=2 bgcolor=#00FF00 align="center">',emptyhref,'</td>','</tr>']) 
          fileouthtml.write(s)
          fileouthtml.write('\n')   
     
     if(len(diff1)>0):         
-         d=open(filecommon,'w')
-         sortname='<p> <li> <a href="err.html">Sorted by Name</a> </li> </p>'
-         sorttol='<p> <li> <a href="tolerance.html">Sorted by Tolerance</a> </li> </p>'
-         s='\n'.join([messcommon,reference,comparison,comparedmodel,'</table>',sortname,sorttol,'</html>'])
-         d.write(s)
-         d.close() 
          ## Html page to sort differed variable by name
          f=open(fileerror,'w')         
          for i in xrange(len(diff1)):
              var=diff1[i].split('-') 
              str1=''.join([modelname+'_'+var[0]+'.html'])
              x1='<td>'+'<a href='+str1.replace(' ','')+'>'+ str(var[0])+ '</a>'+'</td>'
-             diff='<td>'+str(var[1])+'</td>'+'</tr>'
+             errval="{:.1e}".format(Decimal(var[1]))
+             diff='<td>'+str(errval)+'</td>'+'</tr>'
              if(i==0):
-               s = '\n'.join([messerr,'<tr>',x1,diff])
+               s = '\n'.join([messcommon,reference,comparison,comparedmodel,'</table>','<br>',messerr,'<tr>',x1,diff])
              else:
                s = '\n'.join(['<tr>',x1,diff]) 
              
@@ -277,9 +270,10 @@ def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1
              var1=difftol[i][1]             
              str1=''.join([modelname+'_'+var+'.html'])
              x1='<td>'+'<a href='+str1.replace(' ','')+'>'+ str(var)+ '</a>'+'</td>'
-             diff='<td>'+str(var1)+'</td>'+'</tr>'
+             errval="{:.1e}".format(Decimal(var1))
+             diff='<td>'+str(errval)+'</td>'+'</tr>'
              if(i==0):
-               s = '\n'.join([messtol,'<tr>',x1,diff])
+               s = '\n'.join([messcommon,reference,comparison,comparedmodel,'</table>','<br>',messerr,'<tr>',x1,diff])
              else:
                s = '\n'.join(['<tr>',x1,diff]) 
              
@@ -292,8 +286,8 @@ def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1
          
          
          #diff = '<a href='+ os.path.relpath(fileerror) +'>'+str(len(diff1))+'</a>'+ '(' + str(totalvar) +'variables)' + '[' +str(maxEstTol)+ ']' +'</td>'+'</tr>'      
-         diff = model2var + '/' + str(totalComparedvar)+ '/' + '<a href='+ os.path.relpath(filecommon) +'>'+str(len(diff1))+'</a>'+ '[' +str(maxEstTol)+ ']' +'</td>'+'</tr>'
-         s = '\n'.join(['<tr>','<td id=2>',message1,'<td id=2 bgcolor=#FF0000>',diff])            
+         diff = model2var + ' / ' + str(totalComparedvar)+ ' / ' + '<a href='+ os.path.relpath(fileerror) +'>'+str(len(diff1))+'</a>'+ ' [' +str(maxerror)+ ']' +'</td>'+'</tr>'
+         s = '\n'.join(['<tr>','<td id=2>',message1,'<td id=2 bgcolor=#FF0000 align="center">',diff])
          fileouthtml.write(s)
          fileouthtml.write('\n')
    
@@ -548,7 +542,7 @@ def compareListMenu(model, gui):
             self.tolEdit = QtGui.QLineEdit("", self)
             mainGrid.addWidget(self.tolEdit, 3, 1)
 
-            result = QtGui.QLabel("Result Directory:", self)
+            result = QtGui.QLabel("Report Directory:", self)
             mainGrid.addWidget(result, 4, 0, QtCore.Qt.AlignRight)
             self.resultEdit = QtGui.QLineEdit("", self)
             mainGrid.addWidget(self.resultEdit, 4, 1)
@@ -600,7 +594,12 @@ def compareListMenu(model, gui):
             browseResult.clicked.connect(_browseResultDo)
 
             self.tolEdit.setText('1e-3')
-            self.resultEdit.setText(os.getcwd().replace('\\', '/'))
+            self.resultEdit.setText(os.getcwd().replace('\\', '/')+'/RegressionReport')
+
+            ##create a RegressionReport Directory in the current working directory
+            reportdir =os.path.join(os.getcwd(),'RegressionReport').replace('\\','/')
+            if not os.path.exists(reportdir):
+                os.mkdir(reportdir)
             self.dir1Edit.setText(os.getcwd().replace('\\', '/'))
             #self.dir2Edit.setText(os.getcwd().replace('\\', '/'))
 
@@ -634,13 +633,13 @@ def compareListMenu(model, gui):
                for i in xrange(self.directory.count()):
                  item=self.directory.item(i).text()
                  listdirs.append(item)
-                 
+
             # Run the analysis
             if (len(listdirs)!=0):
                 gui._compareThreadTesting = runCompareResultsInDirectories(gui.rootDir, dir1, listdirs, tol, logDir)
             else:
-                print 'Select Directory 2 of results to be added to List of Directory to compare'
-                
+                print 'Select List of Directories to compare'
+
         def parallelrun(self):
             if hasattr(gui, '_compareThreadTesting'):
                 if gui._compareThreadTesting.running:
@@ -652,7 +651,7 @@ def compareListMenu(model, gui):
             #dir2 = self.dir2Edit.text()
             logDir = self.resultEdit.text()
             tol = float(self.tolEdit.text())
-            
+
             listdirs=[]
             sitems=self.directory.selectedItems()
             if(len(sitems)!=0):
@@ -667,7 +666,7 @@ def compareListMenu(model, gui):
             if (len(listdirs)!=0):
                 gui._compareThreadTesting = runParallelCompareResultsInDirectories(gui.rootDir, dir1, listdirs, tol, logDir)
             else:
-                print 'Select Directory 2 of results to be added to List of Directory to compare'
+                print 'Select List of Directories to compare'
                 
         def stop(self):
             if hasattr(gui, '_compareThreadTesting'):
@@ -1169,7 +1168,7 @@ class CompareParallelThread(QtCore.QThread):
           shutil.copy(dygraphpath,self.logDir)
       
       ## create a temp file for writing results and use it later to generate the regression report
-      self.logFile=os.path.join(self.logDir,'Index.log').replace('\\','/')
+      self.logFile=os.path.join(self.logDir,'index.log').replace('\\','/')
 
       resultfilesize=[]    
       logfiles=[]   
@@ -1329,20 +1328,28 @@ def ParallelCompareAnalysis(directories):
            
         message='\n'.join(['<html>',m1])
         f=open(logfile1,'w')
-        if len(red)==0:
-            m1='<tr><td></td><td id=1 bgcolor=#00FF00>'+ str(len(green))+'passed'+'/'+str(len(red))+'failed'+'</td></tr>'
-            percentage=str((len(green))*100/(len(green)+len(red)))+'%'+'passed'
-            m2='<tr><td></td><td id=100 bgcolor=#00FF00>'+percentage+'</td></tr>'
+        colorpercent=int((len(green))*100/(len(green)+len(red)))
+        if (colorpercent==100):
+            m1='<tr><td></td><td id=1 bgcolor="#00FF00" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
+            percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+            m2='<tr><td></td><td id=100 bgcolor="#00FF00" align="center">'+percentage+'</td></tr>'
             m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
             f.write(m3)
             f.write('\n')
-        else:
-            m1='<tr><td></td><td id=1 bgcolor=#FF0000>'+ str(len(green))+'passed'+'/'+str(len(red))+'failed'+'</td></tr>'
-            percentage=str((len(green))*100/(len(green)+len(red)))+'%'+'passed'
-            m2='<tr><td></td><td id=100 bgcolor=#FF0000>'+percentage+'</td></tr>'
+        if(colorpercent>=51 and colorpercent<=99):
+            m1='<tr><td></td><td id=1 bgcolor="#FFA500" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
+            percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+            m2='<tr><td></td><td id=100 bgcolor="#FFA500" align="center">'+percentage+'</td></tr>'
             m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
             f.write(m3)
-            f.write('\n')     
+            f.write('\n')
+        if(colorpercent<=50):
+            m1='<tr><td></td><td id=1 bgcolor="#FF0000" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
+            percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+            m2='<tr><td></td><td id=100 bgcolor="#FF0000" align="center">'+percentage+'</td></tr>'
+            m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
+            f.write(m3)
+            f.write('\n')
         f.close() 
                    
     logfiledir=os.path.dirname(logfile)
@@ -1406,7 +1413,7 @@ class CompareThread(QtCore.QThread):
       files1 = os.listdir(dir1) 
       
       ## create a temp file for writing results and use it later to generate the regression report
-      self.logFile=os.path.join(self.logDir,'Index.log').replace('\\','/')
+      self.logFile=os.path.join(self.logDir, "index.log").replace('\\','/')
       
       fileOut = open(self.logFile, 'w')
       startTime = time.time()
@@ -1496,28 +1503,32 @@ class CompareThread(QtCore.QThread):
                    green.append(checkcolor)
               else:
                    red.append(checkcolor)
-           
+
            message='\n'.join(['<html>',m1])
            f=open(logfile1,'w')
-           if len(red)==0:
-               m1='<tr><td></td><td id=1 bgcolor=#00FF00>'+ str(len(green))+'passed'+'/'+str(len(red))+'failed'+'</td></tr>'
-               percentage=str((len(green))*100/(len(green)+len(red)))+'%'+'passed'
-               m2='<tr><td></td><td id=100 bgcolor=#00FF00>'+percentage+'</td></tr>'
-               m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
-   
-               f.write(m3)
-               f.write('\n')
-           else:
-               m1='<tr><td></td><td id=1 bgcolor=#FF0000>'+ str(len(green))+'passed'+'/'+str(len(red))+'failed'+'</td></tr>'
-               percentage=str((len(green))*100/(len(green)+len(red)))+'%'+'passed'
-               m2='<tr><td></td><td id=100 bgcolor=#FF0000>'+percentage+'</td></tr>'
+           colorpercent=int((len(green))*100/(len(green)+len(red)))
+           if (colorpercent==100):
+               m1='<tr><td></td><td id=1 bgcolor="#00FF00" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
+               percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+               m2='<tr><td></td><td id=100 bgcolor="#00FF00" align="center">'+percentage+'</td></tr>'
                m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
                f.write(m3)
                f.write('\n')
-
-           #s = '\n'.join([message,str(m3),data,'</table>','</html>']) 
-           #f.write(s)                    
-           f.close() 
+           if(colorpercent>=51 and colorpercent<=99):
+               m1='<tr><td></td><td id=1 bgcolor="#FFA500" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
+               percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+               m2='<tr><td></td><td id=100 bgcolor="#FFA500" align="center">'+percentage+'</td></tr>'
+               m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
+               f.write(m3)
+               f.write('\n')
+           if(colorpercent<=50):
+               m1='<tr><td></td><td id=1 bgcolor="#FF0000" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
+               percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+               m2='<tr><td></td><td id=100 bgcolor="#FF0000" align="center">'+percentage+'</td></tr>'
+               m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
+               f.write(m3)
+               f.write('\n')
+           f.close()
        
         '''Save the data to prepare regression report'''
         
@@ -1539,11 +1550,11 @@ class CompareThread(QtCore.QThread):
       filecount=len(files1)
       resultdirsize=sum(resultfilesize)      
       genregressionreport(self.logFile,totaldir,filecount,elapsedTime,resultdirsize,dir1)
-      
+
       ## remove the temporary rfiles directory after the Regression report generated
       regressionfilesdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
       if os.path.exists(regressionfilesdir): 
-         shutil.rmtree(regressionfilesdir)   
+         shutil.rmtree(regressionfilesdir)
          
       self.running = False
 
@@ -1609,15 +1620,15 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
     logfile1=logfile.replace(fileExtension,'.html')    
     f=open(logfile1,'w') 
     date_time_info = datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
-    date_time_info1 =' '.join(['<p>','<b>Generated:</b>',date_time_info,'</p>'])
-    tolerance=' '.join(['<p> <b>Given Error tolerance: </b> 1e-3 </p>'])
-    diskspace=' '.join(['<p> <b>Disk space of all used result files: </b>',str(resultdirsize),' ','MB','</p>'])
-    dircount=' '.join(['<p>','<b>Total number of compared files:</b>',str(int(totaldir)*int(filecount)),'against',str(filecount),'baseline files','</p>']) 
-    comparedvariable=' '.join(['<p id=var> </p>'])
-    resultspace=' '.join(['<p id=resultdir> </p>'])    
+    date_time_info1 =' '.join(['<tr>','<td align="right">','<b>Generated: </td>','<td>',date_time_info,'by PySimulator','</td>','</tr>'])
+    tolerance=' '.join(['<tr>','<td align="right"> <b>Given Error Tolerance: </b> </td>','<td>','1e-3','</td>','</tr>'])
+    diskspace=' '.join(['<tr>','<td align="right"> <b>Disk space of all used result files: </b> </td>','<td>',str(resultdirsize),' ','MB','</td>','</tr>'])
+    dircount=' '.join(['<tr>','<td align="right"> <b>Total number of compared files: </b></td>','<td>',str(int(totaldir)*int(filecount)),'against',str(filecount),'baseline files','</td>','</tr>'])
+    comparedvariable=' '.join(['<tr>','<td align="right"> <b>Total number of Compared Variables: </b> </td>', '<td id=var> </td>','</tr>'])
+    resultspace=' '.join(['<tr>','<td align="right"> <b>Disk space of full report directory: </b> </td>','<td id=resultdir> </td>','</tr>'])
     #filecounts=' '.join(['<h4>','Number of Files Compared:',str(filecount),'</h4>'])
     
-    TotalTime =' '.join(['<p>','<b>Time Taken:</b>',time.strftime("%Hh:%Mm:%Ss", time.gmtime(Time)),'</p>'])
+    TotalTime =' '.join(['<tr>','<td align="right">','<b>Time Taken:</b></td>','<td>',time.strftime("%Hh:%Mm:%Ss", time.gmtime(Time)),'</td>','</tr>'])
 
     m1='''<body>
     <style>
@@ -1635,13 +1646,62 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
 
     head= '<header> <h1> Regression Report </h1> </header>'
     colorlegend='<p><a href="#color">Legend</a></p>'
-    colorinfo='''<a name="color"> <fieldset style="width:560px"> <legend>Coloring:</legend>
-    <p><font style="background-color:#FF0000">Red:</font> <br> *Per failed: Comparison failed,(i.e.) at least one variable with large error <br> *Per column or row: Only 0-50% of the corresponding files passed the test</p>
-    <p><font style="background-color:#00FF00">Green</font> <br> *Per failed: Comparison passed, i.e. all compared variables passed the test <br> *Per column or row: 100% of the corresponding files passed the test <br> *Total: All files passed the test </p>
-    <p><font style="background-color:#FFA500">Orange</font> <br> *Per column or row: &gt;50% and &lt;100% of the corresponding files passed the test <br> *Total: &gt;50% and &lt; 100% of all files passed the test</p> </fieldset> </a>
-    <p align="center"><a href="Index.html">Return</a></p>'''
 
-    s='\n'.join(['<html>',m1,head,'<nav>',tolerance,diskspace,dircount,comparedvariable,resultspace,date_time_info1,TotalTime,'</nav>',colorlegend,'<footer>','<table>','<tr>','<th id=0>','Result Files','</th>','<th id=0>','Status','</th>''<th id=0>',os.path.basename(baselinedir),'</th>'])
+    colorinfo='''<h3> <a name="color"> Coloring </a> </h3>
+    <fieldset style="width:600px">
+    <table border="0">
+    <tr>
+    <td>
+    <font style="background-color:#FF0000"> Red: </font> </td> </tr>
+    <tr> <td align="right"><b>Per File: </b> </td> <td>Comparison failed,(i.e.) at least one variable with large error </td> </tr>
+    <tr> <td align="right"><b>Per Column or Row: </b> </td> <td>Only 0-50% of the corresponding files passed the test </td> </tr>
+    <tr>
+    <td> <font style="background-color:#FFA500">Orange:</font> </td> </tr>
+    <tr> <td align="right"><b>Per Column or Row: </b> </td> <td>&gt; 50% and &lt; 100% of the corresponding files passed the test </td> </tr>
+    <tr> <td align="right"> <b>Total: </b> </td> <td> &gt; 50% and &lt; 100% of all files passed the test </td></tr>
+    <tr>
+    <td> <font style="background-color:#00FF00"> Green: </font> </td> </tr>
+    <tr> <td align="right"><b>Per File: </b> </td> <td> Comparison passed, (i.e.) all compared variables passed the test </td> </tr>
+    <tr> <td align="right"> <b>Per Column or Row:</b> </td> <td> 100% of the corresponding files passed the test </td> </tr>
+    </table>
+    </fieldset>'''
+
+    tabledata=''' <h3> Table Data </h3>
+    <fieldset style="width:600px">
+    <p align="left"><i>The example table presented below provides description on each identifier of the table data</i></p>
+    <table border="1" style="empty-cells: hide">
+    <tr> <th>Resultfile</th><th>Status</th><th>Baseline Directory </th> <th> Testing Directory1 </th> <th> Testing Directory2 </th></tr>
+    <tr> <td> </td> <td align="center" bgcolor="#FFA500">  A  </td> <td> </td> <td align="center" bgcolor="#FF0000"> C </td>  <td align="center" bgcolor="#00FF00"> C </td> </tr>
+    <tr> <td> </td> <td align="center" bgcolor="#FFA500">  B  </td> <td> </td> <td align="center" bgcolor="#FF0000"> D </td>  <td align="center" bgcolor="#00FF00"> D </td> </tr>
+    <tr> <td> </td> <td> </td> <td align="center"> Baseline </td> </tr>
+    <tr> <td>Filename1</td> <td align="center" bgcolor="#FF0000"> E </td> <td align="center"> F </td> <td align="center" bgcolor="#FF0000"> F / G / <a href> H </a> [I] </td>
+    <td align="center" bgcolor="#00FF00"> F / G [I] </td>
+    </tr>
+    </table><br>
+    <table>
+    <tr>
+    <td align="right"> <b>A-</b> </td> <td> Overall status of Number of total passed files / Number of total failed files </td> </tr>
+    <tr>
+    <td align="right"> <b>B- </b> </td> <td> Overall Percentage status of total passed files </td> </tr>
+    <tr>
+    <td align="right"> <b>C- </b> </td> <td> {Number of passed files / Number of  failed files}, in the corresponding directory eg:(Testing Directory1 or Testing Directory2) </td> </tr>
+    <tr>
+    <td align="right"> <b>D- </b> </td> <td> Percentage of total passed files,in the corresponding directory eg:(Testing Directory1 or Testing Directory2) </td> </tr>
+    <tr>
+    <td align="right"> <b>E- </b> </td> <td> {Number of passed files / Number of failed files} for this file eg: (Filename1) </td> </tr>
+    <tr>
+    <td align="right"> <b>F- </b> </td> <td> Number of variables contained in the File </td> </tr>
+    <tr>
+    <td align="right"> <b>G- </b> </td> <td> Number of variables compared </td> </tr>
+    <tr>
+    <td align="right"> <b>H- </b> </td> <td> Number of variables greater than given tolerance with link to the list of these variables </td> </tr>
+    <tr>
+    <td align="right"> <b>I- </b> </td> <td>  Maximum error of all compared variables </td> </tr>
+    </table>
+    </fieldset>
+    <p align="center"><a href="index.html">Return</a></p>'''
+
+    s='\n'.join(['<html>',m1,head,'<nav>','<table>',tolerance,diskspace,dircount,comparedvariable,resultspace,date_time_info1,TotalTime,'</table>','</nav>',colorlegend,'<footer>','<table style="empty-cells: hide" border="1">','<tr>','<th id=0>','Result Files','</th>','<th id=0>','Status','</th>''<th id=0>',os.path.basename(baselinedir),'</th>'])
     f.write(s)
     f.write('\n')
     
@@ -1662,7 +1722,7 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
     hstatus=[]
     for h in xrange(len(header[0])):
         hname=get_column(h,header)
-        m1='<tr><td></td><td id=hstatus></td><td></td>'
+        m1='<tr><td></td><td id=hstatus align="center"></td><td></td>'
         f.write(m1)
         
         passfiles=[]
@@ -1677,7 +1737,7 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
         p1=int(sum(passfiles))+int(sum(failfiles))
         p2=int(sum(passfiles))*100/p1
         pstatus.append(str(p2))
-        hstatus.append(str(sum(passfiles))+'/'+str(sum(failfiles)))
+        hstatus.append(str(sum(passfiles))+' / '+str(sum(failfiles)))
     
         for i in xrange(len(hname)):
            if(i==(len(hname)-1)):
@@ -1691,7 +1751,7 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
           
     for p in xrange(len(percent[0])):    
        pname=get_column(p,percent)
-       m1='<tr><td></td><td id=pstatus></td><td></td>'
+       m1='<tr><td></td><td id=pstatus align="center"></td><td></td>'
        f.write(m1)
        for i in xrange(len(pname)):
           if(i==(len(pname)-1)):
@@ -1701,7 +1761,7 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
           f.write(s)
           f.write('\n')  
           
-       baseheader='<tr><td></td><td></td><td>Baseline<td>'
+       baseheader='<tr><td></td><td></td><td align="center">Baseline<td>'
        f.write(baseheader)
     
     ## loop for fourth row for calculating status of number of files passed and failed for individual files
@@ -1716,7 +1776,7 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
          y=x1.split('-')
          #href='<a href='+os.path.basename(logfile)+'>'+ x1 +'</a>'         
          #s='\n'.join(['<tr>','<td>',href,'</td>'])
-         s='\n'.join(['<tr>','<td>',str(y[0]),'</td>','<td id=status>','</td>','<td>',str(y[-1]),'</td>'])
+         s='\n'.join(['<tr>','<td>',str(y[0]),'</td>','<td id=status align="center">','</td>','<td align="center">',str(y[-1]),'</td>'])
          f.write(s)
          f.write('\n')
          
@@ -1731,7 +1791,8 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
           checkcolor=tag['bgcolor']
           if(checkcolor=="#00FF00"):
              green.append(checkcolor)
-             var1=str(x[k].find('a').string).split('[')
+             #var1=str(x[k].find('a').string).split('[')
+             var1=str(x[k]).split('[')
              var2=var1[0].split('/')
              comparevar.append(int(var2[-1]))
           else:
@@ -1753,7 +1814,7 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
             f.write(s)
             f.write('\n')
     if(i==len(hreflist[0])-1):
-         s='\n'.join(['</table>','</footer>',colorinfo,'</body>','</html>'])
+         s='\n'.join(['</table>','</footer>',colorinfo,tabledata,'</body>','</html>'])
          f.write(s)
          f.write('\n')
     
@@ -1767,31 +1828,35 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
     dat=stat.find_all('td',{"id":"status"})
     hst=stat.find_all('td',{"id":"hstatus"})
     pst=stat.find_all('td',{"id":"pstatus"})
-    totalvar=stat.find_all('p',{"id":"var"})
-    ressize=stat.find_all('p',{"id":"resultdir"})
+    totalvar=stat.find_all('td',{"id":"var"})
+    ressize=stat.find_all('td',{"id":"resultdir"})
 
-    totalvar[0].string="<b>Total number of Compared Variables:</b>"+str(sum(comparevar))+'('+str(sum(comparevar)-sum(differedvar))+'passed'+','+str(sum(differedvar))+'failed)'
-    ressize[0].string="<b>Disk space of full report directory:</b>"+str(resultsize)+' '+'MB'
- 
+    totalvar[0].string=str(sum(comparevar))+' ('+str(sum(comparevar)-sum(differedvar))+' passed'+', '+str(sum(differedvar))+' failed)'
+    ressize[0].string=str(resultsize)+' '+'MB'
+    
     ## condition for updating the percentage status and color code in first and  second row
-    if(pstatus[0]==100):
-      ## green color
+    colorpercent=int(pstatus[0])
+    
+    ## green color
+    if(colorpercent==100):   
       hst[0]['bgcolor']="#00FF00"
       hst[0].string=hstatus[0]
       pst[0]['bgcolor']="#00FF00"
-      pst[0].string=pstatus[0]+'%'
-    else:
-      ## orange color
+      pst[0].string=str(colorpercent)+'%'
+    
+    ## orange color
+    if(colorpercent>=51 and colorpercent<=99):
       hst[0]['bgcolor']="#FFA500"
       hst[0].string=hstatus[0]
       pst[0]['bgcolor']="#FFA500"
-      pst[0].string=pstatus[0]+'%'      
+      pst[0].string=str(colorpercent)+'%' 
+      
     ## red color
-    if(pstatus[0]<=50):
+    if(colorpercent<=50):
        hst[0]['bgcolor']="#FF0000"
        hst[0].string=hstatus[0]
        pst[0]['bgcolor']="#FF0000"
-       pst[0].string=pstatus[0]+'%'
+       pst[0].string=str(colorpercent)+'%'
     
     ## loop for updating the status and color code of individual files in different directory, row comparison
     for i in xrange(len(dat)):
@@ -1800,19 +1865,18 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
         if (percentage==100):
           ## green color
           dat[i]['bgcolor']="#00FF00"
-          dat[i].string=d[0]+'/'+d[1]
-        else:
+          dat[i].string=d[0]+' / '+d[1]
+        if(percentage>=51 and percentage<=99):
           ## orange color
           dat[i]['bgcolor']="#FFA500"
-          dat[i].string=d[0]+'/'+d[1]
-    
+          dat[i].string=d[0]+' / '+d[1]
         if (percentage<=50):
           ## red color
           dat[i]['bgcolor']="#FF0000"
-          dat[i].string=d[0]+'/'+d[1]
-    
-    html = stat.prettify("utf-8")
-    html = html.replace('&lt;b&gt;','<b>').replace('&lt;/b&gt;','</b>')
+          dat[i].string=d[0]+' / '+d[1]
+    #html = stat.prettify("utf-8")
+    html = str(stat)
+    #html = html.replace('&lt;b&gt;','<b>').replace('&lt;/b&gt;','</b>')
     f=open(logfile1,'w') 
     f.write(html)
     f.close()
