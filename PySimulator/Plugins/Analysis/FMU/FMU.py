@@ -614,27 +614,19 @@ def StartSimulation(gui, xml, xmlFileName, fmiType):
       import configobj
       config = configobj.ConfigObj(os.path.join(os.path.expanduser("~"), '.config', 'PySimulator', 'PySimulator.ini'), encoding='utf8')
 
-      independentfmus=[]
-      instancename=[]
-      filename=[]
-      for z in xrange(len(connected_components)):
-        for fmu in root.iter('fmu'):
-           fmuname=fmu.get('name')
-           ## condition to add FMUS which does not have input and output components
-           if z==0:
-              checkname = [s for s in connected_components if fmuname in s]
-              if (len(checkname)==0):
-                 filename.insert(0,fmu.get('path'))
-                 instancename.insert(0,fmu.get('name'))
-                 independentfmus.append(fmu.get('path'))
-           ## condition to create FMUS instance in the order obtained from tarjans algorithm
-           if (connected_components[z][0]==fmuname):
-             file=fmu.get('path')
-             name=fmu.get('name')
-             filename.append(file)
-             instancename.append(name)
+      connectedfmusitems=[]
+      for fmu in root.iter('fmu'):
+            fname=fmu.get('name')
+            fpath=fmu.get('path')
+            checkname = [s for s in connected_components if fname in s]
+            if not checkname:
+                ival=True
+            else:
+                ival=False
+            fmuitems={'instancename':fname,'filename':fpath,'independent':ival}
+            connectedfmusitems.append(fmuitems)
 
-      model=ConnectedFMUSimulation.Model(instancename, filename, config, xml, xmlFileName, fmiType, independentfmus)
+      model=ConnectedFMUSimulation.Model(connectedfmusitems, config, xml, xmlFileName, fmiType, connected_components)
       gui._newModel(model)
 
    else:

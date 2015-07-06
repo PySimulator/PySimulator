@@ -80,14 +80,18 @@ class ExportConnectFMUsDialog(QtGui.QDialog):
 
 class Model(Plugins.Simulator.SimulatorBase.Model):
 
-    def __init__(self, instancename=None, modelFileName=None, config=None, xml=None, xmlFileName=None, fmiType=None, independentfmus=None, loggingOn=False):
+    def __init__(self, connectedfmusitems=None, config=None, xml=None, xmlFileName=None, fmiType=None, connectionorder=None, loggingOn=False):
         ''' ModelFilename are list of strings '''
         self._FMUSimulators = []
+        self._connectionorder=connectionorder
         self._xml = xml
         self._xmlFileName = xmlFileName
         self._fmiType = fmiType
-        for i in xrange(len(modelFileName)):
-            FMUSimulatorObj = FMUSimulator.Model(instancename[i], [modelFileName[i]], config)
+        for i in xrange(len(connectedfmusitems)):
+            instancename=connectedfmusitems[i]['instancename']
+            modelfilename=connectedfmusitems[i]['filename']
+            independentfmus=connectedfmusitems[i]['independent']
+            FMUSimulatorObj = FMUSimulator.Model(instancename, [modelfilename], config)
             self._FMUSimulators.append(FMUSimulatorObj)
 
         Plugins.Simulator.SimulatorBase.Model.__init__(self, 'ConnectedFMUS', [], config)
