@@ -1646,30 +1646,59 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
 
     head= '<header> <h1> Regression Report </h1> </header>'
     colorlegend='<p><a href="#color">Legend</a></p>'
-    '''
-    colorinfo=<a name="color"> <fieldset style="width:560px"> <legend>Coloring:</legend>
-    <p><font style="background-color:#FF0000">Red:</font> <br> *Per failed: Comparison failed,(i.e.) at least one variable with large error <br> *Per column or row: Only 0-50% of the corresponding files passed the test</p>
-    <p><font style="background-color:#00FF00">Green</font> <br> *Per failed: Comparison passed, i.e. all compared variables passed the test <br> *Per column or row: 100% of the corresponding files passed the test <br> *Total: All files passed the test </p>
-    <p><font style="background-color:#FFA500">Orange</font> <br> *Per column or row: &gt;50% and &lt;100% of the corresponding files passed the test <br> *Total: &gt;50% and &lt; 100% of all files passed the test</p> </fieldset> </a>
-    <p align="center"><a href="index.html">Return</a></p>
-    '''
+
     colorinfo='''<h3> <a name="color"> Coloring </a> </h3>
-    <table border="1">
+    <fieldset style="width:600px">
+    <table border="0">
     <tr>
     <td>
     <font style="background-color:#FF0000"> Red: </font> </td> </tr>
-    <tr> <td align="right"><b>Per Failed: </b> </td> <td>Comparison failed,(i.e.) at least one variable with large error </td> </tr>
+    <tr> <td align="right"><b>Per File: </b> </td> <td>Comparison failed,(i.e.) at least one variable with large error </td> </tr>
     <tr> <td align="right"><b>Per Column or Row: </b> </td> <td>Only 0-50% of the corresponding files passed the test </td> </tr>
-    <tr>
-    <td> <font style="background-color:#00FF00"> Green: </font> </td> </tr>
-    <tr> <td align="right"><b>Per Failed: </b> </td> <td> Comparison passed, (i.e.) all compared variables passed the test </td> </tr>
-    <tr> <td align="right"> <b>Per Column or Row:</b> </td> <td> 100% of the corresponding files passed the test </td> </tr>
-    <tr> <td align="right"> <b>Total:</b></td> <td> All files passed the test </td> </tr>
     <tr>
     <td> <font style="background-color:#FFA500">Orange:</font> </td> </tr>
     <tr> <td align="right"><b>Per Column or Row: </b> </td> <td>&gt; 50% and &lt; 100% of the corresponding files passed the test </td> </tr>
     <tr> <td align="right"> <b>Total: </b> </td> <td> &gt; 50% and &lt; 100% of all files passed the test </td></tr>
-    </table> <br>
+    <tr>
+    <td> <font style="background-color:#00FF00"> Green: </font> </td> </tr>
+    <tr> <td align="right"><b>Per File: </b> </td> <td> Comparison passed, (i.e.) all compared variables passed the test </td> </tr>
+    <tr> <td align="right"> <b>Per Column or Row:</b> </td> <td> 100% of the corresponding files passed the test </td> </tr>
+    </table>
+    </fieldset>'''
+
+    tabledata=''' <h3> Table Data </h3>
+    <fieldset style="width:600px">
+    <p align="left"><i>The example table presented below provides description on each identifier of the table data</i></p>
+    <table border="1" style="empty-cells: hide">
+    <tr> <th>Resultfile</th><th>Status</th><th>Baseline Directory </th> <th> Testing Directory1 </th> <th> Testing Directory2 </th></tr>
+    <tr> <td> </td> <td align="center" bgcolor="#FFA500">  A  </td> <td> </td> <td align="center" bgcolor="#FF0000"> C </td>  <td align="center" bgcolor="#00FF00"> C </td> </tr>
+    <tr> <td> </td> <td align="center" bgcolor="#FFA500">  B  </td> <td> </td> <td align="center" bgcolor="#FF0000"> D </td>  <td align="center" bgcolor="#00FF00"> D </td> </tr>
+    <tr> <td> </td> <td> </td> <td align="center"> Baseline </td> </tr>
+    <tr> <td>Filename1</td> <td align="center" bgcolor="#FF0000"> E </td> <td align="center"> F </td> <td align="center" bgcolor="#FF0000"> F / G / <a href> H </a> [I] </td>
+    <td align="center" bgcolor="#00FF00"> F / G [I] </td>
+    </tr>
+    </table><br>
+    <table>
+    <tr>
+    <td align="right"> <b>A-</b> </td> <td> Overall status of Number of total passed files / Number of total failed files </td> </tr>
+    <tr>
+    <td align="right"> <b>B- </b> </td> <td> Overall Percentage status of total passed files </td> </tr>
+    <tr>
+    <td align="right"> <b>C- </b> </td> <td> {Number of passed files / Number of  failed files}, in the corresponding directory eg:(Testing Directory1 or Testing Directory2) </td> </tr>
+    <tr>
+    <td align="right"> <b>D- </b> </td> <td> Percentage of total passed files,in the corresponding directory eg:(Testing Directory1 or Testing Directory2) </td> </tr>
+    <tr>
+    <td align="right"> <b>E- </b> </td> <td> {Number of passed files / Number of failed files} for this file eg: (Filename1) </td> </tr>
+    <tr>
+    <td align="right"> <b>F- </b> </td> <td> Number of variables contained in the File </td> </tr>
+    <tr>
+    <td align="right"> <b>G- </b> </td> <td> Number of variables compared </td> </tr>
+    <tr>
+    <td align="right"> <b>H- </b> </td> <td> Number of variables greater than given tolerance with link to the list of these variables </td> </tr>
+    <tr>
+    <td align="right"> <b>I- </b> </td> <td>  Maximum error of all compared variables </td> </tr>
+    </table>
+    </fieldset>
     <p align="center"><a href="index.html">Return</a></p>'''
 
     s='\n'.join(['<html>',m1,head,'<nav>','<table>',tolerance,diskspace,dircount,comparedvariable,resultspace,date_time_info1,TotalTime,'</table>','</nav>',colorlegend,'<footer>','<table style="empty-cells: hide" border="1">','<tr>','<th id=0>','Result Files','</th>','<th id=0>','Status','</th>''<th id=0>',os.path.basename(baselinedir),'</th>'])
@@ -1785,7 +1814,7 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
             f.write(s)
             f.write('\n')
     if(i==len(hreflist[0])-1):
-         s='\n'.join(['</table>','</footer>',colorinfo,'</body>','</html>'])
+         s='\n'.join(['</table>','</footer>',colorinfo,tabledata,'</body>','</html>'])
          f.write(s)
          f.write('\n')
     
