@@ -83,14 +83,13 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
     def __init__(self, connectedfmusitems=None, config=None, xml=None, xmlFileName=None, fmiType=None, connectionorder=None, loggingOn=False):
         ''' ModelFilename are list of strings '''
         self._FMUSimulators = []
-        self._connectionorder=connectionorder
+        self._connectionorder = connectionorder
         self._xml = xml
         self._xmlFileName = xmlFileName
         self._fmiType = fmiType
         for i in xrange(len(connectedfmusitems)):
-            instancename=connectedfmusitems[i]['instancename']
-            modelfilename=connectedfmusitems[i]['filename']
-            independentfmus=connectedfmusitems[i]['independent']
+            instancename = connectedfmusitems[i]['instancename']
+            modelfilename = connectedfmusitems[i]['filename']
             FMUSimulatorObj = FMUSimulator.Model(instancename, [modelfilename], config)
             self._FMUSimulators.append(FMUSimulatorObj)
 
@@ -131,12 +130,10 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             self._FMUSimulators[i].loadResultFile(self._FMUSimulators[i].integrationSettings.resultFileName)
 
     def simulate(self):
-        # prepare result files for each FMU
-        for i in xrange(len(self._FMUSimulators)):
-            self._FMUSimulators[i].integrationSettings = copy.copy(self.integrationSettings)
-            fileName = self._FMUSimulators[i].name + "_" + datetime.now().strftime("%Y%m%d%H%M%S") + ".mtsf"
-            self._FMUSimulators[i].integrationSettings.resultFileName = unicode(fileName)
-            self._FMUSimulators[i].prepareResultFile()
+
+        def finalize():
+            for i in xrange(len(self._FMUSimulators)):
+                self._FMUSimulators[i].finalize()
 
         # Set Simulation options
         Tstart = self.integrationSettings.startTime
@@ -163,8 +160,15 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         self.integrationStatistics.nGridPoints = 0
         self.integrationStatistics.reachedTime = Tstart
 
-        # Run the integration
+        # prepare result files for each FMU
         for i in xrange(len(self._FMUSimulators)):
+            print "preparing result file and simulating FMU %s" % self._FMUSimulators[i].name
+            self._FMUSimulators[i].integrationSettings = copy.copy(self.integrationSettings)
+            fileName = self._FMUSimulators[i].name + "_" + datetime.now().strftime("%Y%m%d%H%M%S") + ".mtsf"
+            self._FMUSimulators[i].integrationSettings.resultFileName = unicode(fileName)
+            if not self._FMUSimulators[i].prepareResultFile():
+                return
+
             # set simulation options
             self._FMUSimulators[i].setSimulationOptions()
             # Initialize model
@@ -177,28 +181,37 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
                 # Write parameter values
                 self._FMUSimulators[i].writeResults('Fixed', Tstart)
 
-            if self._fmiType == 'me':
-                return
-            elif self._fmiType == 'cs':
-                if gridWidth is None:
-                    gridWidth = (Tend-Tstart) / nIntervals
+            self._FMUSimulators[i].writeResults('Continuous', Tstart)
+            if 'Discrete' in self._FMUSimulators[i].integrationResults._mtsf.results.series:
+                # Write discrete Variables
+                self._FMUSimulators[i].writeResults('Discrete', Tstart)
 
-                t = Tstart
-                lastStep = False
-                doLoop = Tend > Tstart
-                if gridWidth <= Tend-t:
-                    dt = gridWidth
-                else:
-                    dt = Tend - t
-                    lastStep = True
-                k = 1
+        # Run the integration
+        if self._fmiType == 'me':
+            return
+        elif self._fmiType == 'cs':
+            if gridWidth is None:
+                gridWidth = (Tend-Tstart) / nIntervals
 
-                self._FMUSimulators[i].writeResults('Continuous', t)
-                if 'Discrete' in self._FMUSimulators[i].integrationResults._mtsf.results.series:
-                    # Write discrete Variables
-                    self._FMUSimulators[i].writeResults('Discrete', t)
+            t = Tstart
+            lastStep = False
+            doLoop = Tend > Tstart
+            if gridWidth <= Tend-t:
+                dt = gridWidth
+            else:
+                dt = Tend - t
+                lastStep = True
+            k = 1
 
-                while doLoop:
+            while doLoop:
+                for i in xrange(len(self._FMUSimulators)):
+                    print "Calling doStep for FMU %s at time %s" % (self._FMUSimulators[i].name, str(t))
+
+                    self._FMUSimulators[i].handle_result(None, t)
+                    if 'Discrete' in self._FMUSimulators[i].integrationResults._mtsf.results.series:
+                        # Write discrete Variables
+                        self._FMUSimulators[i].writeResults('Discrete', t)
+
                     status = self._FMUSimulators[i].doStep(t, dt)
                     if status == 2:  # Discard
                         status, info = self._FMUSimulators[i].interface.fmiGetBooleanStatus(3) # fmi2Terminated
@@ -209,31 +222,24 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
                         else:
                             print("Not supported status in doStep at time = {:.2e}".format(t))
                             # Raise exception to abort simulation...
-                            self._FMUSimulators[i].finalize()
+                            finalize()
                             raise(SimulatorBase.Stopping)
-                    elif status < 2:
-                        t = t + dt
+
+                # increment the loop
+                t = t + dt
+
+                if lastStep:
+                    doLoop = False
+                else:
+                    #Compute next communication point
+                    if gridWidth <= Tend-t:
+                        k += 1
+                        dt = (Tstart + k*gridWidth) - t
                     else:
-                        # should not occur
-                        pass
+                        dt = Tend - t
+                        lastStep = True
 
-                    self._FMUSimulators[i].handle_result(None, t)
-                    if 'Discrete' in self._FMUSimulators[i].integrationResults._mtsf.results.series:
-                        # Write discrete Variables
-                        self._FMUSimulators[i].writeResults('Discrete', t)
-
-                    if lastStep:
-                        doLoop = False
-                    else:
-                        #Compute next communication point
-                        if gridWidth <= Tend-t:
-                            k += 1
-                            dt = (Tstart + k*gridWidth) - t
-                        else:
-                            dt = Tend - t
-                            lastStep = True
-
-                self._FMUSimulators[i].finalize()
+            finalize()
 
         print 'Result files generated'
         return
