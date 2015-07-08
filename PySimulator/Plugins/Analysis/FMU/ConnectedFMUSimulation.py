@@ -82,18 +82,25 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
     def __init__(self, connectedfmusitems=None, config=None, xml=None, xmlFileName=None, fmiType=None, connectionorder=None, loggingOn=False):
         ''' ModelFilename are list of strings '''
-        self._FMUSimulators = []
-        self._connectionorder = connectionorder
+        self._FMUSimulators = {}
+        self._connections = []
         self._xml = xml
         self._xmlFileName = xmlFileName
         self._fmiType = fmiType
+        self._connectionorder = connectionorder
+        # create FMUSimulator objects
         for i in xrange(len(connectedfmusitems)):
             instancename = connectedfmusitems[i]['instancename']
             modelfilename = connectedfmusitems[i]['filename']
             FMUSimulatorObj = FMUSimulator.Model(instancename, [modelfilename], config)
-            self._FMUSimulators.append(FMUSimulatorObj)
+            self._FMUSimulators[instancename] = FMUSimulatorObj
 
         Plugins.Simulator.SimulatorBase.Model.__init__(self, 'ConnectedFMUS', [], config)
+        # read the xml to know the connections
+        rootElement = ET.fromstring(self._xml)
+        for connection in rootElement.iter('connection'):
+            self._connections.append({'fromFmuName':connection.get('fromFmuName'), 'fromVariableName':connection.get('fromVariableName'),
+                                      'toFmuName':connection.get('toFmuName'), 'toVariableName':connection.get('toVariableName')})
         # do not change the following line. It is used in FMU.py functions export & save.
         self.modelType = 'Connected FMU Simulation'
         self.integrationResults = Mtsf.Results('')
@@ -116,24 +123,24 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         ''' Closing the model, release of resources
         '''
         Plugins.Simulator.SimulatorBase.Model.close(self)
-        for i in xrange(len(self._FMUSimulators)):
-            self._FMUSimulators[i].close()
+        for key, FMUSimulatorObj in self._FMUSimulators.iteritems():
+            FMUSimulatorObj.close()
 
     def closeIntegrationResults(self):
-        for i in xrange(len(self._FMUSimulators)):
-            self._FMUSimulators[i].integrationResults.close()
+        for key, FMUSimulatorObj in self._FMUSimulators.iteritems():
+            FMUSimulatorObj.integrationResults.close()
 
     def loadIntegrationResults(self):
         # mark this model integration results as available
         self.integrationResults.isAvailable = True
-        for i in xrange(len(self._FMUSimulators)):
-            self._FMUSimulators[i].loadResultFile(self._FMUSimulators[i].integrationSettings.resultFileName)
+        for key, FMUSimulatorObj in self._FMUSimulators.iteritems():
+            FMUSimulatorObj.loadResultFile(FMUSimulatorObj.integrationSettings.resultFileName)
 
     def simulate(self):
 
         def finalize():
-            for i in xrange(len(self._FMUSimulators)):
-                self._FMUSimulators[i].finalize()
+            for key, FMUSimulatorObj in self._FMUSimulators.iteritems():
+                FMUSimulatorObj.finalize()
 
         # Set Simulation options
         Tstart = self.integrationSettings.startTime
@@ -161,30 +168,25 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         self.integrationStatistics.reachedTime = Tstart
 
         # prepare result files for each FMU
-        for i in xrange(len(self._FMUSimulators)):
-            print "preparing result file and simulating FMU %s" % self._FMUSimulators[i].name
-            self._FMUSimulators[i].integrationSettings = copy.copy(self.integrationSettings)
-            fileName = self._FMUSimulators[i].name + "_" + datetime.now().strftime("%Y%m%d%H%M%S") + ".mtsf"
-            self._FMUSimulators[i].integrationSettings.resultFileName = unicode(fileName)
-            if not self._FMUSimulators[i].prepareResultFile():
+        for key, FMUSimulatorObj in self._FMUSimulators.iteritems():
+            FMUSimulatorObj.integrationSettings = copy.copy(self.integrationSettings)
+            fileName = FMUSimulatorObj.name + "_" + datetime.now().strftime("%Y%m%d%H%M%S") + ".mtsf"
+            FMUSimulatorObj.integrationSettings.resultFileName = unicode(fileName)
+            if not FMUSimulatorObj.prepareResultFile():
                 return
-
             # set simulation options
-            self._FMUSimulators[i].setSimulationOptions()
+            FMUSimulatorObj.setSimulationOptions()
             # Initialize model
-            (status, nextTimeEvent) = self._FMUSimulators[i].initialize(Tstart, Tend, ErrorTolerance if self._fmiType == 'cs' else min(1e-15, ErrorTolerance*1e-5))
+            (status, nextTimeEvent) = FMUSimulatorObj.initialize(Tstart, Tend, ErrorTolerance if self._fmiType == 'cs' else min(1e-15, ErrorTolerance*1e-5))
             if status > 1:
-                print("Instance %s initialization failed with fmiStatus %s" % (self._FMUSimulators[i].name, str(status)))
+                print("Instance %s initialization failed with fmiStatus %s" % (FMUSimulatorObj.name, str(status)))
                 return
-
-            if 'Fixed' in self._FMUSimulators[i].integrationResults._mtsf.results.series:
+            if 'Fixed' in FMUSimulatorObj.integrationResults._mtsf.results.series:
                 # Write parameter values
-                self._FMUSimulators[i].writeResults('Fixed', Tstart)
+                FMUSimulatorObj.writeResults('Fixed', Tstart)
+            FMUSimulatorObj.writeResults('Continuous', Tstart)
 
-            self._FMUSimulators[i].writeResults('Continuous', Tstart)
-            if 'Discrete' in self._FMUSimulators[i].integrationResults._mtsf.results.series:
-                # Write discrete Variables
-                self._FMUSimulators[i].writeResults('Discrete', Tstart)
+        return
 
         # Run the integration
         if self._fmiType == 'me':
@@ -204,19 +206,19 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             k = 1
 
             while doLoop:
-                for i in xrange(len(self._FMUSimulators)):
-                    print "Calling doStep for FMU %s at time %s" % (self._FMUSimulators[i].name, str(t))
+                for key, FMUSimulatorObj in self._FMUSimulators.iteritems():
+                    #print "Calling doStep for FMU %s at time %s" % (self._FMUSimulators[i].name, str(t))
 
-                    self._FMUSimulators[i].handle_result(None, t)
-                    if 'Discrete' in self._FMUSimulators[i].integrationResults._mtsf.results.series:
+                    FMUSimulatorObj.handle_result(None, t)
+                    if 'Discrete' in FMUSimulatorObj.integrationResults._mtsf.results.series:
                         # Write discrete Variables
-                        self._FMUSimulators[i].writeResults('Discrete', t)
+                        FMUSimulatorObj.writeResults('Discrete', t)
 
-                    status = self._FMUSimulators[i].doStep(t, dt)
+                    status = FMUSimulatorObj.doStep(t, dt)
                     if status == 2:  # Discard
-                        status, info = self._FMUSimulators[i].interface.fmiGetBooleanStatus(3) # fmi2Terminated
+                        status, info = FMUSimulatorObj.interface.fmiGetBooleanStatus(3) # fmi2Terminated
                         if info == fmiTrue:
-                            status, lastTime = self._FMUSimulators[i].interface.fmiGetRealStatus(2)       # fmi2LastSuccessfulTime
+                            status, lastTime = FMUSimulatorObj.interface.fmiGetRealStatus(2)       # fmi2LastSuccessfulTime
                             t = lastTime
                             doLoop = False
                         else:
@@ -264,15 +266,15 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
     def setVariableTree(self):
         #Sets the variable tree to be displayed in the variable browser.
         #The data is set in self.variableTree that is an instance of the class SimulatorBase.VariableTree
-        for i in xrange(len(self._FMUSimulators)):
-            self._FMUSimulators[i].setVariableTree()
-            for vName, treeVariable in self._FMUSimulators[i].variableTree.variable.iteritems():
-                self.variableTree.variable[self._FMUSimulators[i].name + '.' + vName] = Plugins.Simulator.SimulatorBase.TreeVariable(self._FMUSimulators[i].name + '.' + vName, treeVariable.value, treeVariable.valueEdit, treeVariable.unit, treeVariable.variability, treeVariable.attribute)
+        for key, FMUSimulatorObj in self._FMUSimulators.iteritems():
+            FMUSimulatorObj.setVariableTree()
+            for vName, treeVariable in FMUSimulatorObj.variableTree.variable.iteritems():
+                self.variableTree.variable[FMUSimulatorObj.name + '.' + vName] = Plugins.Simulator.SimulatorBase.TreeVariable(FMUSimulatorObj.name + '.' + vName, treeVariable.value, treeVariable.valueEdit, treeVariable.unit, treeVariable.variability, treeVariable.attribute)
 
     def getFMUSimulator(self, name):
-        for i in xrange(len(self._FMUSimulators)):
-            if (self._FMUSimulators[i].name == name):
-                return self._FMUSimulators[i]
+        for key, FMUSimulatorObj in self._FMUSimulators.iteritems():
+            if (FMUSimulatorObj.name == name):
+                return FMUSimulatorObj
         return None
 
     def export(self, gui):
