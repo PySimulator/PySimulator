@@ -186,8 +186,6 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
                 FMUSimulatorObj.writeResults('Fixed', Tstart)
             FMUSimulatorObj.writeResults('Continuous', Tstart)
 
-        return
-
         # Run the integration
         if self._fmiType == 'me':
             return
