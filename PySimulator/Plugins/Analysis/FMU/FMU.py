@@ -620,6 +620,8 @@ def StartSimulation(gui, xml, xmlFileName, fmiType):
             fpath=fmu.get('path')
             checkname = [s for s in connected_components if fname in s]
             if not checkname:
+                tuple1 = (fname,)
+                connected_components.append(tuple1)
                 ival=True
             else:
                 ival=False
@@ -747,7 +749,7 @@ def prettify(elem):
    return reparsed.toprettyxml(indent="  ")
 
 def NewConnectME(model, gui):
-    print "New connected FMU for Model Exchange"
+    print "New connected FMU for Model Exchange is under development"
     pass
 
 def NewConnectCS(model, gui):
