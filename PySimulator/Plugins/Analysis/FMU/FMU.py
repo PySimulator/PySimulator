@@ -35,6 +35,7 @@ class FMU(object):
     def __init__(self, name, location):
         self._name = name
         self._location = location
+        self._version = ''
         self._inputsOutputs = []
 
         try:
@@ -50,6 +51,9 @@ class FMU(object):
 
         modelDescriptionTree = ET.parse(self._xmlFile)
         root = modelDescriptionTree.getroot()
+        self._version = root.get('fmiVersion')
+        if (self._version != '2.0'):
+            return
         for variable in root.iter('ScalarVariable'):
             varName = variable.get('name')
             varValueReference = variable.get('valueReference')
@@ -228,8 +232,9 @@ class FMUsListModel(QtCore.QAbstractItemModel):
 
     fmuRemoved = QtCore.Signal(FMU)
 
-    def __init__(self):
+    def __init__(self, parent):
         QtCore.QAbstractItemModel.__init__(self)
+        self._parent = parent
         self._fmus = []
 
     def columnCount(self, parent=QtCore.QModelIndex()):
@@ -275,9 +280,14 @@ class FMUsListModel(QtCore.QAbstractItemModel):
         if fmuName is None:
             fmuName = self.getUniqueFMUName(fmuFileInfo.completeBaseName())
         fmu = FMU(fmuName, fmuFileInfo.absoluteFilePath())
-        self.beginInsertRows(QtCore.QModelIndex(), row, row)
-        self._fmus.insert(row, fmu)
-        self.endInsertRows()
+        if (fmu._version != "2.0"):
+            msg = "The fmu %s is of version %s. Only version 2.0 is supported." % (fmu._location, fmu._version)
+            QtGui.QMessageBox().information(self._parent, self._parent.tr("Information"), msg, QtGui.QMessageBox.Ok)
+            del fmu
+        else:
+            self.beginInsertRows(QtCore.QModelIndex(), row, row)
+            self._fmus.insert(row, fmu)
+            self.endInsertRows()
 
     def removeFMU(self, row):
         self.beginRemoveRows(QtCore.QModelIndex(), row, row)
@@ -304,7 +314,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
         self._setupfile = setupfile
         self._gui = gui
         # FMUs model and view
-        self._fmusListModel = FMUsListModel()
+        self._fmusListModel = FMUsListModel(self)
         self._fmusTableView = QtGui.QTableView()
         self._fmusTableView.verticalHeader().hide();
         self._fmusTableView.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignLeft)
@@ -443,31 +453,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
         (fileNames, trash) = QtGui.QFileDialog().getOpenFileNames(self, 'Open File', os.getcwd(), '(*.fmu)')
         for fileName in fileNames:
             fileName = fileName.replace('\\', '/')
-            ## check the FMIVersion of the file ##
-            try:
-              _file = zipfile.ZipFile(fileName, 'r')
-            except BaseException as e:
-               print 'Error when reading zip-file.\n' + str(e) + '\n'
-
-            try:
-               xmlFile = _file.open('modelDescription.xml')
-            except BaseException as e:
-               print 'Error when reading modelDescription.xml\n' + str(e) + '\n'
-
-            try:
-               _document = ET.parse(xmlFile)
-            except BaseException as e:
-               print 'Error when parsing FMU\'s xml-file.\n' + str(e) + '\n'
-
-            _docroot = _document.getroot()
-            fmiVersion = _docroot.get('fmiVersion')
-
-            if fmiVersion == "1.0":
-               msg='The file '+str(fileName)+' is of version 1.0,Connected FMUS of version 1.0 is not supported'
-               QtGui.QMessageBox().information(self, self.tr("Information"),
-                              self.tr(msg), QtGui.QMessageBox.Ok)
-            else:
-              if fileName != '':
+            if fileName != '':
                 # add the FMU to FMUsListModel
                 self._fmusListModel.addFMU(fileName)
                 self._fmusTableView.resizeColumnsToContents()
@@ -600,8 +586,7 @@ def StartSimulation(gui, xml, xmlFileName, fmiType):
          graph[fromFMU] = [toFMU]
    ## Provide the the graph edges to find the strongly connected components using tarjan's algorithm
    connected_components = StronglyConnectedComponents(graph)
-   print 'order',connected_components
-   #print connected_components
+
    ## Check for Algebraic loops  ##
    Algebraic_loops=[]
    for i in xrange(len(connected_components)):
