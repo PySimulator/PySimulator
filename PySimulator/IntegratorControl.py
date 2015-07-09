@@ -111,8 +111,8 @@ class IntegratorControl(QtGui.QDialog):
 
         saveFile = QtGui.QLabel("Save results in:", self)
         _resultsLayout.addWidget(saveFile, 4, 0, QtCore.Qt.AlignRight)
-        _browseSaveFile = QtGui.QPushButton("Select", self)
-        _resultsLayout.addWidget(_browseSaveFile, 4, 3)
+        self._browseSaveFile = QtGui.QPushButton("Select", self)
+        _resultsLayout.addWidget(self._browseSaveFile, 4, 3)
         self.saveFilePath = QtGui.QLineEdit("", self)
         _resultsLayout.addWidget(self.saveFilePath, 4, 1, 1, 2)
 
@@ -213,7 +213,7 @@ class IntegratorControl(QtGui.QDialog):
         self.perTime.toggled.connect(_resultTypeChanged)
         self.useIntegratorGrid.toggled.connect(_resultTypeChanged)
 
-        _browseSaveFile.clicked.connect(_browseSaveFileDo)
+        self._browseSaveFile.clicked.connect(_browseSaveFileDo)
 
         self.run.clicked.connect(self._simulate)
         self.stop.clicked.connect(self._stopSimulation)
@@ -346,7 +346,14 @@ class IntegratorControl(QtGui.QDialog):
             self.inTimeVal.setEnabled(False)
             self.perTimeVal.setEnabled(False)
         self.perTimeVal.setText(str(model.integrationSettings.gridWidth))
-        self.saveFilePath.setText(model.integrationSettings.resultFileName)
+        if (model.modelType == 'Connected FMU Simulation'):
+            self.saveFilePath.setText(unicode('Multiple result files'))
+            self.saveFilePath.setEnabled(False)
+            self._browseSaveFile.setEnabled(False)
+        else:
+            self.saveFilePath.setText(model.integrationSettings.resultFileName)
+            self.saveFilePath.setEnabled(True)
+            self._browseSaveFile.setEnabled(True)
         self.plot.setEnabled(self.models[self.currentNumberedModelName].integrationResults.canLoadPartialData)
         self.plot.setCheckState(QtCore.Qt.Checked if model.integrationSettings.plotOnline_isChecked else QtCore.Qt.Unchecked)
         self._duplicateModelCheck.setCheckState(QtCore.Qt.Checked if model.integrationSettings.duplicateModel_isChecked else QtCore.Qt.Unchecked)

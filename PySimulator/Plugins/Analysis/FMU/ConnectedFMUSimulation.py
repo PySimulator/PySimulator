@@ -166,6 +166,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         self.integrationStatistics.nStateEvents = 0
         self.integrationStatistics.nGridPoints = 0
         self.integrationStatistics.reachedTime = Tstart
+        self.integrationResults.fileName = unicode('Multiple result files')
 
         # prepare result files for each FMU
         for key, FMUSimulatorObj in self._FMUSimulators.iteritems():
@@ -236,6 +237,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
 
                 # increment the loop
                 t = t + dt
+                self.integrationStatistics.reachedTime = t
 
                 if lastStep:
                     doLoop = False
@@ -249,8 +251,11 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
                         lastStep = True
 
             finalize()
+            # set the intgration statistics after the simulation
+            for key, FMUSimulatorObj in self._FMUSimulators.iteritems():
+                self.integrationStatistics.nTimeEvents += FMUSimulatorObj.integrationStatistics.nTimeEvents
+                self.integrationStatistics.nStateEvents += FMUSimulatorObj.integrationStatistics.nStateEvents
 
-        print 'Result files generated'
         return
 
     def getAvailableIntegrationAlgorithms(self):
