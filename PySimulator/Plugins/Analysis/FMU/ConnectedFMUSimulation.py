@@ -204,26 +204,35 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
             k = 1
 
             while doLoop:
-                for key, FMUSimulatorObj in self._FMUSimulators.iteritems():
-                    #print "Calling doStep for FMU %s at time %s" % (self._FMUSimulators[i].name, str(t))
+                for i in xrange(len(self._connectionorder)):
+                    for j in self._connectionorder[i]:
+                        FMUSimulatorObj = self.getFMUSimulator(j)
+                        # handle result
+                        FMUSimulatorObj.handle_result(None, t)
+                        if 'Discrete' in FMUSimulatorObj.integrationResults._mtsf.results.series:
+                            # Write discrete Variables
+                            FMUSimulatorObj.writeResults('Discrete', t)
 
-                    FMUSimulatorObj.handle_result(None, t)
-                    if 'Discrete' in FMUSimulatorObj.integrationResults._mtsf.results.series:
-                        # Write discrete Variables
-                        FMUSimulatorObj.writeResults('Discrete', t)
+                        # resolve connections here
+                        for ele in xrange(len(self._connections)):
+                            if self._connections[ele]['fromFmuName'] == j:
+                                fromValue = FMUSimulatorObj.getValue(self._connections[ele]['fromVariableName'])
+                                toFMUSimulatorObj = self.getFMUSimulator(self._connections[ele]['toFmuName'])
+                                if toFMUSimulatorObj is not None:
+                                    toFMUSimulatorObj.setValue(self._connections[ele]['toVariableName'], fromValue)
 
-                    status = FMUSimulatorObj.doStep(t, dt)
-                    if status == 2:  # Discard
-                        status, info = FMUSimulatorObj.interface.fmiGetBooleanStatus(3) # fmi2Terminated
-                        if info == fmiTrue:
-                            status, lastTime = FMUSimulatorObj.interface.fmiGetRealStatus(2)       # fmi2LastSuccessfulTime
-                            t = lastTime
-                            doLoop = False
-                        else:
-                            print("Not supported status in doStep at time = {:.2e}".format(t))
-                            # Raise exception to abort simulation...
-                            finalize()
-                            raise(SimulatorBase.Stopping)
+                        status = FMUSimulatorObj.doStep(t, dt)
+                        if status == 2:  # Discard
+                            status, info = FMUSimulatorObj.interface.fmiGetBooleanStatus(3) # fmi2Terminated
+                            if info == fmiTrue:
+                                status, lastTime = FMUSimulatorObj.interface.fmiGetRealStatus(2)       # fmi2LastSuccessfulTime
+                                t = lastTime
+                                doLoop = False
+                            else:
+                                print("Not supported status in doStep at time = {:.2e}".format(t))
+                                # Raise exception to abort simulation...
+                                finalize()
+                                raise(SimulatorBase.Stopping)
 
                 # increment the loop
                 t = t + dt
