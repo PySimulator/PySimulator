@@ -92,7 +92,7 @@ class Model(Plugins.Simulator.SimulatorBase.Model):
         for i in xrange(len(connectedfmusitems)):
             instancename = connectedfmusitems[i]['instancename']
             modelfilename = connectedfmusitems[i]['filename']
-            FMUSimulatorObj = FMUSimulator.Model(instancename, [modelfilename], config)
+            FMUSimulatorObj = FMUSimulator.Model(instancename, [modelfilename], config, self._fmiType)
             self._FMUSimulators[instancename] = FMUSimulatorObj
 
         Plugins.Simulator.SimulatorBase.Model.__init__(self, 'ConnectedFMUS', [], config)

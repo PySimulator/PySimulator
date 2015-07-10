@@ -35,7 +35,7 @@ class FMU(object):
     def __init__(self, name, location):
         self._name = name
         self._location = location
-        self._version = ''
+        self._version = '2.0'
         self._inputsOutputs = []
 
         try:

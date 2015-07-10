@@ -59,7 +59,7 @@ class Model(SimulatorBase.Model):
     ''' Class to describe a whole "model", including all FMU information
         and some more information that is needed.
     '''
-    def __init__(self, modelName=None, modelFileName=None, config=None):
+    def __init__(self, modelName=None, modelFileName=None, config=None, preferredFmiType=None):
         ''' Opens a given model and sets it up with its default values
             @param modelFileName: fully qualified file name and path of model
         '''
@@ -85,10 +85,11 @@ class Model(SimulatorBase.Model):
             self.interface = None
             self.description = FMIDescription.FMIDescription(None)
         else:
-            if not config['Plugins']['FMU'].has_key('importType'):
-                config['Plugins']['FMU']['importType'] = 'me'
-                config.write()
-            preferredFmiType = config['Plugins']['FMU']['importType']
+            if preferredFmiType is None:
+                if not config['Plugins']['FMU'].has_key('importType'):
+                    config['Plugins']['FMU']['importType'] = 'me'
+                    config.write()
+                preferredFmiType = config['Plugins']['FMU']['importType']
             self.interface = FMUInterface.FMUInterface(modelFileName[0], self, loggingOn, preferredFmiType)
             self.description = self.interface.description
 
