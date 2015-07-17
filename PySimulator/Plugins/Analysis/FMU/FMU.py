@@ -36,6 +36,7 @@ class FMU(object):
         self._name = name
         self._location = location
         self._version = '2.0'
+        self._fmuType = ''
         self._inputsOutputs = []
 
         try:
@@ -46,14 +47,20 @@ class FMU(object):
         try:
             self._xmlFile = self._fmuFile.open('modelDescription.xml')
         except:
+            self._fmuFile.close()
             print "Error opening the modelDescription.xml file of FMU %s" % location
             return
 
         modelDescriptionTree = ET.parse(self._xmlFile)
         root = modelDescriptionTree.getroot()
+        # check FMU version
         self._version = root.get('fmiVersion')
-        if (self._version != '2.0'):
-            return
+        # check FMU type
+        if root.find('CoSimulation') is not None:
+            self._fmuType += 'cs'
+        if root.find('ModelExchange') is not None:
+            self._fmuType += 'me'
+
         for variable in root.iter('ScalarVariable'):
             varName = variable.get('name')
             varValueReference = variable.get('valueReference')
@@ -78,6 +85,9 @@ class FMU(object):
                 elif (varCausality == 'output'):
                     _inputOutput['causality'] = 'output'
                 self._inputsOutputs.append(_inputOutput)
+
+        self._xmlFile.close()
+        self._fmuFile.close()
 
 class Connection:
 
@@ -284,6 +294,12 @@ class FMUsListModel(QtCore.QAbstractItemModel):
             msg = "The fmu %s is of version %s. Only version 2.0 is supported." % (fmu._location, fmu._version)
             QtGui.QMessageBox().information(self._parent, self._parent.tr("Information"), msg, QtGui.QMessageBox.Ok)
             del fmu
+        elif not self._parent._fmuType in fmu._fmuType:
+            msg = ("The fmu %s is of type %s. Only type %s is allowed here."
+                    %
+                    (fmu._location, fmuTypeToString(fmu._fmuType), fmuTypeToString(self._parent._fmuType)))
+            QtGui.QMessageBox().information(self._parent, self._parent.tr("Information"), msg, QtGui.QMessageBox.Ok)
+            del fmu
         else:
             self.beginInsertRows(QtCore.QModelIndex(), row, row)
             self._fmus.insert(row, fmu)
@@ -414,28 +430,32 @@ class ConnectFMUsDialog(QtGui.QDialog):
 
              ## Add connection information to table from xmlsetup
              for connection in root.iter('connection'):
-                fromFmuName=connection.get('fromFmuName')
-                fromvar=connection.get('fromVariableName')
-                toFmuName=connection.get('toFmuName')
-                tovar=connection.get('toVariableName')
+                fromFmuName = connection.get('fromFmuName')
+                fromFMU = None
+                fromvar = connection.get('fromVariableName')
+                inputVar = None
+                toFmuName = connection.get('toFmuName')
+                toFMU = None
+                tovar = connection.get('toVariableName')
+                outputVar = None
 
                 for i in xrange(len(self._fmusListModel._fmus)):
                       name = self._fmusListModel._fmus[i]._name
 
-                      if (name==fromFmuName):
-                           fromFMU=self._fmusListModel._fmus[i]
-                           frominputoutputvar=self._fmusListModel._fmus[i]._inputsOutputs
+                      if (name == fromFmuName):
+                           fromFMU = self._fmusListModel._fmus[i]
+                           frominputoutputvar = self._fmusListModel._fmus[i]._inputsOutputs
                            for j in xrange(len(frominputoutputvar)):
-                                varname=frominputoutputvar[j]['name']
-                                if(fromvar==varname):
-                                    inputVar=frominputoutputvar[j]
+                                varname = frominputoutputvar[j]['name']
+                                if (fromvar == varname):
+                                    inputVar = frominputoutputvar[j]
 
-                      if (name==toFmuName):
-                           toFMU=self._fmusListModel._fmus[i]
-                           toinputoutputvar=self._fmusListModel._fmus[i]._inputsOutputs
+                      if (name == toFmuName):
+                           toFMU = self._fmusListModel._fmus[i]
+                           toinputoutputvar = self._fmusListModel._fmus[i]._inputsOutputs
                            for j in xrange(len(toinputoutputvar)):
-                                varname=toinputoutputvar[j]['name']
-                                if(tovar==varname):
+                                varname = toinputoutputvar[j]['name']
+                                if (tovar == varname):
                                     outputVar=toinputoutputvar[j]
 
                 if (fromFMU is None or inputVar is None or toFMU is None or outputVar is None):
@@ -726,6 +746,14 @@ def topological_sort(graph):
 
     return result
 
+def fmuTypeToString(fmuType):
+    """Returns the FMU type as readable string"""
+    if (fmuType == 'me'):
+        return 'Model Exchange'
+    elif (fmuType == 'cs'):
+        return 'CoSimulation'
+    else:
+        return 'Model Exchange & CoSimulation'
 
 def prettify(elem):
    """Return a pretty-printed XML string for the Element """
