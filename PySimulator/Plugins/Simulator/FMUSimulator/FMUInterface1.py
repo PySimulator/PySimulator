@@ -119,7 +119,6 @@ class FMUInterface:
             @type fileName: string
         '''
         self._loggingOn = loggingOn
-
         self._tempDir = tempfile.mkdtemp()     
 
         ''' Open the given fmu-file (read only)'''

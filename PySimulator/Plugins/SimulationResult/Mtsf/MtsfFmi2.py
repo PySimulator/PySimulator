@@ -84,12 +84,12 @@ def convertFromFmi(fmuFilename, fmi=None):
     enumerationsMatrix = []
     variable['Time'] = pyMtsf.ScalarModelVariable('Continuous Time', 'input', 0, 'continuous', allSeriesNames.index('Continuous'), pyMtsf.StandardCategoryNames.index(pyMtsf.CategoryMapping['Real']), None, 0)
     variable['TimeDiscrete'] = pyMtsf.ScalarModelVariable('Discrete Time at events', 'input', 0, 'discrete', allSeriesNames.index('Discrete'), pyMtsf.StandardCategoryNames.index(pyMtsf.CategoryMapping['Real']), None, 0)
-    
-    
+
+
     # Searching aliases
     referenceList = [(x, fmi.scalarVariables[x].valueReference) for x in fmi.scalarVariables.keys()]
     referenceList.sort(key = itemgetter(1))
-    alias = dict()    
+    alias = dict()
     if len(referenceList) > 1:
         origin = None
         alias[referenceList[0][0]] = None
@@ -101,11 +101,11 @@ def convertFromFmi(fmuFilename, fmi=None):
             if valueReference == nextValueReference:
                 if origin is None:
                     origin = variableName
-                alias[nextVariableName] = origin 
+                alias[nextVariableName] = origin
             else:
                 origin = None
                 alias[nextVariableName] = None
-        
+
     '''
     # Types and display units
     uniqueSimpleType = []
@@ -122,9 +122,9 @@ def convertFromFmi(fmuFilename, fmi=None):
         if dataType == 'Enumeration':
             enumerations = ''.join([_None2Str(x[0]) + _None2Str(x[1]) for x in type.item])
         uniqueSimpleType.append((fmiVariableName, type, _None2Str(type.name) + str(pyMtsf.DataType[dataType]) + _None2Str(type.quantity) + str(type.relativeQuantity), ''.join(unitList), enumerations))
-    
-   
-    
+
+
+
     # Simple Types
     uniqueSimpleType.sort(key=itemgetter(3))
     uniqueSimpleType.sort(key=itemgetter(2))
@@ -201,26 +201,26 @@ def convertFromFmi(fmuFilename, fmi=None):
                 simpleTypes[k].unitOrEnumerationRow = startRow
 
     '''
-    
+
     simpleTypes.append(pyMtsf.SimpleType('Real', pyMtsf.DataType['Real'], 'Real', False, -1, ''))
     simpleTypes.append(pyMtsf.SimpleType('Integer', pyMtsf.DataType['Integer'], 'Integer', False, -1, ''))
     simpleTypes.append(pyMtsf.SimpleType('Boolean', pyMtsf.DataType['Boolean'], 'Boolean', False, -1, ''))
-    
+
 
     # Iterate over all fmi-variables
     for fmiVariableName, fmiVariable in fmi.scalarVariables.iteritems():
         variableType = fmiVariable.type.basicType
         if variableType != "String":  # Do not support strings
-            aliasNegated = 0 # Not supported in FMI 2.0            
-            aliasName = alias[fmiVariableName]           
-                        
+            aliasNegated = 0 # Not supported in FMI 2.0
+            aliasName = alias[fmiVariableName]
+
             categoryIndex = pyMtsf.StandardCategoryNames.index(pyMtsf.CategoryMapping[variableType])
-            
+
             variability = fmiVariable.variability
             if variability == 'tunable':
                 variability = 'fixed'
             if variability in ['constant', 'fixed']:
-                seriesIndex = allSeriesNames.index('Fixed')                
+                seriesIndex = allSeriesNames.index('Fixed')
             elif variability in ['discrete']:
                 seriesIndex = allSeriesNames.index('Discrete')
             else:
@@ -231,7 +231,7 @@ def convertFromFmi(fmuFilename, fmi=None):
                 causality = 'parameter'
             if causality == 'independent':
                 causality = 'option'
-                       
+
             if variableType == 'Real':
                 simpleTypeRow = 0
             elif variableType == 'Integer':
@@ -240,7 +240,7 @@ def convertFromFmi(fmuFilename, fmi=None):
                 simpleTypeRow = 2
             elif variableType == 'Enumeration':
                 simpleTypeRow = 1  # Integer
-            
+
             variable[fmiVariableName] = pyMtsf.ScalarModelVariable(fmiVariable.description,
                                                     causality,
                                                     simpleTypeRow,
@@ -264,7 +264,3 @@ def convertFromFmi(fmuFilename, fmi=None):
     modelVariables = pyMtsf.ModelVariables(variable, StandardSeriesForFmi, pyMtsf.StandardCategoryNames)
 
     return modelDescription, modelVariables, simpleTypes, units, enumerationsMatrix
-
-
-
-

@@ -1,0 +1,12 @@
+<?xml version="1.0" ?>
+<connectedFmus type="cs">
+  <fmus>
+    <fmu name="FMITest_SimpleConnections_Series2_FMUModels_FirstOrder11" path="FMITest_SimpleConnections_Series2_FMUModels_FirstOrder1.fmu" />
+    <fmu name="FMITest_SimpleConnections_Series2_FMUModels_FirstOrder21" path="FMITest_SimpleConnections_Series2_FMUModels_FirstOrder2.fmu" />
+    <fmu name="Modelica_Blocks_Sources_Step1" path="Modelica_Blocks_Sources_Step.fmu" />
+  </fmus>
+  <connections>
+    <connection fromFmuName="Modelica_Blocks_Sources_Step1" fromVariableName="y" toFmuName="FMITest_SimpleConnections_Series2_FMUModels_FirstOrder11" toVariableName="u" />
+    <connection fromFmuName="FMITest_SimpleConnections_Series2_FMUModels_FirstOrder11" fromVariableName="y" toFmuName="FMITest_SimpleConnections_Series2_FMUModels_FirstOrder21" toVariableName="u" />
+  </connections>
+</connectedFmus>

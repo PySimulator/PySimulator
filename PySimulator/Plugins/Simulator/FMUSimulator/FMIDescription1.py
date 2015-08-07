@@ -143,8 +143,7 @@ class FMIDescription:
         self.numberOfEventIndicators = 0
         self.defaultStartTime = 0
         self.defaultStopTime = 1
-        self.defaultTolerance = 1e-4
-
+        self.defaultTolerance = 1e-4    
         if xmlFile is None:
             return
 
@@ -222,10 +221,9 @@ class FMIDescription:
             else:
                 type = FMIType(scalar[0])
             reference = scalar.get('valueReference')
-            ''' Change some variable names '''
-            scalarName = scalar.get('name')
-
+             
             # Set the scalarVariable
+            scalarName = scalar.get('name')
             s = FMIScalarVariable(type, reference)
             s.description = scalar.get('description')
             s.variability = scalar.get('variability', 'continuous')

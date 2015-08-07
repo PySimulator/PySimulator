@@ -111,8 +111,8 @@ class IntegratorControl(QtGui.QDialog):
 
         saveFile = QtGui.QLabel("Save results in:", self)
         _resultsLayout.addWidget(saveFile, 4, 0, QtCore.Qt.AlignRight)
-        _browseSaveFile = QtGui.QPushButton("Select", self)
-        _resultsLayout.addWidget(_browseSaveFile, 4, 3)
+        self._browseSaveFile = QtGui.QPushButton("Select", self)
+        _resultsLayout.addWidget(self._browseSaveFile, 4, 3)
         self.saveFilePath = QtGui.QLineEdit("", self)
         _resultsLayout.addWidget(self.saveFilePath, 4, 1, 1, 2)
 
@@ -213,7 +213,7 @@ class IntegratorControl(QtGui.QDialog):
         self.perTime.toggled.connect(_resultTypeChanged)
         self.useIntegratorGrid.toggled.connect(_resultTypeChanged)
 
-        _browseSaveFile.clicked.connect(_browseSaveFileDo)
+        self._browseSaveFile.clicked.connect(_browseSaveFileDo)
 
         self.run.clicked.connect(self._simulate)
         self.stop.clicked.connect(self._stopSimulation)
@@ -232,7 +232,7 @@ class IntegratorControl(QtGui.QDialog):
         self.plot.toggled.connect(_plotOnlineChanged)
 
         self.SimulationFinished.connect(self.triggerdResultUpdate)
-        
+
 
     def _algoChanged(self, item):
         if self.models[self.currentNumberedModelName].getIntegrationAlgorithmHasFixedStepSize(self.algorithm.currentText()):
@@ -327,7 +327,7 @@ class IntegratorControl(QtGui.QDialog):
         self.algorithm.clear()
         self._itemList = model.getAvailableIntegrationAlgorithms()
         self.algorithm.currentIndexChanged.connect(self._algoChanged)
-        self.algorithm.addItems(self._itemList)        
+        self.algorithm.addItems(self._itemList)
         self.algorithm.setCurrentIndex(self._itemList.index(model.integrationSettings.algorithmName))
         self.errorTol.setText(str(model.integrationSettings.errorToleranceRel))
         self.stepSize.setText(str(model.integrationSettings.fixedStepSize))
@@ -346,7 +346,14 @@ class IntegratorControl(QtGui.QDialog):
             self.inTimeVal.setEnabled(False)
             self.perTimeVal.setEnabled(False)
         self.perTimeVal.setText(str(model.integrationSettings.gridWidth))
-        self.saveFilePath.setText(model.integrationSettings.resultFileName)
+        if (model.modelType == 'Connected FMU Simulation'):
+            self.saveFilePath.setText(unicode('Multiple result files'))
+            self.saveFilePath.setEnabled(False)
+            self._browseSaveFile.setEnabled(False)
+        else:
+            self.saveFilePath.setText(model.integrationSettings.resultFileName)
+            self.saveFilePath.setEnabled(True)
+            self._browseSaveFile.setEnabled(True)
         self.plot.setEnabled(self.models[self.currentNumberedModelName].integrationResults.canLoadPartialData)
         self.plot.setCheckState(QtCore.Qt.Checked if model.integrationSettings.plotOnline_isChecked else QtCore.Qt.Unchecked)
         self._duplicateModelCheck.setCheckState(QtCore.Qt.Checked if model.integrationSettings.duplicateModel_isChecked else QtCore.Qt.Unchecked)
@@ -503,12 +510,14 @@ class IntegratorControl(QtGui.QDialog):
             # Close the result file to guarantee that all results are on file
             self.models[self.currentNumberedModelName].integrationResultFileSemaphore.acquire()
             self.models[self.currentNumberedModelName].integrationResults.close()
+            self.models[self.currentNumberedModelName].closeIntegrationResults()
             self.models[self.currentNumberedModelName].integrationResultFileSemaphore.release()
             print("Results saved in " + self.models[self.currentNumberedModelName].integrationSettings.resultFileName + ".")
 
             # Re-open result file for further plotting
             self.models[self.currentNumberedModelName].integrationResultFileSemaphore.acquire()
             self.models[self.currentNumberedModelName].loadResultFile(self.models[self.currentNumberedModelName].integrationSettings.resultFileName)
+            self.models[self.currentNumberedModelName].loadIntegrationResults()
             self.models[self.currentNumberedModelName].integrationResultFileSemaphore.release()
 
             # Show the correct simulation information

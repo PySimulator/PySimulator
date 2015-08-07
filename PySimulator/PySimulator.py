@@ -91,7 +91,7 @@ class SimulatorGui(QtGui.QMainWindow):
         subMenu = menu.addMenu('File')
         openModelMenu = subMenu.addMenu("Open Model")
         simulatorKeys = list(self.simulatorPlugins.keys())
-        simulatorKeys.sort()            
+        simulatorKeys.sort()
         for key in simulatorKeys:
             value = self.simulatorPlugins[key]
             image = None
@@ -599,14 +599,22 @@ class SimulatorGui(QtGui.QMainWindow):
         ''' The user entered a new value for a variable in the variable browser.
             Store this information in the model. '''
         print(u'Variable value changed: %s: %s = %s' % (numberedModelName, variableName, value))
-        self.models[numberedModelName].changedStartValue[variableName] = value
-        # Delete pluginData because values of parameters have been changed
-        self.models[numberedModelName].pluginData.clear()
+        if (self.models[numberedModelName].modelType == 'Connected FMU Simulation'):
+            variables = variableName.split('.', 1)
+            FMUSimulatorObj = self.models[numberedModelName].getFMUSimulator(variables[0])
+            FMUSimulatorObj.changedStartValue[variables[1]] = value
+            # Delete pluginData because values of parameters have been changed
+            FMUSimulatorObj.pluginData.clear()
+            self.models[numberedModelName].pluginData.clear()
+        else:
+            self.models[numberedModelName].changedStartValue[variableName] = value
+            # Delete pluginData because values of parameters have been changed
+            self.models[numberedModelName].pluginData.clear()
 
     def closeEvent(self, event):
         for model in self.models.itervalues():
             model.close()
-        
+
         for pluginName, plugin in self.simulatorPlugins.items():  # and self.analysisPlugins
             try:
                 plugin.closeSimulatorPlugin()
@@ -615,9 +623,11 @@ class SimulatorGui(QtGui.QMainWindow):
                 print "Closing of Simulator Plugin " + pluginName + " failed."
         sys.stdout = self._origStdout
 
-
-
-
+    def center(self):
+        qr = self.frameGeometry()
+        cp = QtGui.QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
 
 ''' Just launches the application
 '''
@@ -659,6 +669,7 @@ def start_PySimulator():
     compileall.compile_dir(os.getcwd(), force=True, quiet=True)
     sg = SimulatorGui()
     sg.show()
+    sg.center()
     splash.finish(sg)
 
     if runBenchmark:

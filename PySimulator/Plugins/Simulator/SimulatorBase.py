@@ -120,7 +120,7 @@ class TreeVariable():
         self.attribute = attribute  # String
 
 
-def getNewModel(modelName=None, modelFileName=None, config=None):    
+def getNewModel(modelName=None, modelFileName=None, config=None):
     return Model(modelName, modelFileName, config)
 
 class Model():
@@ -152,6 +152,12 @@ class Model():
         except:
             pass
 
+    def closeIntegrationResults(self):
+        pass
+
+    def loadIntegrationResults(self):
+        pass
+
     def duplicate(self):
         '''  Function is called when duplicating a model in the Variables Browser
         '''
@@ -171,8 +177,8 @@ class Model():
         '''
         if os.path.exists(fileName):
             sp = unicode.rsplit(fileName, '.', 1)
-            suffix = sp[1]            
-            from .. import SimulationResult            
+            suffix = sp[1]
+            from .. import SimulationResult
             if suffix in SimulationResult.fileExtension:
                 i = SimulationResult.fileExtension.index(suffix)
                 self.integrationResults = SimulationResult.plugin[i].Results(fileName)
@@ -219,10 +225,10 @@ class Model():
             The function generates an instance of the class VariableTree and stores it in self.variableTree.
             It transforms ResultVariables to TreeVariables.
         '''
-        
+
         if results is None:
             results = self.integrationResults
-                
+
         # Generate variable tree from result file information
         variables = results.getVariables()
         fileInfos = results.getFileInfos()

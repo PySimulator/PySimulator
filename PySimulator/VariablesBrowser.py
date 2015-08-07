@@ -123,7 +123,7 @@ class VariablesBrowser(QtGui.QTreeWidget):
 
             for pluginEntry in self.parent.modelMenuCallbacks:
                 for name, func in pluginEntry:
-                    menu.addAction(name, functools.partial(func, model, checkedModel))
+                    menu.addAction(name, functools.partial(func, model, checkedModel, self.parent))
 
             # At the end, add additional result file information:
             def fileSize2str(size):
