@@ -442,7 +442,7 @@ def prepareSimulationList(fileName, name, config):
             mosFile.write("openModel(\"" + x.encode(sys.getfilesystemencoding()) + "\");\n")
     mosFile.write("cd(\"" + pwd + "\");\n")
     mosFile.write("Modelica.Utilities.Files.remove(\"dymosim.exe\");\n")
-    for x in name:
+    for x in set(name):
         mosFile.write("ok := translateModel(\"" + x + "\");\n")
         mosFile.write("if ok then\n");
         mosFile.write("  Modelica.Utilities.Files.move(\"" + "dymosim" + suffix + "\", \"" + x + suffix + "\", true);\n")

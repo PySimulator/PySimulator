@@ -26,6 +26,7 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 import numpy
 
 
+
 def normDiff(tAIn, fAIn, iA, sA, tBIn, fBIn, iB, sB, t1, t2):
     '''
     tAIn: numpy vector
