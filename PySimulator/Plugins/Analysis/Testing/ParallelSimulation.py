@@ -28,8 +28,9 @@ import numpy
 import os, sys
 import shutil
 from PySide import QtCore
+from ... import Simulator
 from multiprocessing import Pool
-
+import jsonpickle
 
 
 def runParallelSimulation(PySimulatorPath, setupFile, resultDir, allSimulators, deleteDir=False):
@@ -132,31 +133,59 @@ class simulationParallelThread(QtCore.QThread):
             resultpath=p*len(self.modelList['modelName'])
             config=c*len(self.modelList['modelName'])
             simname=n*len(self.modelList['modelName'])
-            
+
+            '''create a login directory for logging multiprocessing output from terminal to a file '''
+            logdir =os.path.join(os.getcwd(),'loginentries').replace('\\','/')
+            if not os.path.exists(logdir):
+                os.mkdir(logdir)
             '''create a list of directories for each model and run the simulation in their respective directory to avoid conflicts '''
-            dir=os.getcwd()
+            curdir=os.getcwd()
             dirs=[]
+            processlog=[]
             for z in xrange(len(self.modelList['modelName'])):
-                s=str(self.modelList['modelName'][z])+str(z)
-                np=os.path.join(fullSimulatorResultPath,s).replace('\\','/')
-                if not os.path.exists(np): 
-                    os.mkdir(np)
+                s=str(self.modelList['modelName'][z])+simulatorName+str(z)
+                np=os.path.join(curdir,s).replace('\\','/')
+                txt=str(self.modelList['modelName'][z])+simulatorName+'.txt'
+                log=os.path.join(logdir,txt).replace('\\','/')
+                processlog.append(log)
+                '''if not os.path.exists(logdir):
+                    os.mkdir(logdir)'''
                 dirs.append(np)
-    
+            ''' Pickle the simulator plugin object using jsonpickle as a string to be pickled by multiprocessing package'''
+            pickleobj=jsonpickle.encode(simulator,max_depth=1)
+            jsonobj=[]
+            jsonobj.append(pickleobj)
+            jsonobj1=jsonobj*len(self.modelList['modelName'])
+
             #check the subdirectory for empty strings and replace it with 'N' for passing to pool.map(), as it cannot process empty list of strings to multiprocess module
             subdirlist= ["N" if not x else x for x in self.modelList['subDirectory']]
             ## Create a Pool of process and run the Simulation in Parallel
             pool=Pool()
             #startTime = time.time() 
-            pool.map(ParallelSimulation, zip(self.modelList['fileName'],self.modelList['modelName'],subdirlist,self.modelList['tStart'],self.modelList['tStop'],self.modelList['tol'],self.modelList['stepSize'],self.modelList['nInterval'],self.modelList['includeEvents'],dirs,resultpath,config,simname))
+            pool.map(ParallelSimulation, zip(self.modelList['fileName'],self.modelList['modelName'],subdirlist,self.modelList['tStart'],self.modelList['tStop'],self.modelList['tol'],self.modelList['stepSize'],self.modelList['nInterval'],self.modelList['includeEvents'],dirs,resultpath,config,simname,jsonobj1,processlog))
             pool.close()
             pool.join()
             #elapsedTime = time.time() - startTime
-            #print elapsedTime         
+            #print elapsedTime
+            ''' print the process log entries to GUI '''
+            for i in xrange(len(processlog)):
+                f=open(processlog[i],'r')
+                processlogentries=f.read()
+                print processlogentries
+            f.close()
+        shutil.rmtree(logdir)
         print "Parallel simulation completed"
         self.running = False
-            
-  
+
+class Logger(object):
+    def __init__(self,logname):
+        self.terminal = sys.stdout
+        self.log = open(logname, "w")
+
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)
+
 def ParallelSimulation(modellists):
      'unpacks the modelists and run the simuations in parallel using the multiprocessing module'
      packname=[]
@@ -172,78 +201,78 @@ def ParallelSimulation(modellists):
      dirname=modellists[9]
      path=modellists[10]
      config=modellists[11]
-     simulator=modellists[12]
-     filename,fileExtension = os.path.splitext(packname[0])
-     os.chdir(dirname)
-     try:
-       '''load the Simulator Module like this, depending on the simulator selected by the users as the pool.map() cannot pickle module types '''
-       if(simulator=='OpenModelica'):
-           from ...Simulator.OpenModelica import OpenModelica
-           extension=OpenModelica.modelExtension
-           checkextension = [s for s in extension if (fileExtension).replace('.','') in s]
-           if checkextension:
-              model=OpenModelica.getNewModel(modelname, packname, config)
-           else:
-              print "WARNING: Simulator OpenModelica " + " cannot handle files ", packname[0], " due to unknown file type(s)."
-             
-       if(simulator=='Dymola'):
-           from ...Simulator.Dymola import Dymola
-           extension=Dymola.modelExtension
-           checkextension = [s for s in extension if (fileExtension).replace('.','') in s]
-           if checkextension:
-             model=Dymola.getNewModel(modelname, packname, config)
-           else:
-             print "WARNING: Simulator Dymola " + " cannot handle files ", packname[0], " due to unknown file type(s)."
-             
-       if(simulator=='FMUSimulator'):
-           from ...Simulator.FMUSimulator import FMUSimulator
-           extension=FMUSimulator.modelExtension
-           checkextension = [s for s in extension if (fileExtension).replace('.','') in s]
-           if checkextension:
-              model=FMUSimulator.getNewModel(modelname, packname, config)
-           else:
-             print "WARNING: Simulator FMUSimulator " + " cannot handle files ", packname[0], " due to unknown file type(s)."
-               
-       if(simulator=='SimulationX'):
-           from ...Simulator.SimulationX import SimulationX
-           extension=SimulationX.modelExtension
-           checkextension = [s for s in extension if (fileExtension).replace('.','') in s]
-           if checkextension:
-               model=SimulationX.getNewModel(modelname, packname, config)
-           else:
-             print "WARNING: Simulator SimulationX " + " cannot handle files ", packname[0], " due to unknown file type(s)."
+     simulatorname=modellists[12]
+     jsonobj=modellists[13]
+     logfilenames=modellists[14]
+     '''unpickle the json object to python simulator object '''
+     simulator=jsonpickle.decode(jsonobj)
+     #os.chdir(dirname)
+     haveCOM = False
 
-       if(simulator=='Wolfram'):
-           from ...Simulator.Wolfram import Wolfram
-           extension=Wolfram.modelExtension
-           checkextension = [s for s in extension if (fileExtension).replace('.','') in s]
-           if checkextension:
-              model=Wolfram.getNewModel(modelname, packname, config)
-           else:
-             print "WARNING: Simulator Wolfram " + " cannot handle files ", packname[0], " due to unknown file type(s)."
- 
-       if (subdir == 'N'):
-          resultDir = path        
-       else:
-          resultDir = path + '/' + subdir
-          if not os.path.isdir(resultDir):
-              os.makedirs(resultDir)
-         
-       if checkextension:
-         resultFileName = resultDir + '/' + modelname + '.' + model.integrationSettings.resultFileExtension
-         model.integrationSettings.startTime = tstart
-         model.integrationSettings.stopTime  = tstop
-         model.integrationSettings.errorToleranceRel = tolerance
-         model.integrationSettings.fixedStepSize = stepsize
-         model.integrationSettings.gridPoints = interval
-         model.integrationSettings.gridPointsMode = 'NumberOf'
-         model.integrationSettings.resultFileIncludeEvents = events
-         model.integrationSettings.resultFileName = resultFileName     
-         print "Simulating %s by %s (result in %s)..." % (modelname,simulator,resultFileName)
-         model.simulate()
-         model.close()
-     except Exception as e:
-       import traceback
-       traceback.print_exc(e,file=sys.stderr)
-       print e
-       
+     try:
+        try:
+          import pythoncom
+          pythoncom.CoInitialize()  # Initialize the COM library on the current thread
+          haveCOM = True
+        except:
+          pass
+
+        canLoadAllPackages = True
+        sp = packname[0].rsplit('.', 1)
+        if len(sp) > 1:
+           if not sp[1] in simulator.modelExtension:
+              canLoadAllPackages = False
+        else:
+           canLoadAllPackages = False
+
+        ''' Write the process output to a file '''
+
+        sys.stdout=Logger(logfilenames)
+        if canLoadAllPackages:
+            ''' create separate working directory for each model '''
+            if(simulatorname!='FMUSimulator'):
+              if not os.path.exists(dirname):
+                 os.mkdir(dirname)
+              os.chdir(dirname)
+            try:
+               model=simulator.getNewModel(modelname, packname, config)
+               if (subdir == 'N'):
+                  resultDir = path
+               else:
+                  resultDir = path + '/' + subdir
+                  if not os.path.isdir(resultDir):
+                     os.makedirs(resultDir)
+
+               resultFileName = resultDir + '/' + modelname + '.' + model.integrationSettings.resultFileExtension
+               model.integrationSettings.startTime = tstart
+               model.integrationSettings.stopTime  = tstop
+               model.integrationSettings.errorToleranceRel = tolerance
+               model.integrationSettings.fixedStepSize = stepsize
+               model.integrationSettings.gridPoints = interval
+               model.integrationSettings.gridPointsMode = 'NumberOf'
+               model.integrationSettings.resultFileIncludeEvents = events
+               model.integrationSettings.resultFileName = resultFileName
+               print "Simulating %s by %s (result in %s)..." % (modelname,simulatorname,resultFileName)
+               model.simulate()
+            except Simulator.SimulatorBase.Stopping:
+               print("Solver cancelled ... ")
+            except Exception as e:
+               import traceback
+               traceback.print_exc(e,file=sys.stderr)
+               print e
+            finally:
+               model.close()
+        else:
+            print "WARNING: Simulator " + simulatorname + " cannot handle files ", packname[0], " due to unknown file type(s)."
+     except:
+         pass
+     finally:
+         if haveCOM:
+            try:
+               pythoncom.CoUninitialize()  # Close the COM library on the current thread
+            except:
+               pass
+     
+
+
+
