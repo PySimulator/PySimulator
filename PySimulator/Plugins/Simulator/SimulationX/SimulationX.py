@@ -86,7 +86,7 @@ class Model(SimulatorBase.Model):
 
 		try:
 			if not config['Plugins']['SimulationX'].has_key('version'):
-				config['Plugins']['SimulationX']['version'] = 'Iti.Simx36'
+				config['Plugins']['SimulationX']['version'] = 'Iti.Simx37'
 				config.write()
 			dispatch = config['Plugins']['SimulationX']['version']
 			if dispatch == 'Iti.Simx36':
