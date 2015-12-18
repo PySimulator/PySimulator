@@ -91,7 +91,12 @@ class CompareParallelThread(QtCore.QThread):
         dir2=listdirs[size] 
         dir2size=Reporting.directorysize(dir2)
         resultfilesize.append(dir2size)         
-      
+      '''create a login directory for logging multiprocessing output from terminal to a file '''
+      logdir =os.path.join(os.getcwd(),'loginentries').replace('\\','/')
+      if not os.path.exists(logdir):
+          os.mkdir(logdir)
+
+      processlog=[]
       dircount=[]
       resultfiles=[]      
       for i in xrange(len(logfiles1)):
@@ -99,17 +104,27 @@ class CompareParallelThread(QtCore.QThread):
           filename=os.path.basename(logfiles1[i])
           newlogfile=str(i)+'_'+filename
           newlogfilepath=os.path.join(dir_name,newlogfile).replace('\\','/')
+          processlogfilepath=os.path.join(logdir,newlogfile).replace('\\','/')
           resultfiles.append(newlogfilepath)
+          processlog.append(processlogfilepath)
           dircount.append(i)
       
       ## Create a Pool of process and run the Compare Analysis in Parallel
       pool=Pool()
       startTime = time.time() 
-      pool.map(ParallelCompareAnalysis, zip(listdir1,listdirs,resultfiles,dircount,tol))
+      pool.map(ParallelCompareAnalysis, zip(listdir1,listdirs,resultfiles,dircount,tol,processlog))
       pool.close()
       pool.join()
       elapsedTime = time.time() - startTime
       #print elapsedTime
+      ''' print the output to GUI after process completed '''
+      for i in xrange(len(processlog)):
+         f=open(processlog[i],'r')
+         processlogentries=f.read()
+         print processlogentries
+         f.close()
+
+      shutil.rmtree(logdir)
       print "Parallel Compare Analysis Completed"
       totaldir=len(listdirs)
       filecount=len(os.listdir(dir1))
@@ -130,6 +145,16 @@ class CompareParallelThread(QtCore.QThread):
             
       self.running = False
 
+class Logger(object):
+    def __init__(self,logname):
+        self.terminal = sys.stdout
+        self.log = open(logname, "w")
+
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)
+
+
 def ParallelCompareAnalysis(directories):
     'unpack the directories and start running the compare analysis in parallel'
     
@@ -138,7 +163,8 @@ def ParallelCompareAnalysis(directories):
     logfile=directories[2]
     dircount=directories[3]
     tolerance=directories[4]
-    
+    logfilenames=directories[5]
+
     files1 = os.listdir(dir1)
     files2 = os.listdir(dir2)
     
@@ -172,7 +198,10 @@ def ParallelCompareAnalysis(directories):
     fileOut.write('Output file from comparison of list of simulation results within PySimulator\n')
     fileOut.write('  directory 1 (reference) : ' + dir1.encode(encoding) + '\n')
     fileOut.write('  directory 2 (comparison): ' + dir2.encode(encoding) + '\n')
-    
+
+    ''' Write the process output to a file '''
+    sys.stdout=Logger(logfilenames)
+
     for index, name in enumerate(modelName1):                      
             fileOut.write('\nCompare results from\n')            
             fileOut.write('  Directory 1: ' + fileName1[index].encode(encoding) + '\n')  # Print name of file1
