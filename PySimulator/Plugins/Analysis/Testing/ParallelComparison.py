@@ -31,6 +31,7 @@ from bs4 import BeautifulSoup
 import CompareResults
 import Reporting
 from ... import SimulationResult
+from ...Simulator import SimulatorBase 
 
 
 
@@ -54,95 +55,100 @@ class CompareParallelThread(QtCore.QThread):
         
     def run(self):
       self.running = True
+      files1 = os.listdir(self.dir1)
       
-      ### create a new subdirectory if the user specifies in the directory of results in the GUI ###
-      subdir=self.logDir
-      if not os.path.exists(subdir): 
-            os.mkdir(subdir)
-      
-      ### copy the dygraph script from /Plugins/Analysis/Testing/ to the result directory ###      
-      dygraphpath=os.path.join(self.PySimulatorPath, 'Plugins/Analysis/Testing/dygraph-combined.js').replace('\\','/')
-      if os.path.exists(dygraphpath):     
-          shutil.copy(dygraphpath,self.logDir)
-      
-      ## create a temp file for writing results and use it later to generate the regression report
-      self.logFile=os.path.join(self.logDir,'index.log').replace('\\','/')
+      if(len(files1)!=0):      
+          ###  create a RegressionReport Directory in the current working directory ###
+          subdir=self.logDir
+          if not os.path.exists(subdir): 
+                os.mkdir(subdir)
+          
+          ### copy the dygraph script from /Plugins/Analysis/Testing/ to the result directory ###      
+          dygraphpath=os.path.join(self.PySimulatorPath, 'Plugins/Analysis/Testing/dygraph-combined.js').replace('\\','/')
+          if os.path.exists(dygraphpath):     
+              shutil.copy(dygraphpath,self.logDir)
+          
+          ## create a temp file for writing results and use it later to generate the regression report
+          self.logFile=os.path.join(self.logDir,'index.log').replace('\\','/')
 
-      resultfilesize=[]    
-      logfiles=[]   
-      list1dir=[]
-      tolerance=[]      
-      dir1 = self.dir1
-      listdirs=self.listdirs 
-      list1dir.append(dir1)
-      tolerance.append(self.tol)
-      
-      listdir1= list1dir*len(listdirs)
-      logfiles.append(self.logFile)
-      logfiles1=logfiles*len(listdirs)
-      tol=tolerance*len(listdirs)
-      
-      ## calculate the size of directory for regression report
-      dir1size=Reporting.directorysize(dir1)
-      resultfilesize.append(dir1size)
-      
-      ## calculate the size of list of directories for regression report 
-      for size in xrange(len(listdirs)):
-        dir2=listdirs[size] 
-        dir2size=Reporting.directorysize(dir2)
-        resultfilesize.append(dir2size)         
-      '''create a login directory for logging multiprocessing output from terminal to a file '''
-      logdir =os.path.join(os.getcwd(),'loginentries').replace('\\','/')
-      if not os.path.exists(logdir):
-          os.mkdir(logdir)
+          resultfilesize=[]    
+          logfiles=[]   
+          list1dir=[]
+          tolerance=[]      
+          dir1 = self.dir1
+          listdirs=self.listdirs 
+          list1dir.append(dir1)
+          tolerance.append(self.tol)
+          
+          listdir1= list1dir*len(listdirs)
+          logfiles.append(self.logFile)
+          logfiles1=logfiles*len(listdirs)
+          tol=tolerance*len(listdirs)
+          
+          ## calculate the size of directory for regression report
+          dir1size=Reporting.directorysize(dir1)
+          resultfilesize.append(dir1size)
+          
+          ## calculate the size of list of directories for regression report 
+          for size in xrange(len(listdirs)):
+            dir2=listdirs[size] 
+            dir2size=Reporting.directorysize(dir2)
+            resultfilesize.append(dir2size)         
+          '''create a login directory for logging multiprocessing output from terminal to a file '''
+          logdir =os.path.join(os.getcwd(),'loginentries').replace('\\','/')
+          if not os.path.exists(logdir):
+              os.mkdir(logdir)
 
-      processlog=[]
-      dircount=[]
-      resultfiles=[]      
-      for i in xrange(len(logfiles1)):
-          dir_name=os.path.dirname(logfiles1[i])
-          filename=os.path.basename(logfiles1[i])
-          newlogfile=str(i)+'_'+filename
-          newlogfilepath=os.path.join(dir_name,newlogfile).replace('\\','/')
-          processlogfilepath=os.path.join(logdir,newlogfile).replace('\\','/')
-          resultfiles.append(newlogfilepath)
-          processlog.append(processlogfilepath)
-          dircount.append(i)
-      
-      ## Create a Pool of process and run the Compare Analysis in Parallel
-      pool=Pool()
-      startTime = time.time() 
-      pool.map(ParallelCompareAnalysis, zip(listdir1,listdirs,resultfiles,dircount,tol,processlog))
-      pool.close()
-      pool.join()
-      elapsedTime = time.time() - startTime
-      #print elapsedTime
-      ''' print the output to GUI after process completed '''
-      for i in xrange(len(processlog)):
-         f=open(processlog[i],'r')
-         processlogentries=f.read()
-         print processlogentries
-         f.close()
+          processlog=[]
+          dircount=[]
+          resultfiles=[]      
+          for i in xrange(len(logfiles1)):
+              dir_name=os.path.dirname(logfiles1[i])
+              filename=os.path.basename(logfiles1[i])
+              newlogfile=str(i)+'_'+filename
+              newlogfilepath=os.path.join(dir_name,newlogfile).replace('\\','/')
+              processlogfilepath=os.path.join(logdir,newlogfile).replace('\\','/')
+              resultfiles.append(newlogfilepath)
+              processlog.append(processlogfilepath)
+              dircount.append(i)
+          
+          ## Create a Pool of process and run the Compare Analysis in Parallel
+          pool=Pool()
+          startTime = time.time() 
+          pool.map(ParallelCompareAnalysis, zip(listdir1,listdirs,resultfiles,dircount,tol,processlog))
+          pool.close()
+          pool.join()
+          elapsedTime = time.time() - startTime
+          #print elapsedTime
+          ''' print the output to GUI after process completed '''
+          for i in xrange(len(processlog)):
+             f=open(processlog[i],'r')
+             processlogentries=f.read()
+             print processlogentries
+             f.close()
 
-      shutil.rmtree(logdir)
-      print "Parallel Compare Analysis Completed"
-      totaldir=len(listdirs)
-      filecount=len(os.listdir(dir1))
-      resultdirsize=sum(resultfilesize)      
+          shutil.rmtree(logdir)
+          print "Parallel Compare Analysis Completed"
+          totaldir=len(listdirs)
+          filecount=len(os.listdir(dir1))
+          resultdirsize=sum(resultfilesize)      
+          
+          Reporting.genlogfilesreport(self.logFile)
+          Reporting.genregressionreport(self.logFile,totaldir,filecount,elapsedTime,resultdirsize,dir1)      
+          
+          ## Remove the temporary logfiles and rfiles directories after the regression report completed
+          logfilesdir=os.path.join(os.path.dirname(self.logFile),'logfiles').replace('\\','/')
+          if os.path.exists(logfilesdir): 
+             shutil.rmtree(logfilesdir)
+                   
+          regressionfilesdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
+          if os.path.exists(regressionfilesdir): 
+             shutil.rmtree(regressionfilesdir)
       
-      Reporting.genlogfilesreport(self.logFile)
-      Reporting.genregressionreport(self.logFile,totaldir,filecount,elapsedTime,resultdirsize,dir1)      
+      else:
+          print 'directory 1:'+'\'' + self.dir1 + '\'' +' is Empty and Report cannot be Generated'
+          print "Parallel Compare Analysis Completed"
       
-      ## Remove the temporary logfiles and rfiles directories after the regression report completed
-      logfilesdir=os.path.join(os.path.dirname(self.logFile),'logfiles').replace('\\','/')
-      if os.path.exists(logfilesdir): 
-         shutil.rmtree(logfilesdir)
-               
-      regressionfilesdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
-      if os.path.exists(regressionfilesdir): 
-         shutil.rmtree(regressionfilesdir)
-      
-            
       self.running = False
 
 class Logger(object):
@@ -213,6 +219,15 @@ def ParallelCompareAnalysis(directories):
             except:
                 fileOut.write('  Directory 2: NO equivalent found\n')
                 print '  Directory 2: NO equivalent found'
+                model1 = SimulatorBase.Model(None, None, None)
+                filepath = dir1 + '/' + fileName1[index]
+                model1.loadResultFile(filepath)
+                var = model1.integrationResults.getVariables()
+                message1= '<a href >' + fileName1[index].encode(encoding).replace('.mat','') +'-'+str(len(var))+'</a>' +' </td>'
+                emptyhref= "Not-Found"
+                s = '\n'.join(['<tr>','<td id=2>',message1,'<td id=2 bgcolor=#FFFFFF align="center">',emptyhref,'</td>','</tr>']) 
+                fileOuthtml.write(s)
+                fileOuthtml.write('\n')
                 i = -1
             if i >= 0:
                 fileOut.write('  Directory 2: ' + fileName2[i].encode(encoding) + '\n')  # Print name of file2
@@ -222,8 +237,7 @@ def ParallelCompareAnalysis(directories):
                 file1 = dir1 + '/' + fileName1[index]
                 file2 = dir2 + '/' + fileName2[i]
                
-                from ...Simulator import SimulatorBase 
-                
+                #from ...Simulator import SimulatorBase 
                 model1 = SimulatorBase.Model(None, None, None)
                 model1.loadResultFile(file1)
                 model2 = SimulatorBase.Model(None, None, None)
@@ -241,7 +255,7 @@ def ParallelCompareAnalysis(directories):
     '''open the html file to insert start html tags and add add headers of the directory name'''
     with open(logfile1) as myfile:
         htmldata=myfile.read()          
-        m1="<table><tr><th id=0>Model</th><th id=0>"+os.path.basename(os.path.dirname(file2))+'</th>'+'</tr>'
+        m1="<table><tr><th id=0>Model</th><th id=0>"+os.path.basename(dir2)+'</th>'+'</tr>'
         soup = BeautifulSoup(open(logfile1))
         data=soup.find_all('td',{"bgcolor":["#00FF00","#FF0000"]})         
         for i in xrange(len(data)):
@@ -255,24 +269,30 @@ def ParallelCompareAnalysis(directories):
            
         message='\n'.join(['<html>',m1])
         f=open(logfile1,'w')
-        colorpercent=int((len(green))*100/(len(green)+len(red)))
+        if (len(green) and len(red)!=0): 
+            colorpercent=int((len(green))*100/(len(green)+len(red)))
+        else:
+            colorpercent=0
         if (colorpercent==100):
             m1='<tr><td></td><td id=1 bgcolor="#00FF00" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
-            percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+            #percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+            percentage=str(colorpercent)+'%'+' passed'
             m2='<tr><td></td><td id=100 bgcolor="#00FF00" align="center">'+percentage+'</td></tr>'
             m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
             f.write(m3)
             f.write('\n')
         if(colorpercent>=51 and colorpercent<=99):
             m1='<tr><td></td><td id=1 bgcolor="#FFA500" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
-            percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+            #percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+            percentage=str(colorpercent)+'%'+' passed'
             m2='<tr><td></td><td id=100 bgcolor="#FFA500" align="center">'+percentage+'</td></tr>'
             m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
             f.write(m3)
             f.write('\n')
         if(colorpercent<=50):
             m1='<tr><td></td><td id=1 bgcolor="#FF0000" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
-            percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+            #percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+            percentage=str(colorpercent)+'%'+' passed'
             m2='<tr><td></td><td id=100 bgcolor="#FF0000" align="center">'+percentage+'</td></tr>'
             m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
             f.write(m3)

@@ -64,7 +64,7 @@ def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1
          ## Html page to sort differed variable by name
          f=open(fileerror,'w')         
          for i in xrange(len(diff1)):
-             var=diff1[i].split('-') 
+             var=diff1[i].split('#') 
              str1=''.join([modelname+'_'+var[0]+'.html'])
              x1='<td>'+'<a href='+str1.replace(' ','')+'>'+ str(var[0])+ '</a>'+'</td>'
              errval="{:.1e}".format(Decimal(var[1]))
@@ -366,8 +366,11 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
           passfiles.append(int(passednumber[0]))
           failfiles.append(int(failednumber[0])) 
                
-        p1=int(sum(passfiles))+int(sum(failfiles))
-        p2=int(sum(passfiles))*100/p1
+        p1=int(sum(passfiles))+int(sum(failfiles))       
+        if (p1!=0):        
+           p2=int(sum(passfiles))*100/p1
+        else:
+           p2=0
         pstatus.append(str(p2))
         hstatus.append(str(sum(passfiles))+' / '+str(sum(failfiles)))
     
@@ -427,7 +430,8 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
              var1=str(x[k]).split('[')
              var2=var1[0].split('/')
              comparevar.append(int(var2[-1]))
-          else:
+          
+          if (checkcolor=="#FF0000"):
              red.append(checkcolor)
              var1=str(x[k]).split('<a')
              var2=str(var1[0]).split('/')
@@ -493,7 +497,12 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
     ## loop for updating the status and color code of individual files in different directory, row comparison
     for i in xrange(len(dat)):
         d=str(status[i]).split('/')
-        percentage=int(d[0])*100/int(d[2])   
+        flag=all(item =='0' for item in d)
+        if (flag==False):
+          percentage=int(d[0])*100/int(d[2])
+        else:
+          percentage=0
+          
         if (percentage==100):
           ## green color
           dat[i]['bgcolor']="#00FF00"

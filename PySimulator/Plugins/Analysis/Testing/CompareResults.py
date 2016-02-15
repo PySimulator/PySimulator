@@ -137,9 +137,9 @@ def compareListMenu(model, gui):
             self.resultEdit.setText(os.getcwd().replace('\\', '/')+'/RegressionReport')
 
             ##create a RegressionReport Directory in the current working directory
-            reportdir =os.path.join(os.getcwd(),'RegressionReport').replace('\\','/')
+            '''reportdir =os.path.join(os.getcwd(),'RegressionReport').replace('\\','/')
             if not os.path.exists(reportdir):
-                os.mkdir(reportdir)
+                os.mkdir(reportdir)'''
             self.dir1Edit.setText(os.getcwd().replace('\\', '/'))
             #self.dir2Edit.setText(os.getcwd().replace('\\', '/'))
 
@@ -251,170 +251,193 @@ class CompareThread(QtCore.QThread):
       
       
       encoding = sys.getfilesystemencoding()
-      
-      ### create a new subdirectory if the user specifies in the directory of results in the GUI ###
-      subdir=self.logDir
-      if not os.path.exists(subdir): 
-          os.mkdir(subdir)
-            
-      ### copy the dygraph script from /Plugins/Analysis/Testing/ to the result directory ###      
-      dygraphpath=os.path.join(self.PySimulatorPath, 'Plugins/Analysis/Testing/dygraph-combined.js').replace('\\','/')
-      if os.path.exists(dygraphpath):     
-          shutil.copy(dygraphpath,self.logDir)
-          
-      resultfilesize=[]   
       dir1 = self.dir1
-      ## calculate the size of directory for regression report
-      dir1size=Reporting.directorysize(dir1)
-      resultfilesize.append(dir1size)
-      
-      listdirs=self.listdirs
       files1 = os.listdir(dir1) 
+      if (len(files1)!=0): 
       
-      ## create a temp file for writing results and use it later to generate the regression report
-      self.logFile=os.path.join(self.logDir, "index.log").replace('\\','/')
-      
-      fileOut = open(self.logFile, 'w')
-      startTime = time.time()
-      for dircount in xrange(len(listdirs)):
-        dir2=listdirs[dircount] 
-        ## calculate the size of list of directories for regression report
-        dir2size=Reporting.directorysize(dir2)
-        resultfilesize.append(dir2size)                   
-        
-        files2 = os.listdir(dir2)    
-        modelName1 = []
-        fileName1 = []
-        for fileName in files1:
-            splits = fileName.rsplit('.', 1)
-            #print splits
-            if len(splits) > 1:
-                if splits[1] in SimulationResult.fileExtension:
-                    modelName1.append(splits[0])
-                    fileName1.append(fileName)
-        modelName2 = []
-        fileName2 = []
-        for fileName in files2:
-            splits = fileName.rsplit('.', 1)
-            if len(splits) > 1:
-                if splits[1] in SimulationResult.fileExtension:
-                    modelName2.append(splits[0])
-                    fileName2.append(fileName) 
-                    
-        '''create a html result file '''
-        filename,fileExtension = os.path.splitext(self.logFile)
-        logfile1=self.logFile.replace(fileExtension,'.html')                
-        fileOuthtml= open(logfile1,'w')
+          ### create a RegressionReport Directory in the current working directory ###
+          subdir=self.logDir
+          if not os.path.exists(subdir): 
+              os.mkdir(subdir)
+                
+          ### copy the dygraph script from /Plugins/Analysis/Testing/ to the result directory ###      
+          dygraphpath=os.path.join(self.PySimulatorPath, 'Plugins/Analysis/Testing/dygraph-combined.js').replace('\\','/')
+          if os.path.exists(dygraphpath):     
+              shutil.copy(dygraphpath,self.logDir)
+              
+          resultfilesize=[]   
+          #dir1 = self.dir1
+          ## calculate the size of directory for regression report
+          dir1size=Reporting.directorysize(dir1)
+          resultfilesize.append(dir1size)
+          
+          listdirs=self.listdirs
+          #files1 = os.listdir(dir1) 
+          
+          ## create a temp file for writing results and use it later to generate the regression report
+          self.logFile=os.path.join(self.logDir, "index.log").replace('\\','/')
+          
+          fileOut = open(self.logFile, 'w')
+          startTime = time.time()
+          for dircount in xrange(len(listdirs)):
+            dir2=listdirs[dircount] 
+            ## calculate the size of list of directories for regression report
+            dir2size=Reporting.directorysize(dir2)
+            resultfilesize.append(dir2size)                   
+            
+            files2 = os.listdir(dir2)    
+            modelName1 = []
+            fileName1 = []
+            for fileName in files1:
+                splits = fileName.rsplit('.', 1)
+                #print splits
+                if len(splits) > 1:
+                    if splits[1] in SimulationResult.fileExtension:
+                        modelName1.append(splits[0])
+                        fileName1.append(fileName)
+            modelName2 = []
+            fileName2 = []
+            for fileName in files2:
+                splits = fileName.rsplit('.', 1)
+                if len(splits) > 1:
+                    if splits[1] in SimulationResult.fileExtension:
+                        modelName2.append(splits[0])
+                        fileName2.append(fileName) 
+                        
+            '''create a html result file '''
+            filename,fileExtension = os.path.splitext(self.logFile)
+            logfile1=self.logFile.replace(fileExtension,'.html')                
+            fileOuthtml= open(logfile1,'w')
+               
+            fileOut.write('Output file from comparison of list of simulation results within PySimulator\n')
+            fileOut.write('  directory 1 (reference) : ' + dir1.encode(encoding) + '\n')
+            fileOut.write('  directory 2 (comparison): ' + dir2.encode(encoding) + '\n')
+
+            for index, name in enumerate(modelName1):            
+                if self.stopRequest:
+                    fileOut.write("Analysis canceled.")
+                    fileOut.close()
+                    print "... Comparing result files canceled."
+                    self.running = False
+                    return
+
+                fileOut.write('\nCompare results from\n')            
+                fileOut.write('  Directory 1: ' + fileName1[index].encode(encoding) + '\n')  # Print name of file1
+                print "\nCompare results from "
+                print "  Directory 1: " + fileName1[index].encode(encoding)
+
+                try:
+                    i = modelName2.index(name)
+                except:
+                    fileOut.write('  Directory 2: NO equivalent found\n')
+                    print '  Directory 2: NO equivalent found'
+                    ### codes to handle empty directory list in comparing results
+                    model1 = Simulator.SimulatorBase.Model(None, None, None)
+                    filepath = dir1 + '/' + fileName1[index]
+                    model1.loadResultFile(filepath)
+                    var = model1.integrationResults.getVariables()
+                    message1= '<a href >' + fileName1[index].encode(encoding).replace('.mat','') +'-'+str(len(var))+'</a>' +' </td>'
+                    emptyhref= "Not-Found"
+                    s = '\n'.join(['<tr>','<td id=2>',message1,'<td id=2 bgcolor=#FFFFFF align="center">',emptyhref,'</td>','</tr>']) 
+                    fileOuthtml.write(s)
+                    fileOuthtml.write('\n')
+                    i = -1
+                if i >= 0:
+                    fileOut.write('  Directory 2: ' + fileName2[i].encode(encoding) + '\n')  # Print name of file2
+                    print "  Directory 2: " + fileName2[i].encode(encoding)
+
+
+                    file1 = dir1 + '/' + fileName1[index]
+                    file2 = dir2 + '/' + fileName2[i]
+                    model1 = Simulator.SimulatorBase.Model(None, None, None)
+                    model1.loadResultFile(file1)
+                    model2 = Simulator.SimulatorBase.Model(None, None, None)
+                    model2.loadResultFile(file2)
+                    compareResults(model1, model2, dircount, self.tol, fileOut, fileOuthtml,self.logFile,file2,file1)
+            
+            fileOut.write('\n')    
+            fileOut.write("******* Compare Analysis Completed   *******" + u"\n")
+            fileOut.write('\n')                   
+            fileOuthtml.close()
+            green=[]
+            red=[]
+            
+            '''open the html file to insert start html tags and add add headers of the directory name'''
+            with open(logfile1) as myfile:
+               htmldata=myfile.read()          
+               m1="<table><tr><th id=0>Model</th><th id=0>"+os.path.basename(dir2)+'</th>'+'</tr>'
+               soup = BeautifulSoup(open(logfile1))
+               data=soup.find_all('td',{"bgcolor":["#00FF00","#FF0000"]})         
+               for i in xrange(len(data)):
+                  x=BeautifulSoup(str(data[i]))
+                  tag=x.td
+                  checkcolor=tag['bgcolor']
+                  if(checkcolor=="#00FF00"):
+                       green.append(checkcolor)
+                  else:
+                       red.append(checkcolor)
+
+               message='\n'.join(['<html>',m1])
+               f=open(logfile1,'w')
+               if (len(green) and len(red)!=0): 
+                 colorpercent=int((len(green))*100/(len(green)+len(red)))
+               else:
+                 colorpercent=0
+               if (colorpercent==100):
+                   m1='<tr><td></td><td id=1 bgcolor="#00FF00" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
+                   #percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+                   percentage=str(colorpercent)+'%'+' passed'
+                   m2='<tr><td></td><td id=100 bgcolor="#00FF00" align="center">'+percentage+'</td></tr>'
+                   m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
+                   f.write(m3)
+                   f.write('\n')
+               if(colorpercent>=51 and colorpercent<=99):
+                   m1='<tr><td></td><td id=1 bgcolor="#FFA500" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
+                   #percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+                   percentage=str(colorpercent)+'%'+' passed'
+                   m2='<tr><td></td><td id=100 bgcolor="#FFA500" align="center">'+percentage+'</td></tr>'
+                   m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
+                   f.write(m3)
+                   f.write('\n')
+               if(colorpercent<=50):
+                   m1='<tr><td></td><td id=1 bgcolor="#FF0000" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
+                   #percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
+                   percentage=str(colorpercent)+'%'+' passed'
+                   m2='<tr><td></td><td id=100 bgcolor="#FF0000" align="center">'+percentage+'</td></tr>'
+                   m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
+                   f.write(m3)
+                   f.write('\n')
+               f.close()
            
-        fileOut.write('Output file from comparison of list of simulation results within PySimulator\n')
-        fileOut.write('  directory 1 (reference) : ' + dir1.encode(encoding) + '\n')
-        fileOut.write('  directory 2 (comparison): ' + dir2.encode(encoding) + '\n')
-
-        for index, name in enumerate(modelName1):            
-            if self.stopRequest:
-                fileOut.write("Analysis canceled.")
-                fileOut.close()
-                print "... Comparing result files canceled."
-                self.running = False
-                return
-
-            fileOut.write('\nCompare results from\n')            
-            fileOut.write('  Directory 1: ' + fileName1[index].encode(encoding) + '\n')  # Print name of file1
-            print "\nCompare results from "
-            print "  Directory 1: " + fileName1[index].encode(encoding)
-
-            try:
-                i = modelName2.index(name)
-            except:
-                fileOut.write('  Directory 2: NO equivalent found\n')
-                print '  Directory 2: NO equivalent found'
-                i = -1
-            if i >= 0:
-                fileOut.write('  Directory 2: ' + fileName2[i].encode(encoding) + '\n')  # Print name of file2
-                print "  Directory 2: " + fileName2[i].encode(encoding)
-
-
-                file1 = dir1 + '/' + fileName1[index]
-                file2 = dir2 + '/' + fileName2[i]
-                model1 = Simulator.SimulatorBase.Model(None, None, None)
-                model1.loadResultFile(file1)
-                model2 = Simulator.SimulatorBase.Model(None, None, None)
-                model2.loadResultFile(file2)
-                compareResults(model1, model2, dircount, self.tol, fileOut, fileOuthtml,self.logFile,file2,file1)
-        
-        fileOut.write('\n')    
-        fileOut.write("******* Compare Analysis Completed   *******" + u"\n")
-        fileOut.write('\n')                   
-        fileOuthtml.close()
-        green=[]
-        red=[]
-        '''open the html file to insert start html tags and add add headers of the directory name'''
-        with open(logfile1) as myfile:
-           htmldata=myfile.read()          
-           m1="<table><tr><th id=0>Model</th><th id=0>"+os.path.basename(os.path.dirname(file2))+'</th>'+'</tr>'
-           soup = BeautifulSoup(open(logfile1))
-           data=soup.find_all('td',{"bgcolor":["#00FF00","#FF0000"]})         
-           for i in xrange(len(data)):
-              x=BeautifulSoup(str(data[i]))
-              tag=x.td
-              checkcolor=tag['bgcolor']
-              if(checkcolor=="#00FF00"):
-                   green.append(checkcolor)
-              else:
-                   red.append(checkcolor)
-
-           message='\n'.join(['<html>',m1])
-           f=open(logfile1,'w')
-           colorpercent=int((len(green))*100/(len(green)+len(red)))
-           if (colorpercent==100):
-               m1='<tr><td></td><td id=1 bgcolor="#00FF00" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
-               percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
-               m2='<tr><td></td><td id=100 bgcolor="#00FF00" align="center">'+percentage+'</td></tr>'
-               m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
-               f.write(m3)
-               f.write('\n')
-           if(colorpercent>=51 and colorpercent<=99):
-               m1='<tr><td></td><td id=1 bgcolor="#FFA500" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
-               percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
-               m2='<tr><td></td><td id=100 bgcolor="#FFA500" align="center">'+percentage+'</td></tr>'
-               m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
-               f.write(m3)
-               f.write('\n')
-           if(colorpercent<=50):
-               m1='<tr><td></td><td id=1 bgcolor="#FF0000" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
-               percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
-               m2='<tr><td></td><td id=100 bgcolor="#FF0000" align="center">'+percentage+'</td></tr>'
-               m3='\n'.join([message,m1,m2,htmldata,'</table>','</html>'])
-               f.write(m3)
-               f.write('\n')
-           f.close()
-       
-        '''Save the data to prepare regression report'''
-        
-        newpath=os.path.dirname(logfile1)
-        name=os.path.basename(logfile1)
-        newname=''.join([str(dircount),'_',name])
-        np1=os.path.join(newpath,'rfiles').replace('\\','/')
-        np2=os.path.join(np1,newname).replace('\\','/')
-        
-        #create a new directory to store the result files for each run, to make parsing easy when user asks for regression chart 
-        if not os.path.exists(np1): 
-           os.mkdir(np1)
-        shutil.copy(logfile1,np2)
-                     
-      print "... running the analysis done."
-      elapsedTime = time.time() - startTime
-      fileOut.close()
-      totaldir=len(listdirs)
-      filecount=len(files1)
-      resultdirsize=sum(resultfilesize)      
-      Reporting.genregressionreport(self.logFile,totaldir,filecount,elapsedTime,resultdirsize,dir1)
-
-      ## remove the temporary rfiles directory after the Regression report generated
-      regressionfilesdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
-      if os.path.exists(regressionfilesdir): 
-         shutil.rmtree(regressionfilesdir)
-         
+            '''Save the data to prepare regression report'''
+            
+            newpath=os.path.dirname(logfile1)
+            name=os.path.basename(logfile1)
+            newname=''.join([str(dircount),'_',name])
+            np1=os.path.join(newpath,'rfiles').replace('\\','/')
+            np2=os.path.join(np1,newname).replace('\\','/')
+            
+            #create a new directory to store the result files for each run, to make parsing easy when user asks for regression chart 
+            if not os.path.exists(np1): 
+               os.mkdir(np1)
+            shutil.copy(logfile1,np2)
+                      
+          print "... running the analysis done."
+          elapsedTime = time.time() - startTime
+          fileOut.close()
+          totaldir=len(listdirs)
+          filecount=len(files1)
+          resultdirsize=sum(resultfilesize)
+          Reporting.genregressionreport(self.logFile,totaldir,filecount,elapsedTime,resultdirsize,dir1)
+          
+          ## remove the temporary rfiles directory after the Regression report generated          
+          regressionfilesdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
+          if os.path.exists(regressionfilesdir): 
+              shutil.rmtree(regressionfilesdir)
+      else:
+          print 'directory 1:'+'\'' + dir1 + '\'' +' is Empty and Report cannot be Generated'
+          print "... running the analysis done."
+      
       self.running = False
 
 def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdout, filewritehtml=None,resultfile=None,htmlfile=None,file1=None):
@@ -535,7 +558,7 @@ def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdou
                         for m in xrange(len(identical)):
                             if not identical[m]:
                                 message = u"Results for " + namesBothSub[m] + u" are NOT identical within the tolerance " + unicode(tol) + u"; estimated Tolerance = " + unicode(estTol[m])
-                                message2=namesBothSub[m]+'-'+unicode(estTol[m])
+                                message2=namesBothSub[m]+'#'+unicode(estTol[m])
                                 tupl=()
                                 tupl=(namesBothSub[m],unicode(estTol[m]))
                                 diff.append(namesBothSub[m])
