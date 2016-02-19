@@ -27,6 +27,7 @@ from PySide import QtGui, QtCore
 import os, sys
 import numpy
 import shutil
+import time
 import ParallelSimulation
 from ... import Simulator
 

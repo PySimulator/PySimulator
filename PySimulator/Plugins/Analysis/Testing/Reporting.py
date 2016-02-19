@@ -31,7 +31,7 @@ from bs4 import BeautifulSoup
 import time
 import datetime
 import webbrowser
-
+from ... import SimulationResult
 
 
 def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1var,model2var,totalComparedvar,maxEstTol):
@@ -100,8 +100,7 @@ def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1
          closetags ='\n'.join(['</table>','</html>'])
          tol.write(closetags)
          tol.write('\n')
-         tol.close()
-         
+         tol.close()         
          
          #diff = '<a href='+ os.path.relpath(fileerror) +'>'+str(len(diff1))+'</a>'+ '(' + str(totalvar) +'variables)' + '[' +str(maxEstTol)+ ']' +'</td>'+'</tr>'      
          diff = model2var + ' / ' + str(totalComparedvar)+ ' / ' + '<a href='+ os.path.relpath(fileerror) +'>'+str(len(diff1))+'</a>'+ ' [' +str(maxerror)+ ']' +'</td>'+'</tr>'
@@ -109,86 +108,139 @@ def htmloverview(fileouthtml,resultfile,file,file1,diff1,difftol,dircount,model1
          fileouthtml.write(s)
          fileouthtml.write('\n')
    
-def checkrows(model):
-   ''' This function used to delete duplicate rows in a numpy array'''
-   column1=model[:,0]
-   indices = numpy.setdiff1d(numpy.arange(len(column1)), numpy.unique(column1, return_index=True)[1])
-   if len(indices>0):
-      '''axis=0 represent the rows to be deleted from the obtained index '''
-      model= numpy.delete(model, indices, axis=0)
-   return model
+def fetchcolumndata(val1,val2):
+    ## Function to return plot data as numpy arrays
+    x3=numpy.column_stack((val1,val2))   
+    return x3
+
+def preparechartdata(model1data,model2data):
+    ## Function which prepares plot data for all timeseries and return the dygraph data
+    a=model1data
+    b=model2data    
+    timeseries1=a[:,0]
+    timeseries2=b[:,0]
+    timelist=sorted(list(set(timeseries1).union(timeseries2)))
+
+    h=[]
+    for t in xrange(len(timelist)):
+        find=numpy.where(a[:,0] == timelist[t])[0]
+        find1=numpy.where(b[:,0] == timelist[t])[0]
+        x1=a[find]
+        x2=b[find1] 
+
+        if(len(x1)==len(x2)):
+          for i in xrange(len(x1)): 
+            val1=x1[i][0]
+            val2=x1[i][1]
+            val3=x2[i][1]
+            h.append([val1,val2,val3])
+        if (len(x1)>len(x2)):
+           for z in xrange(len(x1)):
+             val1=x1[z][0]
+             val2=x1[z][1]
+             try:
+               val3=x2[z][1]
+             except:
+               val3=numpy.nan      
+             h.append([val1,val2,val3])
+        if (len(x2)>len(x1)):
+           for k in xrange(len(x2)):
+             val1=x2[k][0]
+             val3=x2[k][1]
+             try:
+               val2=x1[k][1]
+             except:
+               val2=numpy.nan      
+             h.append([val1,val2,val3])
+             
+    return repr(numpy.asarray(h)).replace('nan','null').replace('array',' ').replace('(' ,' ').replace(')' ,' ')
     
-def generatehtml(model1,model2,namesBoth,col1var,col2var,htmlfile,resultfile,dircount):
-    '''This function is used to fetch the array of data from mat files and create the html graph for the differed variables which can be viewed in browser'''
-    #get the modelname of the file                   
+def generatehtml(model1,model2,namesBoth,htmlfile,resultfile,dircount):
+    #This function is used to generate plot chart from model1 and model2
+    
     filename,fileExtension = os.path.splitext(htmlfile)
     report=os.path.basename(str(htmlfile)).replace(fileExtension,' ')      
     err=report+'res'+str(dircount)
     report1='\''+report+'\''
+    
     #create a new directory for the result_files which differ
     path=os.path.dirname(os.path.abspath(str(resultfile)))
     newpath=os.path.join(path,err.replace(' ',''))
     if not os.path.exists(newpath): 
         os.mkdir(newpath)
-                
-        
-    model1=checkrows(model1)
-    model2=checkrows(model2)
-    i = numpy.intersect1d(model1[:,0], model2[:,0])   
     
     # Get the appropriate datas from model1 and model2 for the variables and create a new array which will be written in the javascript part of html file   
     for z in range(len(namesBoth)):
         name=namesBoth[z]
-        var1=col1var[z]
-        var2=col2var[z]
-        if (name != 'Time'):
-             try:
-               #for each variable get the appropriate column datas from model1 and model2 
-               fast_c = numpy.vstack([i, model1[numpy.in1d(model1[:,0], i), var1], model2[numpy.in1d(model2[:,0], i), var2]]).T
-               dygraph_array= repr(fast_c).replace('array',' ').replace('(' ,' ').replace(')' ,' ')
-               htmlreport=newpath+'\\'+report+'_'+name+'.html'     
-               htmlreport=htmlreport.replace(' ','').replace('\\','/')
-               with open(htmlreport, 'wb') as f:
+        modeldata1=model1.integrationResults.readData(name)
+        modeldata2=model2.integrationResults.readData(name)
+        numpy.set_printoptions(threshold='nan')
+                
+        if (modeldata1[0]==None and modeldata1[2]=='constant'):
+            tnew1=model1.integrationResults.readData("Time")
+            dnew1=numpy.repeat(modeldata1[1], len((tnew1[0])))
+            np_a=fetchcolumndata(tnew1[0],dnew1)
+            
+        if (modeldata2[0]==None and modeldata2[2]=='constant'):
+            tnew2=model2.integrationResults.readData("Time")
+            dnew2=numpy.repeat(modeldata2[1], len((tnew2[0])))
+            np_b=fetchcolumndata(tnew2[0],dnew2)
+            
+        if (modeldata1[0]!=None and modeldata2[0]!=None):
+            np_a=fetchcolumndata(modeldata1[0],modeldata1[1])
+            np_b=fetchcolumndata(modeldata2[0],modeldata2[1])
+        
+        #finaldata=preparechartdata(np_a,np_b)  
+        
+        try:
+           finaldata=preparechartdata(np_a,np_b)        
+           htmlreport=newpath+'\\'+report+'_'+name+'.html'     
+           htmlreport=htmlreport.replace(' ','').replace('\\','/')
+           with open(htmlreport, 'wb') as f:
                 message = """<html>
-<head>
-<script type="text/javascript" src="../dygraph-combined.js"></script>
-<style type="text/css">
+    <head>
+    <script type="text/javascript" src="../dygraph-combined.js"></script>
+    <style type="text/css">
     #graphdiv {
-      position: absolute;
-      left: 10px;
-      right: 10px;
-      top: 40px;
-      bottom: 10px;
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    top: 40px;
+    bottom: 10px;
     }
     </style>
-</head>
-<body>
-<div id="graphdiv"></div>
-<p><input type=checkbox id="0" checked onClick="change(this)">
-<label for="0">reference</label>
-<input type=checkbox id="1" checked onClick="change(this)">
-<label for="1">actual</label>
-,  Parameters used for the comparison: Relative tolerance 1e-3 </p>
-<script type="text/javascript">
-g = new Dygraph(document.getElementById("graphdiv"),"""
-              
+    </head>
+    <body>
+    <div id="graphdiv"></div>
+    <p><input type=checkbox id="0" checked onClick="change(this)">
+    <label for="0">reference</label>
+    <input type=checkbox id="1" checked onClick="change(this)">
+    <label for="1">actual</label>
+    , Compared Result points with time  </p>
+    <script type="text/javascript">
+    g = new Dygraph(document.getElementById("graphdiv"),"""
+          
                 varname='title:'+'\''+name+'\''+','
                 option="""xlabel: ['time'],
-labels: ['time','reference','actual'],
-visibility:[true,true,true]
-}"""
+        connectSeparatedPoints: true,
+        labels: ['time','reference','actual'],
+        visibility:[true,true,true]
+        }"""
                 message2="""function change(el) {
-g.setVisibility(parseInt(el.id), el.checked);
-}
-</script>
-</body>
-</html>"""
+        g.setVisibility(parseInt(el.id), el.checked);
+        }
+        </script>
+        </body>
+        </html>"""
 
-                s = '\n'.join([message,str(dygraph_array),",","{",varname,option,")",";",message2])
+                #s = '\n'.join([message,str(dygraph_array),",","{",varname,option,")",";",message2])
+                s = '\n'.join([message,str(finaldata),",","{",varname,option,")",";",message2])
                 f.write(s)
                 f.close()
-             except IndexError:
-                pass
+        except:
+               pass 
+   
+
 
 def directorysize(dirname):
   ## calculate the size of directory, traverses subdirectory and return the size in MB
@@ -223,7 +275,7 @@ def genlogfilesreport(logfile):
       logfileopen.close()    
       f.close()
      
-def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedir):
+def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedir,tol):
   ''' the function is used to parse the html files and collect the table datas from different html files and finally generate single regression chart'''
   dir1=os.path.dirname(logfile)
   dir2=os.path.join(dir1,'rfiles').replace('\\','/')
@@ -251,9 +303,10 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
     filename,fileExtension = os.path.splitext(logfile)
     logfile1=logfile.replace(fileExtension,'.html')    
     f=open(logfile1,'w') 
+    tolval="{:.0e}".format(Decimal(tol))
     date_time_info = datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
     date_time_info1 =' '.join(['<tr>','<td align="right">','<b>Generated: </td>','<td>',date_time_info,'by PySimulator','</td>','</tr>'])
-    tolerance=' '.join(['<tr>','<td align="right"> <b>Given Error Tolerance: </b> </td>','<td>','1e-3','</td>','</tr>'])
+    tolerance=' '.join(['<tr>','<td align="right"> <b>Given Error Tolerance: </b> </td>','<td>',str(tolval),'</td>','</tr>'])
     diskspace=' '.join(['<tr>','<td align="right"> <b>Disk space of all used result files: </b> </td>','<td>',str(resultdirsize),' ','MB','</td>','</tr>'])
     dircount=' '.join(['<tr>','<td align="right"> <b>Total number of compared files: </b></td>','<td>',str(int(totaldir)*int(filecount)),'against',str(filecount),'baseline files','</td>','</tr>'])
     comparedvariable=' '.join(['<tr>','<td align="right"> <b>Total number of Compared Variables: </b> </td>', '<td id=var> </td>','</tr>'])

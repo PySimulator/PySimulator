@@ -55,11 +55,16 @@ class CompareParallelThread(QtCore.QThread):
         
     def run(self):
       self.running = True
+      workdir=os.getcwd()
       files1 = os.listdir(self.dir1)
       
       if(len(files1)!=0):      
+          subdir=self.logDir         
+          ## clear the regression report directory if already exists
+          if os.path.exists(subdir): 
+              shutil.rmtree(subdir)
+              
           ###  create a RegressionReport Directory in the current working directory ###
-          subdir=self.logDir
           if not os.path.exists(subdir): 
                 os.mkdir(subdir)
           
@@ -134,7 +139,7 @@ class CompareParallelThread(QtCore.QThread):
           resultdirsize=sum(resultfilesize)      
           
           Reporting.genlogfilesreport(self.logFile)
-          Reporting.genregressionreport(self.logFile,totaldir,filecount,elapsedTime,resultdirsize,dir1)      
+          Reporting.genregressionreport(self.logFile,totaldir,filecount,elapsedTime,resultdirsize,dir1,self.tol)      
           
           ## Remove the temporary logfiles and rfiles directories after the regression report completed
           logfilesdir=os.path.join(os.path.dirname(self.logFile),'logfiles').replace('\\','/')
@@ -144,7 +149,9 @@ class CompareParallelThread(QtCore.QThread):
           regressionfilesdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
           if os.path.exists(regressionfilesdir): 
              shutil.rmtree(regressionfilesdir)
-      
+             
+          ## change the directory to workdir after regression report
+          os.chdir(workdir)     
       else:
           print 'directory 1:'+'\'' + self.dir1 + '\'' +' is Empty and Report cannot be Generated'
           print "Parallel Compare Analysis Completed"
@@ -269,10 +276,11 @@ def ParallelCompareAnalysis(directories):
            
         message='\n'.join(['<html>',m1])
         f=open(logfile1,'w')
-        if (len(green) and len(red)!=0): 
-            colorpercent=int((len(green))*100/(len(green)+len(red)))
-        else:
+        if (len(green)==0 and len(red)==0): 
             colorpercent=0
+        else:
+            colorpercent=int((len(green))*100/(len(green)+len(red)))
+            
         if (colorpercent==100):
             m1='<tr><td></td><td id=1 bgcolor="#00FF00" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
             #percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'

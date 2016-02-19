@@ -136,10 +136,6 @@ def compareListMenu(model, gui):
             self.tolEdit.setText('1e-3')
             self.resultEdit.setText(os.getcwd().replace('\\', '/')+'/RegressionReport')
 
-            ##create a RegressionReport Directory in the current working directory
-            '''reportdir =os.path.join(os.getcwd(),'RegressionReport').replace('\\','/')
-            if not os.path.exists(reportdir):
-                os.mkdir(reportdir)'''
             self.dir1Edit.setText(os.getcwd().replace('\\', '/'))
             #self.dir2Edit.setText(os.getcwd().replace('\\', '/'))
 
@@ -248,15 +244,19 @@ class CompareThread(QtCore.QThread):
       except:
         # do nothing, since error message only indicates we are not in debug mode
         pass
-      
-      
+            
+      workdir=os.getcwd()
       encoding = sys.getfilesystemencoding()
       dir1 = self.dir1
       files1 = os.listdir(dir1) 
       if (len(files1)!=0): 
-      
+          
+          subdir=self.logDir          
+          ## clear the regression report directory if already exists
+          if os.path.exists(subdir): 
+              shutil.rmtree(subdir)
+              
           ### create a RegressionReport Directory in the current working directory ###
-          subdir=self.logDir
           if not os.path.exists(subdir): 
               os.mkdir(subdir)
                 
@@ -379,10 +379,11 @@ class CompareThread(QtCore.QThread):
 
                message='\n'.join(['<html>',m1])
                f=open(logfile1,'w')
-               if (len(green) and len(red)!=0): 
-                 colorpercent=int((len(green))*100/(len(green)+len(red)))
-               else:
+               if (len(green)==0 and len(red)==0): 
                  colorpercent=0
+               else:
+                 colorpercent=int((len(green))*100/(len(green)+len(red)))
+                 
                if (colorpercent==100):
                    m1='<tr><td></td><td id=1 bgcolor="#00FF00" align="center">'+ str(len(green))+' passed'+' / '+str(len(red))+' failed'+'</td></tr>'
                    #percentage=str((len(green))*100/(len(green)+len(red)))+'%'+' passed'
@@ -428,12 +429,15 @@ class CompareThread(QtCore.QThread):
           totaldir=len(listdirs)
           filecount=len(files1)
           resultdirsize=sum(resultfilesize)
-          Reporting.genregressionreport(self.logFile,totaldir,filecount,elapsedTime,resultdirsize,dir1)
+          Reporting.genregressionreport(self.logFile,totaldir,filecount,elapsedTime,resultdirsize,dir1,self.tol)
           
           ## remove the temporary rfiles directory after the Regression report generated          
           regressionfilesdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
           if os.path.exists(regressionfilesdir): 
               shutil.rmtree(regressionfilesdir)
+              
+          ## change the directory to workdir after regression report
+          os.chdir(workdir)
       else:
           print 'directory 1:'+'\'' + dir1 + '\'' +' is Empty and Report cannot be Generated'
           print "... running the analysis done."
@@ -497,13 +501,14 @@ def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdou
         timeSeries1Names[var1[name].seriesIndex].append(name)
         timeSeries2Names[var2[name].seriesIndex].append(name)
     
-
+    diff3=[]
+    diff2=[]
+    diff=[] 
     for i in xrange(model1.integrationResults.nTimeSeries):
         if len(timeSeries1Names[i]) > 0:
             t1 = model1.integrationResults.timeSeries[i].independentVariable
             f1 = model1.integrationResults.timeSeries[i].data
-
-            numpy.set_printoptions(threshold='nan')
+           
             if model1.integrationResults.timeSeries[i].interpolationMethod == "constant" and t1 is not None:
                 t1, f1 = prepareMatrix(t1, f1)
             for j in xrange(model2.integrationResults.nTimeSeries):
@@ -551,10 +556,7 @@ def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdou
                         s = sum(identical)
                         nNeg = nNeg + (len(identical) - s)
                         nPos = nPos + s
-                        '''Get the differed variables after comparison'''
-                        diff3=[]
-                        diff2=[]
-                        diff=[]               
+                        '''Get the differed variables after comparison'''              
                         for m in xrange(len(identical)):
                             if not identical[m]:
                                 message = u"Results for " + namesBothSub[m] + u" are NOT identical within the tolerance " + unicode(tol) + u"; estimated Tolerance = " + unicode(estTol[m])
@@ -566,11 +568,12 @@ def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdou
                                 diff3.append(tupl)
                                 fileOutput.write(message + u"\n")
                         ## sort the differed variable by name        
-                        diff1=sorted(diff2)
+                        #diff1=sorted(diff2)
                         ## sort the differed variable by highest error        
-                        difftol=sorted(diff3,key=lambda x: x[1],reverse=True)
+                        #difftol=sorted(diff3,key=lambda x: x[1],reverse=True)
 
                         '''Pass the numpy matrix data to generate the html graph in the browser'''        
+                        '''
                         if htmlfile is not None:
                             if (len(diff)!=0):
                                 l2=[]
@@ -580,8 +583,13 @@ def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdou
                                     c2 = var2[z].column
                                     l1.append(c1)
                                     l2.append(c2)
-                                Reporting.generatehtml(f1,f2,diff,l1,l2,htmlfile,resultfile,dircount)
-                        
+                                Reporting.generatehtml(f1,f2,diff,l1,l2,htmlfile,resultfile,dircount)'''
+                       
+    diff1=sorted(diff2)
+    ## sort the differed variable by highest error        
+    difftol=sorted(diff3,key=lambda x: x[1],reverse=True)
+    if (len(diff)!=0):
+         Reporting.generatehtml(model1,model2,diff,htmlfile,resultfile,dircount)                   
                                   
 #    if len(allNamesOnce1) > 0:
 #        print "The following variables are not contained in file " + model2.integrationResults.fileName + ":"
