@@ -567,24 +567,8 @@ def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdou
                                 diff2.append(message2)
                                 diff3.append(tupl)
                                 fileOutput.write(message + u"\n")
-                        ## sort the differed variable by name        
-                        #diff1=sorted(diff2)
-                        ## sort the differed variable by highest error        
-                        #difftol=sorted(diff3,key=lambda x: x[1],reverse=True)
-
-                        '''Pass the numpy matrix data to generate the html graph in the browser'''        
-                        '''
-                        if htmlfile is not None:
-                            if (len(diff)!=0):
-                                l2=[]
-                                l1=[]
-                                for z in diff:
-                                    c1 = var1[z].column
-                                    c2 = var2[z].column
-                                    l1.append(c1)
-                                    l2.append(c2)
-                                Reporting.generatehtml(f1,f2,diff,l1,l2,htmlfile,resultfile,dircount)'''
-                       
+                        
+    ## sort the differed variable by name                          
     diff1=sorted(diff2)
     ## sort the differed variable by highest error        
     difftol=sorted(diff3,key=lambda x: x[1],reverse=True)
