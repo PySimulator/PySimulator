@@ -86,7 +86,7 @@ class Model(SimulatorBase.Model):
 
 		try:
 			if not config['Plugins']['SimulationX'].has_key('version'):
-				config['Plugins']['SimulationX']['version'] = 'Iti.Simx36'
+				config['Plugins']['SimulationX']['version'] = 'Iti.Simx37'
 				config.write()
 			dispatch = config['Plugins']['SimulationX']['version']
 			if dispatch == 'Iti.Simx36':
@@ -119,7 +119,10 @@ class Model(SimulatorBase.Model):
 			self.simulationStopRequest = False
 
 			# Open SimulationX
-			sim = win32com.client.Dispatch(dispatch)
+			try:
+				sim = win32com.client.GetActiveObject(dispatch)
+			except:
+				sim = win32com.client.Dispatch(dispatch)
 
 			# Show SimulationX window
 			sim.Visible = True

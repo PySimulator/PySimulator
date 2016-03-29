@@ -27,6 +27,7 @@ along with PySimulator. If not, see www.gnu.org/licenses.
 import numpy
 import os, sys
 import shutil
+import time
 from PySide import QtCore
 from ... import Simulator
 from multiprocessing import Pool
@@ -121,24 +122,13 @@ class simulationParallelThread(QtCore.QThread):
             ## Call prepareSimulationList to translate models in Dymola 
             simulator.prepareSimulationList(globalPackageList, globalModelList, self.config)
             
-            
-            '''create a new list of resultpath, config, and simulatorname to be pickled by the multiprocessing pool.map()'''
-            p=[]
-            c=[]
-            n=[]     
-            p.append(fullSimulatorResultPath)
-            c.append(self.config)
-            n.append(simulatorName)
-            
-            resultpath=p*len(self.modelList['modelName'])
-            config=c*len(self.modelList['modelName'])
-            simname=n*len(self.modelList['modelName'])
-
-            '''create a login directory for logging multiprocessing output from terminal to a file '''
+  
+            ## create a login directory for logging multiprocessing output from terminal to a file ##
             logdir =os.path.join(os.getcwd(),'loginentries').replace('\\','/')
             if not os.path.exists(logdir):
                 os.mkdir(logdir)
-            '''create a list of directories for each model and run the simulation in their respective directory to avoid conflicts '''
+            
+            ## create a list of directories for each model and run the simulation in their respective directory to avoid conflicts 
             curdir=os.getcwd()
             dirs=[]
             processlog=[]
@@ -151,28 +141,41 @@ class simulationParallelThread(QtCore.QThread):
                 '''if not os.path.exists(logdir):
                     os.mkdir(logdir)'''
                 dirs.append(np)
-            ''' Pickle the simulator plugin object using jsonpickle as a string to be pickled by multiprocessing package'''
+                
+            ## Pickle the simulator plugin object using jsonpickle as a string to be pickled by multiprocessing package
             pickleobj=jsonpickle.encode(simulator,max_depth=1)
-            jsonobj=[]
-            jsonobj.append(pickleobj)
-            jsonobj1=jsonobj*len(self.modelList['modelName'])
-
-            #check the subdirectory for empty strings and replace it with 'N' for passing to pool.map(), as it cannot process empty list of strings to multiprocess module
+           
+            #check the subdirectory for empty strings and replace it with 'N' , as it cannot process empty list of strings to multiprocess module
             subdirlist= ["N" if not x else x for x in self.modelList['subDirectory']]
+           
             ## Create a Pool of process and run the Simulation in Parallel
             pool=Pool()
-            #startTime = time.time() 
-            pool.map(ParallelSimulation, zip(self.modelList['fileName'],self.modelList['modelName'],subdirlist,self.modelList['tStart'],self.modelList['tStop'],self.modelList['tol'],self.modelList['stepSize'],self.modelList['nInterval'],self.modelList['includeEvents'],dirs,resultpath,config,simname,jsonobj1,processlog))
+            #startTime = time.time()
+            for i in xrange(len(self.modelList['modelName'])):
+               model=self.modelList['modelName'][i]
+               packname=self.modelList['fileName'][i]
+               tStart=self.modelList['tStart'][i]
+               tStop = self.modelList['tStop'][i]
+               tol = self.modelList['tol'][i]
+               stepSize = self.modelList['stepSize'][i]
+               nInterval = self.modelList['nInterval'][i] + 1
+               events = self.modelList['includeEvents'][i]
+               dir=dirs[i]
+               subdir=subdirlist[i]
+               logfile=processlog[i]               
+               pool.apply_async(ParallelSimulation, args=(model,[packname],tStart,tStop,tol,stepSize,nInterval,events,dir,self.config,fullSimulatorResultPath,pickleobj,simulatorName,subdir,logfile))                        
             pool.close()
             pool.join()
             #elapsedTime = time.time() - startTime
             #print elapsedTime
-            ''' print the process log entries to GUI '''
+            
+            ## print the process log entries to GUI             
             for i in xrange(len(processlog)):
                 f=open(processlog[i],'r')
                 processlogentries=f.read()
                 print processlogentries
             f.close()
+                    
         shutil.rmtree(logdir)
         print "Parallel simulation completed"
         self.running = False
@@ -185,30 +188,11 @@ class Logger(object):
     def write(self, message):
         self.terminal.write(message)
         self.log.write(message)
-
-def ParallelSimulation(modellists):
-     'unpacks the modelists and run the simuations in parallel using the multiprocessing module'
-     packname=[]
-     packname.append(modellists[0])     
-     modelname=modellists[1]
-     subdir=modellists[2]     
-     tstart=modellists[3]
-     tstop=modellists[4]
-     tolerance=modellists[5]
-     stepsize=modellists[6]
-     interval=modellists[7]
-     events=modellists[8]
-     dirname=modellists[9]
-     path=modellists[10]
-     config=modellists[11]
-     simulatorname=modellists[12]
-     jsonobj=modellists[13]
-     logfilenames=modellists[14]
-     '''unpickle the json object to python simulator object '''
-     simulator=jsonpickle.decode(jsonobj)
-     #os.chdir(dirname)
-     haveCOM = False
-
+        
+def ParallelSimulation(modelname,packname,tstart,tstop,tolerance,stepsize,interval,events,dirname,config,resultpath,pickleobj,simulatorname,subdir,logfile):
+     ##run the simuations in parallel using the multiprocessing module##
+     
+     simulator=jsonpickle.decode(pickleobj) 
      try:
         try:
           import pythoncom
@@ -225,11 +209,11 @@ def ParallelSimulation(modellists):
         else:
            canLoadAllPackages = False
 
-        ''' Write the process output to a file '''
+        #Write the process output to a file 
 
-        sys.stdout=Logger(logfilenames)
+        sys.stdout=Logger(logfile)
         if canLoadAllPackages:
-            ''' create separate working directory for each model '''
+            #create separate working directory for each model
             if(simulatorname!='FMUSimulator'):
               if not os.path.exists(dirname):
                  os.mkdir(dirname)
@@ -237,9 +221,9 @@ def ParallelSimulation(modellists):
             try:
                model=simulator.getNewModel(modelname, packname, config)
                if (subdir == 'N'):
-                  resultDir = path
+                  resultDir = resultpath
                else:
-                  resultDir = path + '/' + subdir
+                  resultDir = resultpath + '/' + subdir
                   if not os.path.isdir(resultDir):
                      os.makedirs(resultDir)
 
@@ -271,8 +255,4 @@ def ParallelSimulation(modellists):
             try:
                pythoncom.CoUninitialize()  # Close the COM library on the current thread
             except:
-               pass
-     
-
-
-
+               pass 
