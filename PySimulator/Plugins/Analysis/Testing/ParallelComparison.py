@@ -72,7 +72,8 @@ class CompareParallelThread(QtCore.QThread):
       basedirfilessizes=round(size,1)
       
       if(len(ComparablefileName)!=0):      
-          subdir=self.logDir         
+          subdir=self.logDir    
+          
           ## clear the contents of regression report directory if already exists
           if os.path.exists(subdir): 
                files = os.listdir(subdir)

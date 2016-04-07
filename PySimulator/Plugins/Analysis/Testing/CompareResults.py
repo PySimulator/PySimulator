@@ -276,6 +276,7 @@ class CompareThread(QtCore.QThread):
       if (len(fileName1)!=0): 
           
           subdir=self.logDir          
+
           ## clear the content of regression report directory if already exists
           if os.path.exists(subdir):
               files = os.listdir(subdir)
@@ -285,8 +286,7 @@ class CompareThread(QtCore.QThread):
                      os.remove(fileobj)
                  else:
                     shutil.rmtree(fileobj)
-              
-              
+                            
           ### create a RegressionReport Directory in the current working directory ###
           if not os.path.exists(subdir): 
               os.mkdir(subdir)
