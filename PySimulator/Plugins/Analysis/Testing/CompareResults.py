@@ -248,14 +248,45 @@ class CompareThread(QtCore.QThread):
       workdir=os.getcwd()
       encoding = sys.getfilesystemencoding()
       dir1 = self.dir1
-      files1 = os.listdir(dir1) 
-      if (len(files1)!=0): 
+      files1 = os.listdir(dir1)
+      
+      modelName1 = []
+      fileName1 = []
+      
+      ## list for counting the number of result files compared with baseline resultfiles
+      listdirfilecounts=[]
+      
+      ## count variables to calculate the result files of baseline and listdirectories
+      dir1filessize=0
+      listdirsfilessize=0
+      
+      for fileName in files1:
+          splits = fileName.rsplit('.', 1)
+          #print splits
+          if len(splits) > 1:
+              if splits[1] in SimulationResult.fileExtension:
+                   modelName1.append(splits[0])
+                   fileName1.append(fileName)
+                   fp = os.path.join(dir1, fileName)
+                   dir1filessize += int(os.path.getsize(fp))      
+      
+      size=dir1filessize/(1024*1024.0)
+      basedirfilessizes=round(size,1)
+      
+      if (len(fileName1)!=0): 
           
           subdir=self.logDir          
-          ## clear the regression report directory if already exists
-          if os.path.exists(subdir): 
-              shutil.rmtree(subdir, True)
-              
+
+          ## clear the content of regression report directory if already exists
+          if os.path.exists(subdir):
+              files = os.listdir(subdir)
+              for file in files:
+                 fileobj = os.path.join(subdir, file)
+                 if(os.path.isfile(fileobj)):
+                     os.remove(fileobj)
+                 else:
+                    shutil.rmtree(fileobj)
+                            
           ### create a RegressionReport Directory in the current working directory ###
           if not os.path.exists(subdir): 
               os.mkdir(subdir)
@@ -264,15 +295,8 @@ class CompareThread(QtCore.QThread):
           dygraphpath=os.path.join(self.PySimulatorPath, 'Plugins/Analysis/Testing/dygraph-combined.js').replace('\\','/')
           if os.path.exists(dygraphpath):     
               shutil.copy(dygraphpath,self.logDir)
-              
-          resultfilesize=[]   
-          #dir1 = self.dir1
-          ## calculate the size of directory for regression report
-          dir1size=Reporting.directorysize(dir1)
-          resultfilesize.append(dir1size)
-          
+                                 
           listdirs=self.listdirs
-          #files1 = os.listdir(dir1) 
           
           ## create a temp file for writing results and use it later to generate the regression report
           self.logFile=os.path.join(self.logDir, "index.log").replace('\\','/')
@@ -280,21 +304,9 @@ class CompareThread(QtCore.QThread):
           fileOut = open(self.logFile, 'w')
           startTime = time.time()
           for dircount in xrange(len(listdirs)):
-            dir2=listdirs[dircount] 
-            ## calculate the size of list of directories for regression report
-            dir2size=Reporting.directorysize(dir2)
-            resultfilesize.append(dir2size)                   
+            dir2=listdirs[dircount]                               
+            files2 = os.listdir(dir2)
             
-            files2 = os.listdir(dir2)    
-            modelName1 = []
-            fileName1 = []
-            for fileName in files1:
-                splits = fileName.rsplit('.', 1)
-                #print splits
-                if len(splits) > 1:
-                    if splits[1] in SimulationResult.fileExtension:
-                        modelName1.append(splits[0])
-                        fileName1.append(fileName)
             modelName2 = []
             fileName2 = []
             for fileName in files2:
@@ -345,10 +357,13 @@ class CompareThread(QtCore.QThread):
                 if i >= 0:
                     fileOut.write('  Directory 2: ' + fileName2[i].encode(encoding) + '\n')  # Print name of file2
                     print "  Directory 2: " + fileName2[i].encode(encoding)
-
-
                     file1 = dir1 + '/' + fileName1[index]
                     file2 = dir2 + '/' + fileName2[i]
+                    
+                    ## calculate the filesize of the comparing directory result files
+                    listdirsfilessize += int(os.path.getsize(file2))      
+                    listdirfilecounts.append(file2)
+                    
                     model1 = Simulator.SimulatorBase.Model(None, None, None)
                     model1.loadResultFile(file1)
                     model2 = Simulator.SimulatorBase.Model(None, None, None)
@@ -424,12 +439,16 @@ class CompareThread(QtCore.QThread):
             shutil.copy(logfile1,np2)
                       
           print "... running the analysis done."
+          ## final calculation of listdirfiles result size
+          size1=listdirsfilessize/(1024*1024.0)
+          Totallistdirfilessizes=round(size1,1)   
+          
           elapsedTime = time.time() - startTime
           fileOut.close()
-          totaldir=len(listdirs)
-          filecount=len(files1)
-          resultdirsize=sum(resultfilesize)
-          Reporting.genregressionreport(self.logFile,totaldir,filecount,elapsedTime,resultdirsize,dir1,self.tol)
+          totaldirfilescount=len(listdirfilecounts)
+          basefilecount=len(fileName1)
+          resultdirsize=basedirfilessizes+Totallistdirfilessizes
+          Reporting.genregressionreport(self.logFile,totaldirfilescount,basefilecount,elapsedTime,resultdirsize,dir1,self.tol)
           
           ## remove the temporary rfiles directory after the Regression report generated          
           regressionfilesdir=os.path.join(os.path.dirname(self.logFile),'rfiles').replace('\\','/')
@@ -439,7 +458,7 @@ class CompareThread(QtCore.QThread):
           ## change the directory to workdir after regression report
           os.chdir(workdir)
       else:
-          print 'directory 1:'+'\'' + dir1 + '\'' +' is Empty and Report cannot be Generated'
+          print "No files to be compared found."
           print "... running the analysis done."
       
       self.running = False
@@ -503,7 +522,7 @@ def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdou
     
     diff3=[]
     diff2=[]
-    diff=[] 
+    diff=[]
     for i in xrange(model1.integrationResults.nTimeSeries):
         if len(timeSeries1Names[i]) > 0:
             t1 = model1.integrationResults.timeSeries[i].independentVariable
@@ -562,15 +581,15 @@ def compareResults(model1, model2, dircount=None, tol=1e-3, fileOutput=sys.stdou
                                 message = u"Results for " + namesBothSub[m] + u" are NOT identical within the tolerance " + unicode(tol) + u"; estimated Tolerance = " + unicode(estTol[m])
                                 message2=namesBothSub[m]+'#'+unicode(estTol[m])
                                 tupl=()
-                                tupl=(namesBothSub[m],unicode(estTol[m]))
+                                tupl=(namesBothSub[m],'%.30f'%float(unicode(estTol[m])))
                                 diff.append(namesBothSub[m])
                                 diff2.append(message2)
                                 diff3.append(tupl)
                                 fileOutput.write(message + u"\n")
-                        
+    
     ## sort the differed variable by name                          
     diff1=sorted(diff2)
-    ## sort the differed variable by highest error        
+    ## sort the differed variable by highest error
     difftol=sorted(diff3,key=lambda x: x[1],reverse=True)
     if (len(diff)!=0):
          Reporting.generatehtml(model1,model2,diff,htmlfile,resultfile,dircount)                   
