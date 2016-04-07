@@ -58,11 +58,30 @@ class CompareParallelThread(QtCore.QThread):
       workdir=os.getcwd()
       files1 = os.listdir(self.dir1)
       
-      if(len(files1)!=0):      
+      dir1filessize=0
+      ComparablefileName = []
+      for fileName in files1:
+         splits = fileName.rsplit('.', 1)
+         if len(splits) > 1:
+            if splits[1] in SimulationResult.fileExtension:
+               ComparablefileName.append(fileName)
+               fp = os.path.join(self.dir1, fileName)
+               dir1filessize += int(os.path.getsize(fp))      
+      
+      size=dir1filessize/(1024*1024.0)
+      basedirfilessizes=round(size,1)
+      
+      if(len(ComparablefileName)!=0):      
           subdir=self.logDir         
-          ## clear the regression report directory if already exists
+          ## clear the contents of regression report directory if already exists
           if os.path.exists(subdir): 
-              shutil.rmtree(subdir)
+               files = os.listdir(subdir)
+               for file in files:
+                  fileobj = os.path.join(subdir, file)
+                  if(os.path.isfile(fileobj)):
+                      os.remove(fileobj)
+                  else:
+                      shutil.rmtree(fileobj)
               
           ###  create a RegressionReport Directory in the current working directory ###
           if not os.path.exists(subdir): 
@@ -76,7 +95,6 @@ class CompareParallelThread(QtCore.QThread):
           ## create a temp file for writing results and use it later to generate the regression report
           self.logFile=os.path.join(self.logDir,'index.log').replace('\\','/')
 
-          resultfilesize=[]    
           logfiles=[]   
           list1dir=[]
           tolerance=[]      
@@ -89,17 +107,8 @@ class CompareParallelThread(QtCore.QThread):
           logfiles.append(self.logFile)
           logfiles1=logfiles*len(listdirs)
           tol=tolerance*len(listdirs)
-          
-          ## calculate the size of directory for regression report
-          dir1size=Reporting.directorysize(dir1)
-          resultfilesize.append(dir1size)
-          
-          ## calculate the size of list of directories for regression report 
-          for size in xrange(len(listdirs)):
-            dir2=listdirs[size] 
-            dir2size=Reporting.directorysize(dir2)
-            resultfilesize.append(dir2size)         
-          '''create a login directory for logging multiprocessing output from terminal to a file '''
+             
+          ## create a login directory for logging multiprocessing output from terminal to a file 
           logdir =os.path.join(os.getcwd(),'loginentries').replace('\\','/')
           if not os.path.exists(logdir):
               os.mkdir(logdir)
@@ -120,7 +129,7 @@ class CompareParallelThread(QtCore.QThread):
           ## Create a Pool of process and run the Compare Analysis in Parallel
           pool=Pool()
           startTime = time.time() 
-          pool.map(ParallelCompareAnalysis, zip(listdir1,listdirs,resultfiles,dircount,tol,processlog))
+          val=pool.map(ParallelCompareAnalysis, zip(listdir1,listdirs,resultfiles,dircount,tol,processlog))
           pool.close()
           pool.join()
           elapsedTime = time.time() - startTime
@@ -134,12 +143,22 @@ class CompareParallelThread(QtCore.QThread):
 
           shutil.rmtree(logdir)
           print "Parallel Compare Analysis Completed"
-          totaldir=len(listdirs)
-          filecount=len(os.listdir(dir1))
-          resultdirsize=sum(resultfilesize)      
+         
+          ## calculate the totalfiles compared and size of result files
+          calspace=[]
+          calfiles=[]
+          for z in xrange(len(val)):
+               calspace.append(val[z][0])
+               calfiles.append(len(val[z][1]))
+               
+          size1=sum(calspace)/(1024*1024.0)
+          Totallistdirfilessizes=round(size1,1)
           
+          totaldirfilescount=sum(calfiles)
+          basefilecount=len(ComparablefileName)
+          resultdirsize=basedirfilessizes+Totallistdirfilessizes
           Reporting.genlogfilesreport(self.logFile)
-          Reporting.genregressionreport(self.logFile,totaldir,filecount,elapsedTime,resultdirsize,dir1,self.tol)      
+          Reporting.genregressionreport(self.logFile,totaldirfilescount,basefilecount,elapsedTime,resultdirsize,dir1,self.tol)      
           
           ## Remove the temporary logfiles and rfiles directories after the regression report completed
           logfilesdir=os.path.join(os.path.dirname(self.logFile),'logfiles').replace('\\','/')
@@ -153,7 +172,7 @@ class CompareParallelThread(QtCore.QThread):
           ## change the directory to workdir after regression report
           os.chdir(workdir)     
       else:
-          print 'directory 1:'+'\'' + self.dir1 + '\'' +' is Empty and Report cannot be Generated'
+          print "No files to be compared found."
           print "Parallel Compare Analysis Completed"
       
       self.running = False
@@ -182,7 +201,8 @@ def ParallelCompareAnalysis(directories):
     files2 = os.listdir(dir2)
     
     encoding = sys.getfilesystemencoding()
-    
+    listdirsfilessize=0
+    listdirsfilecount=[]
     modelName1 = []
     fileName1 = []
     for fileName in files1:
@@ -243,7 +263,8 @@ def ParallelCompareAnalysis(directories):
 
                 file1 = dir1 + '/' + fileName1[index]
                 file2 = dir2 + '/' + fileName2[i]
-               
+                listdirsfilessize += int(os.path.getsize(file2))
+                listdirsfilecount.append(file2)
                 #from ...Simulator import SimulatorBase 
                 model1 = SimulatorBase.Model(None, None, None)
                 model1.loadResultFile(file1)
@@ -326,5 +347,4 @@ def ParallelCompareAnalysis(directories):
     if not os.path.exists(np1): 
        os.mkdir(np1)
     shutil.move(logfile1,np2)  
-    
-
+    return (listdirsfilessize,listdirsfilecount)
