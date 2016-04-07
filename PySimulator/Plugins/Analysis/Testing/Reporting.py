@@ -169,6 +169,22 @@ def generatehtml(model1,model2,namesBoth,htmlfile,resultfile,dircount):
     if not os.path.exists(newpath): 
         os.mkdir(newpath)
     
+    ## use the time vector for parameters without time vector
+    IndependentTimeVector1 = []
+    for i in xrange(model1.integrationResults.nTimeSeries):
+      t1 = model1.integrationResults.timeSeries[i].independentVariable
+      if t1 is not None:
+            IndependentTimeVector1.append(t1) 
+            break
+            
+    IndependentTimeVector2 = []
+    for k in xrange(model2.integrationResults.nTimeSeries):
+      t2 = model2.integrationResults.timeSeries[k].independentVariable
+      if t2 is not None:
+            IndependentTimeVector2.append(t2) 
+            break
+    
+    
     # Get the appropriate datas from model1 and model2 for the variables and create a new array which will be written in the javascript part of html file   
     for z in range(len(namesBoth)):
         name=namesBoth[z]
@@ -177,26 +193,22 @@ def generatehtml(model1,model2,namesBoth,htmlfile,resultfile,dircount):
         numpy.set_printoptions(threshold='nan')
                 
         if (modeldata1[0]==None and modeldata1[2]=='constant'):
-            tnew1=model1.integrationResults.readData("Time")
-            dnew1=numpy.repeat(modeldata1[1], len((tnew1[0])))
-            np_a=fetchcolumndata(tnew1[0],dnew1)
+            dnew1=numpy.repeat(modeldata1[1], len((IndependentTimeVector1[0])))
+            np_a=fetchcolumndata(IndependentTimeVector1[0],dnew1)
             
         if (modeldata2[0]==None and modeldata2[2]=='constant'):
-            tnew2=model2.integrationResults.readData("Time")
-            dnew2=numpy.repeat(modeldata2[1], len((tnew2[0])))
-            np_b=fetchcolumndata(tnew2[0],dnew2)
+            dnew2=numpy.repeat(modeldata2[1], len((IndependentTimeVector2[0])))
+            np_b=fetchcolumndata(IndependentTimeVector2[0],dnew2)
             
         if (modeldata1[0]!=None and modeldata2[0]!=None):
             np_a=fetchcolumndata(modeldata1[0],modeldata1[1])
             np_b=fetchcolumndata(modeldata2[0],modeldata2[1])
         
-        #finaldata=preparechartdata(np_a,np_b)  
         
-        try:
-           finaldata=preparechartdata(np_a,np_b)        
-           htmlreport=newpath+'\\'+report+'_'+name+'.html'     
-           htmlreport=htmlreport.replace(' ','').replace('\\','/')
-           with open(htmlreport, 'wb') as f:
+        finaldata=preparechartdata(np_a,np_b)        
+        htmlreport=newpath+'\\'+report+'_'+name+'.html'     
+        htmlreport=htmlreport.replace(' ','').replace('\\','/')
+        with open(htmlreport, 'wb') as f:
                 message = """<html>
     <head>
     <script type="text/javascript" src="../dygraph-combined.js"></script>
@@ -237,18 +249,18 @@ def generatehtml(model1,model2,namesBoth,htmlfile,resultfile,dircount):
                 s = '\n'.join([message,str(finaldata),",","{",varname,option,")",";",message2])
                 f.write(s)
                 f.close()
-        except:
-               pass 
+        
    
-
-
 def directorysize(dirname):
-  ## calculate the size of directory, traverses subdirectory and return the size in MB
+  ## calculate the size of result directory, traverses subdirectory and return the size in MB
   folder_size = 0
   for (path, dirs, files) in os.walk(dirname):
-    for file in files:
-      filename = os.path.join(path, file)
-      folder_size += os.path.getsize(filename)
+    name=os.path.basename(path)
+    ## do not calculate size of tempdirectory files
+    if(name!="rfiles" and name!="logfiles"):
+      for file in files:
+        filename = os.path.join(path, file)
+        folder_size += os.path.getsize(filename)
   size=folder_size/(1024*1024.0)
   return round(size,1)
 
@@ -275,7 +287,7 @@ def genlogfilesreport(logfile):
       logfileopen.close()    
       f.close()
      
-def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedir,tol):
+def genregressionreport(logfile,totaldirfilescount,basefilecount,Time,resultdirsize,baselinedir,tol):
   ''' the function is used to parse the html files and collect the table datas from different html files and finally generate single regression chart'''
   dir1=os.path.dirname(logfile)
   dir2=os.path.join(dir1,'rfiles').replace('\\','/')
@@ -308,7 +320,8 @@ def genregressionreport(logfile,totaldir,filecount,Time,resultdirsize,baselinedi
     date_time_info1 =' '.join(['<tr>','<td align="right">','<b>Generated: </td>','<td>',date_time_info,'by PySimulator','</td>','</tr>'])
     tolerance=' '.join(['<tr>','<td align="right"> <b>Given Error Tolerance: </b> </td>','<td>',str(tolval),'</td>','</tr>'])
     diskspace=' '.join(['<tr>','<td align="right"> <b>Disk space of all used result files: </b> </td>','<td>',str(resultdirsize),' ','MB','</td>','</tr>'])
-    dircount=' '.join(['<tr>','<td align="right"> <b>Total number of compared files: </b></td>','<td>',str(int(totaldir)*int(filecount)),'against',str(filecount),'baseline files','</td>','</tr>'])
+    #dircount=' '.join(['<tr>','<td align="right"> <b>Total number of compared files: </b></td>','<td>',str(int(totaldir)*int(filecount)),'against',str(filecount),'baseline files','</td>','</tr>'])
+    dircount=' '.join(['<tr>','<td align="right"> <b>Total number of compared files: </b></td>','<td>',str(totaldirfilescount),'against',str(basefilecount),'baseline files','</td>','</tr>'])
     comparedvariable=' '.join(['<tr>','<td align="right"> <b>Total number of Compared Variables: </b> </td>', '<td id=var> </td>','</tr>'])
     resultspace=' '.join(['<tr>','<td align="right"> <b>Disk space of full report directory: </b> </td>','<td id=resultdir> </td>','</tr>'])
     #filecounts=' '.join(['<h4>','Number of Files Compared:',str(filecount),'</h4>'])

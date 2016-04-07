@@ -278,6 +278,16 @@ class simulationThread(QtCore.QThread):
                                 globalPackageList.append(x)
 
                     packageName = []
+                    
+            # get current working dir
+            cwd = os.path.abspath('.')           
+            simulatorWd = os.path.join(cwd, simulatorName)
+            
+            if not os.path.exists(simulatorWd):
+                os.mkdir(simulatorWd)
+            # set working dir for simulator
+            os.chdir(simulatorWd)                     
+            
             simulator.prepareSimulationList(globalPackageList, globalModelList, self.config)
             haveCOM = False
 
@@ -358,6 +368,8 @@ class simulationThread(QtCore.QThread):
                         pythoncom.CoUninitialize()  # Close the COM library on the current thread
                     except:
                         pass
+            # reset working directory 
+            os.chdir(cwd)
         #elapsedTime = time.time() - startTime
         #print elapsedTime   
         print "... running the list of simulations done."
