@@ -199,6 +199,7 @@ class FMUInterface:
             ScalarVariableValueVector[0] = unicode(valueValue)
             self.fmiSetString(ScalarVariableReferenceVector, ScalarVariableValueVector)
 
+    ''' FMI functions '''
     def fmiInstantiate(self):
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             FMUInterfaceObj.fmiInstantiate()
@@ -216,35 +217,65 @@ class FMUInterface:
         status = []
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             status.append(FMUInterfaceObj.fmiSetupExperiment(toleranceDefined, tolerance, startTime, stopTimeDefined, stopTime))
-        return min(status)
+        return max(status)
 
     def fmiEnterInitializationMode(self):
         status = []
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             status.append(FMUInterfaceObj.fmiEnterInitializationMode())
-        return min(status)
+        return max(status)
     
     def fmiExitInitializationMode(self):
         status = []
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             status.append(FMUInterfaceObj.fmiExitInitializationMode())
-        return min(status)
+        return max(status)
 
     def fmiTerminate(self):
         status = []
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             status.append(FMUInterfaceObj.fmiTerminate())
-        return min(status)
+        return max(status)
 
     def fmiGetReal(self, valueReference):
         fmus = self.createFmiData(valueReference, None)
         statuses, values = self.makeFmiGetCall(fmus, valueReference, FMIVarType.Real)
-        return min(statuses), values
+        return max(statuses), values
+
+    def fmiGetInteger(self, valueReference):
+        fmus = self.createFmiData(valueReference, None)
+        statuses, values = self.makeFmiGetCall(fmus, valueReference, FMIVarType.Integer)
+        return max(statuses), values
+
+    def fmiGetBoolean(self, valueReference):
+        fmus = self.createFmiData(valueReference, None)
+        statuses, values = self.makeFmiGetCall(fmus, valueReference, FMIVarType.Boolean)
+        return max(statuses), values
+
+    def fmiGetString(self, valueReference):
+        fmus = self.createFmiData(valueReference, None)
+        statuses, values = self.makeFmiGetCall(fmus, valueReference, FMIVarType.String)
+        return max(statuses), values
 
     def fmiSetReal(self, valueReference, value):
         fmus = self.createFmiData(valueReference, value)
         status = self.makeFmiSetCall(fmus, FMIVarType.Real)
-        return min(status)
+        return max(status)
+
+    def fmiSetInteger(self, valueReference, value):
+        fmus = self.createFmiData(valueReference, value)
+        status = self.makeFmiSetCall(fmus, FMIVarType.Integer)
+        return max(status)
+
+    def fmiSetBoolean(self, valueReference, value):
+        fmus = self.createFmiData(valueReference, value)
+        status = self.makeFmiSetCall(fmus, FMIVarType.Boolean)
+        return max(status)
+
+    def fmiSetString(self, valueReference, value):
+        fmus = self.createFmiData(valueReference, value)
+        status = self.makeFmiSetCall(fmus, FMIVarType.String)
+        return max(status)
 
     def fmiDoStep(self, currentCommunicationPoint, communicationStepSize, noSetFMUStatePriorToCurrentPoint):
         # resolve connections here
@@ -260,4 +291,4 @@ class FMUInterface:
         status = []
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             status.append(FMUInterfaceObj.fmiDoStep(currentCommunicationPoint, communicationStepSize, noSetFMUStatePriorToCurrentPoint))
-        return min(status)
+        return max(status)

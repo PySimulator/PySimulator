@@ -247,7 +247,7 @@ class FMUInterface:
         ''' Call FMU destructor before being destructed. Just cleaning up. '''
         if hasattr(self, '_library'):
             self.freeModelInstance()            
-            _ctypes.FreeLibrary(self._libraryHandle)        
+            _ctypes.FreeLibrary(self._libraryHandle)
 
     def free(self):
         self.freeLibrary()

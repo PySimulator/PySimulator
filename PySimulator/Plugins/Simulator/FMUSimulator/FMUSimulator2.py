@@ -652,13 +652,13 @@ class Model(SimulatorBase.Model):
                 gridWidth = (Tend-Tstart) / nIntervals
             
             t = Tstart
-            lastStep = False            
+            lastStep = False
             doLoop = Tend > Tstart
             if gridWidth <= Tend-t:
                 dt = gridWidth
             else:
                 dt = Tend - t
-                lastStep = True            
+                lastStep = True
             k = 1
             
             writeResults('Continuous', t)
@@ -666,7 +666,7 @@ class Model(SimulatorBase.Model):
                 # Write discrete Variables
                 writeResults('Discrete', t)
                        
-            while doLoop:               
+            while doLoop:
                 status = doStep(t, dt)
                 if status == 2:  # Discard
                     status, info = self.interface.fmiGetBooleanStatus(3) # fmi2Terminated
