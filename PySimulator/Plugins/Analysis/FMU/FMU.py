@@ -22,7 +22,8 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with PySimulator. If not, see www.gnu.org/licenses.
 '''
-import ConnectedFMUSimulation
+
+import Plugins.Simulator.FMUSimulator.FMUSimulator2 as FMUSimulator
 import os
 from PySide import QtGui, QtCore
 import zipfile
@@ -32,23 +33,24 @@ from xml.dom import minidom
 
 class FMU(object):
 
-    def __init__(self, name, location):
+    def __init__(self, name, location, absoluteLocation):
         self._name = name
         self._location = location
+        self._absoluteLocation = absoluteLocation
         self._version = '2.0'
         self._fmuType = ''
         self._inputsOutputs = []
 
         try:
-            self._fmuFile = zipfile.ZipFile(location, 'r')
+            self._fmuFile = zipfile.ZipFile(absoluteLocation, 'r')
         except:
-            print "Error opening the FMU file %s" % location
+            print "Error opening the FMU file %s" % absoluteLocation
             return
         try:
             self._xmlFile = self._fmuFile.open('modelDescription.xml')
         except:
             self._fmuFile.close()
-            print "Error opening the modelDescription.xml file of FMU %s" % location
+            print "Error opening the modelDescription.xml file of FMU %s" % absoluteLocation
             return
 
         modelDescriptionTree = ET.parse(self._xmlFile)
@@ -263,9 +265,9 @@ class FMUsListModel(QtCore.QAbstractItemModel):
                     return self._fmus[index.row()]._name
             elif column == 1:
                 if role == QtCore.Qt.DisplayRole:
-                    return self._fmus[index.row()]._location
+                    return self._fmus[index.row()]._absoluteLocation
                 elif role == QtCore.Qt.ToolTipRole:
-                    return self._fmus[index.row()]._location
+                    return self._fmus[index.row()]._absoluteLocation
         return None
 
     def headerData(self, section, orientation, role=QtCore.Qt.DisplayRole):
@@ -284,20 +286,20 @@ class FMUsListModel(QtCore.QAbstractItemModel):
     def parent(self, child=QtCore.QModelIndex()):
         return QtCore.QModelIndex()
 
-    def addFMU(self, fileName, fmuName = None):
-        fmuFileInfo = QtCore.QFileInfo(fileName)
+    def addFMU(self, fileName, absoluteFileName, fmuName = None):
+        fmuFileInfo = QtCore.QFileInfo(absoluteFileName)
         row = self.rowCount()
         if fmuName is None:
             fmuName = self.getUniqueFMUName(fmuFileInfo.completeBaseName())
-        fmu = FMU(fmuName, fmuFileInfo.absoluteFilePath())
+        fmu = FMU(fmuName, fileName, fmuFileInfo.absoluteFilePath())
         if (fmu._version != "2.0"):
-            msg = "The fmu %s is of version %s. Only version 2.0 is supported." % (fmu._location, fmu._version)
+            msg = "The fmu %s is of version %s. Only version 2.0 is supported." % (fmu._absoluteLocation, fmu._version)
             QtGui.QMessageBox().information(self._parent, self._parent.tr("Information"), msg, QtGui.QMessageBox.Ok)
             del fmu
         elif not self._parent._fmuType in fmu._fmuType:
             msg = ("The fmu %s is of type %s. Only type %s is allowed here."
                     %
-                    (fmu._location, fmuTypeToString(fmu._fmuType), fmuTypeToString(self._parent._fmuType)))
+                    (fmu._absoluteLocation, fmuTypeToString(fmu._fmuType), fmuTypeToString(self._parent._fmuType)))
             QtGui.QMessageBox().information(self._parent, self._parent.tr("Information"), msg, QtGui.QMessageBox.Ok)
             del fmu
         else:
@@ -392,13 +394,6 @@ class ConnectFMUsDialog(QtGui.QDialog):
         navigationButtonBox = QtGui.QDialogButtonBox(QtCore.Qt.Horizontal)
         navigationButtonBox.addButton(okButton, QtGui.QDialogButtonBox.ActionRole)
         navigationButtonBox.addButton(cancelButton, QtGui.QDialogButtonBox.ActionRole)
-        # save to file
-        self._saveToFile = QtGui.QCheckBox(self.tr("Save to file"))
-        self._saveToFile.setChecked(True)
-        # horizontal layout for saveToFile and buttons
-        horizontalLayout = QtGui.QHBoxLayout()
-        horizontalLayout.addWidget(self._saveToFile, 0, QtCore.Qt.AlignLeft)
-        horizontalLayout.addWidget(navigationButtonBox, 0, QtCore.Qt.AlignRight)
         # set the dialog layout
         mainLayout = QtGui.QGridLayout()
         mainLayout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
@@ -407,11 +402,10 @@ class ConnectFMUsDialog(QtGui.QDialog):
         mainLayout.addWidget(self._fmusTableView, 2, 0)
         mainLayout.addWidget(removeFmuButton, 3, 0)
         mainLayout.addLayout(FromToGridLayout, 4, 0)
-        mainLayout.addLayout(horizontalLayout, 5, 0)
+        mainLayout.addWidget(navigationButtonBox, 5, 0, 1, 1, QtCore.Qt.AlignRight)
         self.setLayout(mainLayout)
 
         if self._setupfile is not None:
-             self._saveToFile.setEnabled(False)
              tree = ET.parse(self._setupfile)
              root = tree.getroot()
 
@@ -419,13 +413,14 @@ class ConnectFMUsDialog(QtGui.QDialog):
              ## Add fmu's to list with correct instance from xmlsetup
              for fmu in root.iter('fmu'):
                  location = fmu.get('path')
+                 absoluteLocation = location
                  fmuName = fmu.get('name')
                  # if fmu paths are relative then make them absolute properly
                  fmuFileInfo = QtCore.QFileInfo(location)
                  setupFileInfo = QtCore.QFileInfo(self._setupfile)
                  if fmuFileInfo.isRelative():
-                     location = setupFileInfo.absolutePath() + '/' + location
-                 self._fmusListModel.addFMU(location, fmuName)
+                     absoluteLocation = setupFileInfo.absolutePath() + '/' + location
+                 self._fmusListModel.addFMU(location, absoluteLocation, fmuName)
                  self._fmusTableView.resizeColumnsToContents()
 
              ## Add connection information to table from xmlsetup
@@ -475,7 +470,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
             fileName = fileName.replace('\\', '/')
             if fileName != '':
                 # add the FMU to FMUsListModel
-                self._fmusListModel.addFMU(fileName)
+                self._fmusListModel.addFMU(fileName, fileName)
                 self._fmusTableView.resizeColumnsToContents()
 
     def removeFmuFiles(self):
@@ -546,15 +541,12 @@ class ConnectFMUsDialog(QtGui.QDialog):
             i = 0
 
     def saveConnectionsXML(self):
-        if (self._saveToFile.isChecked() and self._saveToFile.isEnabled()):
+        if self._setupfile is None:
             (fileName, trash) = QtGui.QFileDialog().getSaveFileName(self, self.tr("Save file"), os.getcwd(), '(*.xml)')
             if fileName == '':
                 return
         else:
-            if self._setupfile is not None:
-               fileName = self._setupfile
-            else:
-               fileName = None
+            fileName = self._setupfile
 
         xmlTemplate = '<?xml version="1.0" encoding="utf-8"?><connectedFmus></connectedFmus>'
         rootElement = ET.fromstring(xmlTemplate)
@@ -584,45 +576,50 @@ class ConnectFMUsDialog(QtGui.QDialog):
         StartSimulation(self._gui, xml, fileName, self._fmuType)
 
 def StartSimulation(gui, xml, xmlFileName, fmiType):
-   ###  Main function which starts the Simulation of Connected FMUS ###
+    ###  Main function which starts the Simulation of Connected FMUS ###
 
-   ## Parse the xml-setup and find the connection order from the connection tag as defined by the user
-   ## create a graph edges information to find strongly connected components
-   ## eg: Let us say there are four FMU'S 1)Step.fmu, 2)PI.fmu , 3)gain.fmu and 4) test.fmu
-   ## and we define the connection in the following order 1--->2--->3--->4, then we create the edges information like below
-   ## { 'step' : ['PI'],
-   ##   'PI'   : ['gain'],
-   ##   'gain' : ['test'] }
+    ## Parse the xml-setup and find the connection order from the connection tag as defined by the user
+    ## create a graph edges information to find strongly connected components
+    ## eg: Let us say there are four FMU'S 1)Step.fmu, 2)PI.fmu , 3)gain.fmu and 4) test.fmu
+    ## and we define the connection in the following order 1--->2--->3--->4, then we create the edges information like below
+    ## { 'step' : ['PI'],
+    ##   'PI'   : ['gain'],
+    ##   'gain' : ['test'] }
 
-   root = ET.fromstring(xml)
-   graph={}
-   for connection in root.iter('connection'):
-      fromFMU=connection.get('fromFmuName')
-      toFMU=connection.get('toFmuName')
-      True=graph.has_key(fromFMU)
-      if True:
-         graph[fromFMU].append(toFMU)
-      else:
-         graph[fromFMU] = [toFMU]
-   ## Provide the the graph edges to find the strongly connected components using tarjan's algorithm
-   connected_components = StronglyConnectedComponents(graph)
+    root = ET.fromstring(xml)
+    graph={}
+    for connection in root.iter('connection'):
+        fromFMU=connection.get('fromFmuName')
+        toFMU=connection.get('toFmuName')
+        True=graph.has_key(fromFMU)
+        if True:
+            graph[fromFMU].append(toFMU)
+        else:
+            graph[fromFMU] = [toFMU]
+    ## Provide the the graph edges to find the strongly connected components using tarjan's algorithm
+    connected_components = StronglyConnectedComponents(graph)
 
-   ## Check for Algebraic loops  ##
-   Algebraic_loops=[]
-   for i in xrange(len(connected_components)):
+    ## Check for Algebraic loops  ##
+    Algebraic_loops=[]
+    for i in xrange(len(connected_components)):
         Algebraic_loops.append(len(connected_components[i]))
 
-   True=Algebraic_loops.count(1)==len(Algebraic_loops)
+    True=Algebraic_loops.count(1)==len(Algebraic_loops)
 
-   ## Loop the List FMUs and display in the variable Browser as a SingleComponent
-   if True:
-      import configobj
-      config = configobj.ConfigObj(os.path.join(os.path.expanduser("~"), '.config', 'PySimulator', 'PySimulator.ini'), encoding='utf8')
+    ## Loop the List FMUs and display in the variable Browser as a SingleComponent
+    if True:
+        import configobj
+        config = configobj.ConfigObj(os.path.join(os.path.expanduser("~"), '.config', 'PySimulator', 'PySimulator.ini'), encoding='utf8')
 
-      connectedfmusitems=[]
-      for fmu in root.iter('fmu'):
+        connectedfmusitems=[]
+        for fmu in root.iter('fmu'):
             fname=fmu.get('name')
             fpath=fmu.get('path')
+            # if fmu paths are relative then make them absolute properly
+            fmuFileInfo = QtCore.QFileInfo(fpath)
+            setupFileInfo = QtCore.QFileInfo(xmlFileName)
+            if fmuFileInfo.isRelative():
+                fpath = setupFileInfo.absolutePath() + '/' + fpath
             checkname = [s for s in connected_components if fname in s]
             if not checkname:
                 tuple1 = (fname,)
@@ -633,13 +630,21 @@ def StartSimulation(gui, xml, xmlFileName, fmiType):
             fmuitems={'instancename':fname,'filename':fpath,'independent':ival}
             connectedfmusitems.append(fmuitems)
 
-      model=ConnectedFMUSimulation.Model(connectedfmusitems, config, xml, xmlFileName, fmiType, connected_components)
-      gui._newModel(model)
+        model = FMUSimulator.Model('ConnectedFMUS', None, config, True, connectedfmusitems, xml, xmlFileName, fmiType, connected_components)
+        gui._newModel(model)
+#       try:
+#           model = FMUSimulator.Model('ConnectedFMUS', None, config, True, connectedfmusitems, xml, xmlFileName, fmiType, connected_components)
+#           gui._newModel(model)
+#       except Exception as e:
+#           if hasattr(e, 'msg'):
+#               print e.msg
+#           else:
+#               print e
 
-   else:
-      msg=QtGui.QMessageBox()
-      msg.setText("The connections contains Algebraic Loops, Currently PySimulator supports ConnectedFMU Simulation without Algebraic Loops")
-      msg.exec_()
+    else:
+        msg=QtGui.QMessageBox()
+        msg.setText("The connections contains Algebraic Loops, Currently PySimulator supports ConnectedFMU Simulation without Algebraic Loops")
+        msg.exec_()
 
 def StronglyConnectedComponents(graph):
     ## For each node in the graph the following two information must be set namely index and lowlinks according to tarjan algorithm
@@ -756,10 +761,10 @@ def fmuTypeToString(fmuType):
         return 'Model Exchange & CoSimulation'
 
 def prettify(elem):
-   """Return a pretty-printed XML string for the Element """
-   rough_string = ET.tostring(elem, "utf-8")
-   reparsed = minidom.parseString(rough_string)
-   return reparsed.toprettyxml(indent="  ")
+    """Return a pretty-printed XML string for the Element """
+    rough_string = ET.tostring(elem, "utf-8")
+    reparsed = minidom.parseString(rough_string)
+    return reparsed.toprettyxml(indent="  ")
 
 def NewConnectME(model, gui):
     print "New connected FMU for Model Exchange is under development"
@@ -839,16 +844,10 @@ def getModelCallbacks():
     return [["New connected FMU for Model Exchange...", NewConnectME], ["New connected FMU for CoSimulation...", NewConnectCS], ["Open connected FMU...", OpenConnectFMU],["Settings...", Settings]]
 
 def export(model1, model2, gui):
-    if (model1.modelType <> 'Connected FMU Simulation'):
+    if (model1.modelType <> 'Connected FMU for Model Exchange' and model1.modelType <> 'Connected FMU for CoSimulation'):
         print 'Functionality is only available for connected FMUs.'
         return
     model1.export(gui)
 
-def save(model1, model2, gui):
-    if (model1.modelType <> 'Connected FMU Simulation'):
-        print 'Functionality is only available for connected FMUs.'
-        return
-    model1.save(gui)
-
 def getModelMenuCallbacks():
-    return [["Export", export], ["Save", save]]
+    return [["Export", export]]

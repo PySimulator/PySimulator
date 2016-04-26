@@ -45,6 +45,7 @@ import numpy
 
 import FMIDescription2 as FMIDescription
 import FMUInterface2 as FMUInterface
+import FMUInterface2_Connected
 from ...Algorithms.Integrator.Sundials.AssimuloIntegrators import AssimuloCVode, AssimuloIda
 from ...SimulationResult import IntegrationResults
 from ...SimulationResult.Mtsf import Mtsf
@@ -53,13 +54,84 @@ from ...SimulationResult.Mtsf import pyMtsf
 from ...Simulator.FMUSimulator.FMUInterface2 import fmiTrue, fmiFalse
 from ...Simulator import SimulatorBase
 
+from PySide import QtGui, QtCore
+from datetime import datetime
+import codecs
+import xml.etree.ElementTree as ET
+
+class ExportConnectFMUsDialog(QtGui.QDialog):
+
+    def __init__(self, xml, gui):
+        QtGui.QDialog.__init__(self, gui)
+        self.setWindowTitle("Export Connect FMUs")
+
+        self._xml = xml
+        # add export directory
+        exportDirLabel = QtGui.QLabel(self.tr("Export Directory:"))
+        self._exportDirTextBox = QtGui.QLineEdit()
+        browseExportDirButton = QtGui.QPushButton(self.tr("Browse"))
+        browseExportDirButton.clicked.connect(self.browseExportDirectory)
+        # ok and cancel buttons
+        okButton = QtGui.QPushButton(self.tr("OK"))
+        okButton.clicked.connect(self.exportConnectFMUs)
+        cancelButton = QtGui.QPushButton(self.tr("Cancel"))
+        cancelButton.clicked.connect(self.reject)
+        # add the buttons to button box
+        buttonsBox = QtGui.QDialogButtonBox(QtCore.Qt.Horizontal)
+        buttonsBox.addButton(okButton, QtGui.QDialogButtonBox.ActionRole)
+        buttonsBox.addButton(cancelButton, QtGui.QDialogButtonBox.ActionRole)
+        # set the dialog layout
+        mainLayout = QtGui.QGridLayout()
+        mainLayout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+        mainLayout.addWidget(exportDirLabel, 0, 0)
+        mainLayout.addWidget(self._exportDirTextBox, 0, 1)
+        mainLayout.addWidget(browseExportDirButton, 0, 2)
+        mainLayout.addWidget(buttonsBox, 1, 0, 1, 3, QtCore.Qt.AlignRight)
+        self.setLayout(mainLayout)
+
+    def browseExportDirectory(self):
+        directoryName = QtGui.QFileDialog().getExistingDirectory(self, self.tr("Choose Export Directory"), os.getcwd())
+        directoryName = directoryName.replace('\\', '/')
+        self._exportDirTextBox.setText(directoryName)
+
+    def exportConnectFMUs(self):
+        exportDirectory = self._exportDirTextBox.text() + '/connectedFMUs' + datetime.now().strftime('%Y%m%d%H%M%S')
+        if not QtCore.QDir().mkpath(exportDirectory):
+            print "Unable to create the path %s" % exportDirectory
+            return
+
+        # read the xml to know the FMUs locations and then copy them
+        rootElement = ET.fromstring(self._xml)
+        for fmu in rootElement.iter('fmu'):
+            fmuPath = fmu.get('path')
+            fmuFile = QtCore.QFile(fmuPath)
+            if fmuFile.exists():
+                fmuFileInfo = QtCore.QFileInfo(fmuPath)
+                fmuFile.copy(exportDirectory + '/' + fmuFileInfo.fileName())
+                fmu.set('path', fmuFileInfo.fileName())
+
+        # pretty print the xml
+        xml = ET.tostring(rootElement, "utf-8")
+        xml = '<?xml version="1.0" ?>\n' + xml
+
+        # write the updated xml to a file in the new exported directory
+        try:
+            xmlFile = codecs.open(exportDirectory + '/connectFMUs.xml', "w", "utf-8")
+            xmlFile.write(xml)
+            xmlFile.close()
+        except IOError, e:
+            print "Failed to write the xml file. %s" % e
+            return
+
+        print 'Files exported to %s' % exportDirectory
+        self.accept()
 
 
 class Model(SimulatorBase.Model):
     ''' Class to describe a whole "model", including all FMU information
         and some more information that is needed.
     '''
-    def __init__(self, modelName=None, modelFileName=None, config=None, preferredFmiType=None):
+    def __init__(self, modelName=None, modelFileName=None, config=None, isConnected=False, connectedfmusitems=None, xml=None, xmlFileName=None, fmiType=None, connectionorder=None):
         ''' Opens a given model and sets it up with its default values
             @param modelFileName: fully qualified file name and path of model
         '''
@@ -79,22 +151,31 @@ class Model(SimulatorBase.Model):
                 if description.defaultStepSize is not None:
                     self.integrationSettings.fixedStepSize = float(description.defaultStepSize)
 
-
+        
         loggingOn = False
-        if modelFileName is None:
-            self.interface = None
-            self.description = FMIDescription.FMIDescription(None)
-        else:
-            if preferredFmiType is None:
+        self.isConnected = isConnected
+        self._xml = xml
+        # check if we are not dealing with connected FMUs
+        if self.isConnected is False:
+            if modelFileName is None:
+                self.interface = None
+                self.description = FMIDescription.FMIDescription(None)
+            else:
                 if not config['Plugins']['FMU'].has_key('importType'):
                     config['Plugins']['FMU']['importType'] = 'me'
                     config.write()
                 preferredFmiType = config['Plugins']['FMU']['importType']
-            self.interface = FMUInterface.FMUInterface(modelFileName[0], self, loggingOn, preferredFmiType)
+                self.interface = FMUInterface.FMUInterface(modelFileName[0], self, loggingOn, preferredFmiType)
+                self.description = self.interface.description
+            
+            SimulatorBase.Model.__init__(self, modelName, modelFileName, config)
+            self.modelType = 'FMU 2.0 ' + ('Model Exchange' if self.interface.activeFmiType == 'me' else 'CoSimulation') + ' in FMUSimulator'
+        else:
+            self.interface = FMUInterface2_Connected.FMUInterface(connectedfmusitems, xml, connectionorder, self, loggingOn, fmiType)
             self.description = self.interface.description
-
-        SimulatorBase.Model.__init__(self, modelName, modelFileName, config)
-        self.modelType = 'FMU 2.0 ' + ('Model Exchange' if self.interface.activeFmiType == 'me' else 'CoSimulation') + ' in FMUSimulator'
+            SimulatorBase.Model.__init__(self, modelName, [], config)
+            # do not change the following line. It is used in FMU.py function export.
+            self.modelType = 'Connected FMU for ' + ('Model Exchange' if self.interface.activeFmiType == 'me' else 'CoSimulation')
 
         if self.interface.activeFmiType == 'me':
             # Dummy object to get properties
@@ -106,10 +187,10 @@ class Model(SimulatorBase.Model):
             self._IntegrationAlgorithmHasFixedStepSize = [False, False, False, True]
             self._IntegrationAlgorithmCanProvideStepSizeResults = [True, True, True, True]
             self._IntegrationAlgorithmSupportsStateEvents = [True, True, True, True]
-
+    
             self.integrationSettings.algorithmName = self._availableIntegrationAlgorithms[0]
             self.simulationStopRequest = False
-
+            
         elif self.interface.activeFmiType == 'cs':
             # Dummy object to get properties
             self.integrationResults = Mtsf.Results('')
@@ -120,7 +201,7 @@ class Model(SimulatorBase.Model):
             self._IntegrationAlgorithmHasFixedStepSize = [False]
             self._IntegrationAlgorithmCanProvideStepSizeResults = [False]
             self._IntegrationAlgorithmSupportsStateEvents = [False]
-
+    
             self.integrationSettings.algorithmName = self._availableIntegrationAlgorithms[0]
             self.simulationStopRequest = False
 
@@ -131,20 +212,20 @@ class Model(SimulatorBase.Model):
         print "Deleting model instance ", self.description.modelName
         self.interface.free()
 
-
+   
     def initialize(self, tStart, tStop, errorTolerance=1e-9):
         ''' Initializes the model at time = t with
             changed start values given by the dictionary
             self.changedStartValue.
             The function returns a status flag and the next time event.
         '''
-
+        
         self.interface.fmiInstantiate()
 
-        if self.interface.activeFmiType == 'me':
+        if self.interface.activeFmiType == 'me':    
             # Set start time
             self.interface.fmiSetTime(tStart)
-
+            
         # Set start values
         self._setDefaultStartValues()
         for name in self.changedStartValue.keys():
@@ -154,195 +235,130 @@ class Model(SimulatorBase.Model):
         s1 = self.interface.fmiSetupExperiment(fmiTrue, errorTolerance, tStart, fmiTrue, tStop)
         s2 = self.interface.fmiEnterInitializationMode()
         s3 = self.interface.fmiExitInitializationMode()
-
+        
         status = max(s1,s2,s3)
         nextTimeEvent = None
-
-        if self.interface.activeFmiType == 'me':
+        
+        if self.interface.activeFmiType == 'me':        
             doLoop = True
             while doLoop:
                 s4, eventInfo = self.interface.fmiNewDiscreteStates()
                 if eventInfo.terminateSimulation or not eventInfo.newDiscreteStatesNeeded or s4>1:
                     doLoop = False
-
-            s5 = self.interface.fmiEnterContinuousTimeMode()
+            
+            s5 = self.interface.fmiEnterContinuousTimeMode()       
             if eventInfo.terminateSimulation:
                 status = max(status, 2)
-            status = max(status, s4,s5)
-
+            status = max(status, s4,s5)        
+            
             # Information about next time event
             if eventInfo.nextEventTimeDefined == fmiTrue:
-                nextTimeEvent = eventInfo.nextEventTime
-
-        # status > 1 means error during initialization
+                nextTimeEvent = eventInfo.nextEventTime            
+            
+        # status > 1 means error during initialization        
         return status, nextTimeEvent
 
-    def prepareResultFile(self):
-        # Prepare result file
-        fmi = self.description
-        (modelDescription, modelVariables, simpleTypes, units, enumerations) = MtsfFmi2.convertFromFmi('', fmi)
-        # Phase 1 of result file generation
-        settings = self.integrationSettings
-        experimentSetup = pyMtsf.ExperimentSetup(startTime=settings.startTime, stopTime=settings.stopTime,
-                                                 algorithm=settings.algorithmName, relativeTolerance=settings.errorToleranceRel,
-                                                 author=getpass.getuser(), description="",
-                                                 generationDateAndTime=time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime()),
-                                                 generationTool="PySimulator", machine=os.getenv('COMPUTERNAME'),
-                                                 cpuTime="")
-        modelVariables.allSeries[0].initialRows = 1  # Fixed
-        modelVariables.allSeries[2].initialRows = 10  # Discrete
-        if settings.gridPointsMode == 'NumberOf':
-            nGridPoints = settings.gridPoints
-        elif settings.gridPointsMode == 'Width':
-            nGridPoints = 1 + int((settings.stopTime - settings.startTime) / settings.gridWidth)
-        else:
-            nGridPoints = 1
-        modelVariables.allSeries[1].initialRows = max(nGridPoints, modelVariables.allSeries[2].initialRows)  # Continuous
-
-        # Create result object
-        mtsf = Mtsf.Results(settings.resultFileName,
-                           modelDescription, modelVariables, experimentSetup, simpleTypes, units, enumerations)
-        if not mtsf.isAvailable:
-            print("Result file " + settings.resultFileName + " cannot be opened for write access.\n")
-            self.integrationResults = IntegrationResults.Results()
-            return False
-
-        # Create fmi reference lists in categories
-        for series in mtsf._mtsf.results.series.values():
-            for category in series.category.values():
-                category.references = FMUInterface.createfmiReferenceVector(category.nColumn)
-                category.iReferences = -1
-                dataType = pyMtsf.CategoryReverseMapping[category.name]
-                if dataType == 'Real':
-                    category.fmiGetValues = self.interface.fmiGetReal
-                elif dataType == 'Integer':
-                    category.fmiGetValues = self.interface.fmiGetInteger
-                elif dataType == 'Boolean':
-                    category.fmiGetValues = self.interface.fmiGetBoolean
-                elif dataType == 'String':
-                    category.fmiGetValues = self.interface.fmiGetString
-        for name, variable in modelVariables.variable.items():
-            if variable.aliasName is None:
-                variable.category.iReferences += 1
-                if name in fmi.scalarVariables:
-                    #print variable.seriesIndex, variable.category.name, name, variable.category.iReferences, len(variable.category.references)
-                    variable.category.references[variable.category.iReferences] = fmi.scalarVariables[name].valueReference
-                else:
-                    # e.g. for time variables, that do not exist in fmi-world
-                    series = variable.category.series
-                    series.independentVariableCategory = variable.category
-                    variable.category.independentVariableColumn = variable.columnIndex
-                    variable.category.references[variable.category.iReferences] = 0
-
-        for series in mtsf._mtsf.results.series.values():
-            if hasattr(series, 'independentVariableCategory'):
-                category = series.independentVariableCategory
-                column = category.independentVariableColumn
-                if column > 0:
-                    dummy = 0
-                else:
-                    dummy = 1
-                if category.references.shape[0] > dummy:
-                    category.references[column] = category.references[dummy]
-                else:
-                    category.references = numpy.array([])
-            else:
-                series.independentVariableCategory = None
-        self.integrationResults = mtsf
-        return True
-
-    def setSimulationOptions(self):
-        Tstart = self.integrationSettings.startTime
-        Tend = self.integrationSettings.stopTime
-        IntegrationMethod = self.integrationSettings.algorithmName
-        if "BDF (CVode)" in IntegrationMethod:
-            IntegrationMethod = 'BDF'
-        elif 'Adams' in IntegrationMethod:
-            IntegrationMethod = 'Adams'
-        if self.integrationSettings.gridPointsMode == 'NumberOf':
-            nIntervals = self.integrationSettings.gridPoints - 1
-            gridWidth = None
-        elif self.integrationSettings.gridPointsMode == 'Width':
-            nIntervals = None
-            gridWidth = self.integrationSettings.gridWidth
-        else:
-            nIntervals = 0
-            gridWidth = None
-        ErrorTolerance = self.integrationSettings.errorToleranceRel
-
-        # Initialize integration statistics
-        self.integrationStatistics.nTimeEvents = 0
-        self.integrationStatistics.nStateEvents = 0
-        self.integrationStatistics.nGridPoints = 0
-        self.integrationStatistics.reachedTime = Tstart
-
-        return Tstart, Tend, IntegrationMethod, nIntervals, gridWidth, ErrorTolerance
-
-    def writeResults(self, seriesName, time):
-        ''' Writes variable values at time 'time' to result file.
-            Only variables of the given series are written.
-        '''
-        if hasattr(self, 'integrationResultFileSemaphore'):
-            self.integrationResultFileSemaphore.acquire()
-        series = self.integrationResults._mtsf.results.series[seriesName]
-        for category in series.category.values():
-            if category.references.shape[0] > 0:
-                status, values = category.fmiGetValues(category.references)
-            else:
-                values = numpy.ndarray((1,))
-            if category == series.independentVariableCategory:
-                # There is a time
-                index = category.independentVariableColumn
-                values[index] = time
-            category.writeData(values)
-        if hasattr(self, 'integrationResultFileSemaphore'):
-            self.integrationResultFileSemaphore.release()
-
-    def doStep(self, t, dt):
-        status = self.interface.fmiDoStep(t, dt, fmiTrue)
-        if status > 2:
-            print("error in doStep at time = {:.2e}".format(t))
-            # Raise exception to abort simulation...
-            self.finalize(None)
-            raise(SimulatorBase.Stopping)
-        return status
-
-    def finalize(self, solver=None):
-        ''' Function that is called at the end of the simulation
-        '''
-
-        if solver is not None and 'Discrete' in self.integrationResults._mtsf.results.series:
-            # Write discrete Variables
-            self.writeResults('Discrete', solver.t)
-
-        # Terminate simulation in model
-        self.interface.fmiTerminate()
-        self.interface.freeModelInstance()
-
-    def handle_result(self, solver, t, x=None, xd=None):
-        ''' This function is called when new values
-            (in time) for variables shall be saved.
-        '''
-        # Check, if simulation shall be interrupted
-        if self.simulationStopRequest:
-            self.finalize(solver)
-            raise(SimulatorBase.Stopping)
-
-        # Update integration statistics
-        self.integrationStatistics.reachedTime = t
-
-        # Write results
-        if self.interface.activeFmiType == 'me':
-            self.interface.fmiSetTime(t)
-            if not self.description.numberOfContinuousStates == 0:
-                self.interface.fmiSetContinuousStates(x)
-
-        self.writeResults('Continuous', t)
-        self.integrationStatistics.nGridPoints += 1
 
     def simulate(self):
         ''' The main simulation function
         '''
+
+        def prepareResultFile():
+            # Prepare result file
+            fmi = self.description
+            (modelDescription, modelVariables, simpleTypes, units, enumerations) = MtsfFmi2.convertFromFmi('', fmi)
+            # Phase 1 of result file generation
+            settings = self.integrationSettings
+            experimentSetup = pyMtsf.ExperimentSetup(startTime=settings.startTime, stopTime=settings.stopTime,
+                                                     algorithm=settings.algorithmName, relativeTolerance=settings.errorToleranceRel,
+                                                     author=getpass.getuser(), description="",
+                                                     generationDateAndTime=time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime()),
+                                                     generationTool="PySimulator", machine=os.getenv('COMPUTERNAME'),
+                                                     cpuTime="")
+            modelVariables.allSeries[0].initialRows = 1  # Fixed
+            modelVariables.allSeries[2].initialRows = 10  # Discrete
+            if settings.gridPointsMode == 'NumberOf':
+                nGridPoints = settings.gridPoints
+            elif settings.gridPointsMode == 'Width':
+                nGridPoints = 1 + int((settings.stopTime - settings.startTime) / settings.gridWidth)
+            else:
+                nGridPoints = 1
+            modelVariables.allSeries[1].initialRows = max(nGridPoints, modelVariables.allSeries[2].initialRows)  # Continuous
+
+            # Create result object
+            mtsf = Mtsf.Results(settings.resultFileName,
+                               modelDescription, modelVariables, experimentSetup, simpleTypes, units, enumerations)
+            if not mtsf.isAvailable:
+                print("Result file " + settings.resultFileName + " cannot be opened for write access.\n")
+                self.integrationResults = IntegrationResults.Results()
+                return False
+
+            # Create fmi reference lists in categories
+            for series in mtsf._mtsf.results.series.values():
+                for category in series.category.values():
+                    if self.isConnected is False:
+                        category.references = FMUInterface.createfmiReferenceVector(category.nColumn)
+                    else:
+                        category.references = FMUInterface2_Connected.createfmiReferenceVector(category.nColumn)
+                    category.iReferences = -1
+                    dataType = pyMtsf.CategoryReverseMapping[category.name]
+                    if dataType == 'Real':
+                        category.fmiGetValues = self.interface.fmiGetReal
+                    elif dataType == 'Integer':
+                        category.fmiGetValues = self.interface.fmiGetInteger
+                    elif dataType == 'Boolean':
+                        category.fmiGetValues = self.interface.fmiGetBoolean
+                    elif dataType == 'String':
+                        category.fmiGetValues = self.interface.fmiGetString
+            for name, variable in modelVariables.variable.items():
+                if variable.aliasName is None:
+                    variable.category.iReferences += 1
+                    if name in fmi.scalarVariables:
+                        #print variable.seriesIndex, variable.category.name, name, variable.category.iReferences, len(variable.category.references)
+                        variable.category.references[variable.category.iReferences] = fmi.scalarVariables[name].valueReference
+                    else:
+                        # e.g. for time variables, that do not exist in fmi-world
+                        series = variable.category.series
+                        series.independentVariableCategory = variable.category
+                        variable.category.independentVariableColumn = variable.columnIndex
+                        variable.category.references[variable.category.iReferences] = 0
+
+            for series in mtsf._mtsf.results.series.values():
+                if hasattr(series, 'independentVariableCategory'):
+                    category = series.independentVariableCategory
+                    column = category.independentVariableColumn
+                    if column > 0:
+                        dummy = 0
+                    else:
+                        dummy = 1
+                    if category.references.shape[0] > dummy:
+                        category.references[column] = category.references[dummy]
+                    else:
+                        category.references = numpy.array([])
+                else:
+                    series.independentVariableCategory = None
+            self.integrationResults = mtsf
+            return True
+
+        def writeResults(seriesName, time):
+            ''' Writes variable values at time 'time' to result file.
+                Only variables of the given series are written.
+            '''
+            if hasattr(self, 'integrationResultFileSemaphore'):
+                self.integrationResultFileSemaphore.acquire()
+            series = self.integrationResults._mtsf.results.series[seriesName]
+            for category in series.category.values():
+                if category.references.shape[0] > 0:
+                    status, values = category.fmiGetValues(category.references)
+                else:
+                    values = numpy.ndarray((1,))
+                if category == series.independentVariableCategory:
+                    # There is a time
+                    index = category.independentVariableColumn
+                    values[index] = time
+                category.writeData(values)
+            if hasattr(self, 'integrationResultFileSemaphore'):
+                self.integrationResultFileSemaphore.release()
 
         def right_hand_side(t, x, xd=None):
             ''' Returns the right hand side (or the delta to xd for implicit solvers)
@@ -377,6 +393,40 @@ class Model(SimulatorBase.Model):
             '''
             return time_events(t, x, sw)
 
+        def handle_result(solver, t, x=None, xd=None):
+            ''' This function is called when new values
+                (in time) for variables shall be saved.
+            '''
+
+            # Check, if simulation shall be interrupted
+            if self.simulationStopRequest:
+                finalize(solver)
+                raise(SimulatorBase.Stopping)
+
+            # Update integration statistics
+            self.integrationStatistics.reachedTime = t
+
+            # Write results
+            if self.interface.activeFmiType == 'me':
+                self.interface.fmiSetTime(t)
+                if not self.description.numberOfContinuousStates == 0:
+                    self.interface.fmiSetContinuousStates(x)
+
+            writeResults('Continuous', t)
+            self.integrationStatistics.nGridPoints += 1
+
+        def finalize(solver=None):
+            ''' Function that is called at the end of the simulation
+            '''           
+            
+            if solver is not None and 'Discrete' in self.integrationResults._mtsf.results.series:
+                # Write discrete Variables
+                writeResults('Discrete', solver.t)
+        
+            # Terminate simulation in model
+            self.interface.fmiTerminate()
+            self.interface.freeModelInstance()
+
         def handle_event(solver, event_info=None):
             ''' There is an event. Do the re-initialization and prepare
                 the simulation to be proceeded.
@@ -398,7 +448,7 @@ class Model(SimulatorBase.Model):
             self.interface.fmiSetTime(solver.t)
             if not self.description.numberOfContinuousStates == 0:
                 self.interface.fmiSetContinuousStates(solver.y)
-
+          
             # handle_result(solver, solver.t, solver.y) here if your solver does not call it by itself(Assimulo does)
 
             # Do the event updates
@@ -408,10 +458,10 @@ class Model(SimulatorBase.Model):
                 status, eventInfo = self.interface.fmiNewDiscreteStates()
                 if eventInfo.terminateSimulation or not eventInfo.newDiscreteStatesNeeded or status>1:
                     doLoop = False
-
+            
             s1 = self.interface.fmiEnterContinuousTimeMode()
-            s2 = 0
-
+            s2 = 0             
+            
             if eventInfo.nextEventTimeDefined == fmiTrue:
                 simulator.nextTimeEvent = eventInfo.nextEventTime
             else:
@@ -420,28 +470,28 @@ class Model(SimulatorBase.Model):
                 # The model signals a value change of states, retrieve them
                 if not self.description.numberOfContinuousStates == 0:
                     s2, solver.y = self.interface.fmiGetContinuousStates()
-
+            
             if max(status, s1,s2) > 1:
                 print("error in event initialization ... ")
                 # Raise exception to abort simulation...
-                self.finalize(solver)
+                finalize(solver)
                 raise(SimulatorBase.Stopping)
-
+            
             if eventInfo.terminateSimulation == fmiTrue:
-                self.handle_result(solver, solver.t, solver.y)
+                handle_result(solver, solver.t, solver.y)
                 if 'Discrete' in self.integrationResults._mtsf.results.series:
                     # Write discrete Variables
-                    self.writeResults('Discrete', solver.t)
+                    writeResults('Discrete', solver.t)
                 print("terminated by model ... ")
                 # Raise exception to abort simulation...
-                self.finalize(solver)
+                finalize(solver)
                 raise(SimulatorBase.Stopping)
-
+            
             # handle_result(solver, solver.t, solver.y) here if your solver does not call it by itself(Assimulo does)
 
             if 'Discrete' in self.integrationResults._mtsf.results.series:
                 # Write discrete Variables
-                self.writeResults('Discrete', solver.t)
+                writeResults('Discrete', solver.t)
 
             return True
 
@@ -461,6 +511,17 @@ class Model(SimulatorBase.Model):
             else:
                 return False
             '''
+        
+        def doStep(t, dt):
+            status = self.interface.fmiDoStep(t, dt, fmiTrue)            
+            if status > 2:
+                print("error in doStep at time = {:.2e}".format(t))
+                # Raise exception to abort simulation...
+                finalize(None)
+                raise(SimulatorBase.Stopping)
+            return status
+            
+
 
         ''' *********************************
             Here the simulate function starts:
@@ -468,15 +529,37 @@ class Model(SimulatorBase.Model):
         '''
 
         # Initialize result file
-        if not self.prepareResultFile():
+        if not prepareResultFile():
             return
 
         # Set Simulation options
-        (Tstart, Tend, IntegrationMethod, nIntervals, gridWidth, ErrorTolerance) = self.setSimulationOptions()
+        Tstart = self.integrationSettings.startTime
+        Tend = self.integrationSettings.stopTime
+        IntegrationMethod = self.integrationSettings.algorithmName
+        if "BDF (CVode)" in IntegrationMethod:
+            IntegrationMethod = 'BDF'
+        elif 'Adams' in IntegrationMethod:
+            IntegrationMethod = 'Adams'
+        if self.integrationSettings.gridPointsMode == 'NumberOf':
+            nIntervals = self.integrationSettings.gridPoints - 1
+            gridWidth = None
+        elif self.integrationSettings.gridPointsMode == 'Width':
+            nIntervals = None
+            gridWidth = self.integrationSettings.gridWidth
+        else:
+            nIntervals = 0
+            gridWidth = None
+        ErrorTolerance = self.integrationSettings.errorToleranceRel
+
+        # Initialize integration statistics
+        self.integrationStatistics.nTimeEvents = 0
+        self.integrationStatistics.nStateEvents = 0
+        self.integrationStatistics.nGridPoints = 0
+        self.integrationStatistics.reachedTime = Tstart
 
         # Run the integration
         ######################
-        # Initialize model
+        # Initialize model       
         (status, nextTimeEvent) = self.initialize(Tstart, Tend, ErrorTolerance if self.interface.activeFmiType == 'cs' else min(1e-15, ErrorTolerance*1e-5))
         if status > 1:
             print("Model initialization failed. fmiStatus = " + str(status))
@@ -484,21 +567,21 @@ class Model(SimulatorBase.Model):
 
         if 'Fixed' in self.integrationResults._mtsf.results.series:
             # Write parameter values
-            self.writeResults('Fixed', Tstart)
-
-
+            writeResults('Fixed', Tstart)
+            
+                    
         if self.interface.activeFmiType == 'me':
             if 'Discrete' in self.integrationResults._mtsf.results.series:
                 # Write discrete variables
-                self.writeResults('Discrete', Tstart)
-
+                writeResults('Discrete', Tstart)            
+            
             # Retrieve initial state x
             if self.description.numberOfContinuousStates == 0:
                 x0 = numpy.zeros([1, ])
             else:
                 status, x0 = self.interface.fmiGetContinuousStates()
             # x_nominal = numpy.array(self.interface.fmiGetNominalContinuousStates())
-
+    
             # Prepare the solver
             implicitSolver = False
             # Set simulator and special parameters. General parameters are added after if-clause
@@ -506,13 +589,13 @@ class Model(SimulatorBase.Model):
                 implicitSolver = True
                 # Define the solver object
                 simulator = AssimuloIda()
-
+    
                 # Retrieve initial derivatives dx
                 if self.description.numberOfContinuousStates == 0:
                     dx0 = numpy.zeros([1, ])
                 else:
                     status, dx0 = self.interface.fmiGetDerivatives()
-
+    
                 simulator.yd0 = dx0
             elif "Adams" in IntegrationMethod or "BDF" in IntegrationMethod:  # Use CVode
                 simulator = AssimuloCVode()
@@ -521,20 +604,20 @@ class Model(SimulatorBase.Model):
             else:
                 simulator = ExplicitEulerSolver()
                 simulator.completed_step = completed_step
-
+    
             # Set starting parameters common to all integrators here:
             simulator.t0 = Tstart
             simulator.y0 = x0
             simulator.atol = ErrorTolerance  # Default 1e-6
             simulator.rtol = ErrorTolerance  # Default 1e-6
-
+    
             # Set function pointers called by simulator
             simulator.rhs = right_hand_side
-            simulator.handle_result = self.handle_result
+            simulator.handle_result = handle_result
             simulator.handle_event = handle_event
-            simulator.finalize = self.finalize  # should not be called by the solver (needs one argument then) simulator.finalize = finalize
+            simulator.finalize = finalize  # should not be called by the solver (needs one argument then) simulator.finalize = finalize
             # simulator.completed_step = completed_step  # is not supported by python-sundials
-
+    
             # These methods can not have xd=None due to its signature... Apply its dummy-Versions here
             if implicitSolver == True:
                 simulator.state_events = state_eventsImplicit
@@ -542,17 +625,17 @@ class Model(SimulatorBase.Model):
             else:
                 simulator.state_events = state_events
                 simulator.time_events = time_events
-
-
+    
+    
             # Store information about next time event in solver
             simulator.nextTimeEvent = nextTimeEvent
-
-
+    
+    
             if hasattr(self, 'numberedModelName'):
                 print("Start integration of " + self.numberedModelName + " ... ")
             else:
                 print("Start integration of " + self.description.modelName + " ... ")
-
+    
             # Simulate until end of integration interval
             if "Euler" in IntegrationMethod:
                 if nIntervals == None:
@@ -560,31 +643,31 @@ class Model(SimulatorBase.Model):
                 simulator.simulate(Tstart, self.integrationSettings.fixedStepSize, Tend, x0, nIntervals, gridWidth)
             else:
                 simulator.simulate(Tend, nIntervals, gridWidth)
-
-
+                
+        
         elif self.interface.activeFmiType == 'cs':
             # Do Co-Simulation for one single (self-containing) FMU
-
+            
             if gridWidth is None:
                 gridWidth = (Tend-Tstart) / nIntervals
-
+            
             t = Tstart
-            lastStep = False
+            lastStep = False            
             doLoop = Tend > Tstart
             if gridWidth <= Tend-t:
                 dt = gridWidth
             else:
                 dt = Tend - t
-                lastStep = True
+                lastStep = True            
             k = 1
-
-            self.writeResults('Continuous', t)
+            
+            writeResults('Continuous', t)
             if 'Discrete' in self.integrationResults._mtsf.results.series:
                 # Write discrete Variables
-                self.writeResults('Discrete', t)
-
-            while doLoop:
-                status = self.doStep(t, dt)
+                writeResults('Discrete', t)
+                       
+            while doLoop:               
+                status = doStep(t, dt)
                 if status == 2:  # Discard
                     status, info = self.interface.fmiGetBooleanStatus(3) # fmi2Terminated
                     if info == fmiTrue:
@@ -594,31 +677,34 @@ class Model(SimulatorBase.Model):
                     else:
                         print("Not supported status in doStep at time = {:.2e}".format(t))
                         # Raise exception to abort simulation...
-                        self.finalize()
-                        raise(SimulatorBase.Stopping)
+                        finalize()
+                        raise(SimulatorBase.Stopping)   
                 elif status < 2:
                     t = t + dt
                 else:
                     # should not occur
                     pass
-
-                self.handle_result(None, t)
+                
+                handle_result(None, t)
                 if 'Discrete' in self.integrationResults._mtsf.results.series:
                     # Write discrete Variables
-                    self.writeResults('Discrete', t)
-
+                    writeResults('Discrete', t)                
+                
                 if lastStep:
                     doLoop = False
-                else:
-                    #Compute next communication point
+                else:                
+                    #Compute next communication point                
                     if gridWidth <= Tend-t:
                         k += 1
                         dt = (Tstart + k*gridWidth) - t
                     else:
                         dt = Tend - t
                         lastStep = True
+            
+            finalize()
+            
+            
 
-            self.finalize()
 
         return
 
@@ -653,7 +739,10 @@ class Model(SimulatorBase.Model):
             @param valueValue: new value
             @type valueValue: any type castable to the type of the variable valueName
         '''
-        ScalarVariableReferenceVector = FMUInterface.createfmiReferenceVector(1)
+        if self.isConnected is False:
+            ScalarVariableReferenceVector = FMUInterface.createfmiReferenceVector(1)
+        else:
+            ScalarVariableReferenceVector = FMUInterface2_Connected.createfmiReferenceVector(1)
         ScalarVariableReferenceVector[0] = self.description.scalarVariables[valueName].valueReference
         if self.description.scalarVariables[valueName].type.basicType == 'Real':
             ScalarVariableValueVector = FMUInterface.createfmiRealVector(1)
@@ -693,7 +782,7 @@ class Model(SimulatorBase.Model):
         self.interface.fmiSetTime(t)
         if not self.description.numberOfContinuousStates == 0:
             self.interface.fmiSetContinuousStates(x)
-        status, z = self.interface.fmiGetEventIndicators()
+        status, z = self.interface.fmiGetEventIndicators() 
         return z
 
     def getValue(self, name):
@@ -735,7 +824,10 @@ class Model(SimulatorBase.Model):
         retValue = range(n)
         k = len(refReal)
         if k > 0:
-            ref = FMUInterface.createfmiReferenceVector(k)
+            if self.isConnected is False:
+                ref = FMUInterface.createfmiReferenceVector(k)
+            else:
+                ref = FMUInterface2_Connected.createfmiReferenceVector(k)
             for i in xrange(k):
                 ref[i] = refReal[i]
             status, values = self.interface.fmiGetReal(ref)
@@ -743,7 +835,10 @@ class Model(SimulatorBase.Model):
                 retValue[iReal[i]] = values[i]
         k = len(refInteger)
         if k > 0:
-            ref = FMUInterface.createfmiReferenceVector(k)
+            if self.isConnected is False:
+                ref = FMUInterface.createfmiReferenceVector(k)
+            else:
+                ref = FMUInterface2_Connected.createfmiReferenceVector(k)
             for i in xrange(k):
                 ref[i] = refInteger[i]
             status, values = self.interface.fmiGetInteger(ref)
@@ -751,7 +846,10 @@ class Model(SimulatorBase.Model):
                 retValue[iInteger[i]] = values[i]
         k = len(refBoolean)
         if k > 0:
-            ref = FMUInterface.createfmiReferenceVector(k)
+            if self.isConnected is False:
+                ref = FMUInterface.createfmiReferenceVector(k)
+            else:
+                ref = FMUInterface2_Connected.createfmiReferenceVector(k)
             for i in xrange(k):
                 ref[i] = refBoolean[i]
             status, values = self.interface.fmiGetBoolean(ref)
@@ -759,7 +857,10 @@ class Model(SimulatorBase.Model):
                 retValue[iBoolean[i]] = values[i]
         k = len(refString)
         if k > 0:
-            ref = FMUInterface.createfmiReferenceVector(k)
+            if self.isConnected is False:
+                ref = FMUInterface.createfmiReferenceVector(k)
+            else:
+                ref = FMUInterface2_Connected.createfmiReferenceVector(k)
             for i in xrange(k):
                 ref[i] = refString[i]
             status, values = self.interface.fmiGetString(ref)
@@ -775,14 +876,14 @@ class Model(SimulatorBase.Model):
         ''' Returns a vector with the values of the states.
         '''
         status, x = self.interface.fmiGetContinuousStates()
-
+        
         return x
 
     def getStateNames(self):
         ''' Returns a list of Strings: the names of all states in the model.
         '''
-        return  # to be done for FMI2.0
-
+        return  # to be done for FMI2.0        
+        
         references = self.interface.fmiGetStateValueReferences()
         allVars = self.description.scalarVariables.items()
         referenceListSorted = [(index, var[1].valueReference) for index, var in enumerate(allVars)]
@@ -829,96 +930,94 @@ class Model(SimulatorBase.Model):
         '''
 
         tipText = ''
-        tipText += 'FMI Version:       ' + chr(9) + self.description.fmiVersion + '\n'
-        tipText += 'Model name:        ' + chr(9) + self.description.modelName + '\n'
-        tipText += 'Guid:                       ' + chr(9) + self.description.guid + '\n'
-        if self.description.description is not None:
-            tipText += 'Description:           ' + chr(9) + self.description.description + '\n'
-        if self.description.author is not None:
-            tipText += 'Author:                   ' + chr(9) + self.description.author + '\n'
-        if self.description.version is not None:
-            tipText += 'Version:                ' + chr(9) + self.description.version + '\n'
-        if self.description.copyright is not None:
-            tipText += 'Copyright:                ' + chr(9) + self.description.copyright + '\n'
-        if self.description.license is not None:
-            tipText += 'License:                ' + chr(9) + self.description.license + '\n'
-        if self.description.generationTool is not None:
-            tipText += 'Generation tool:   ' + chr(9) + self.description.generationTool + '\n'
-        if self.description.generationDateAndTime is not None:
-            tipText += 'Gen. date and time:' + chr(9) + self.description.generationDateAndTime + '\n'
-        if self.description.variableNamingConvention is not None:
-            tipText += 'Naming convention: ' + chr(9) + self.description.variableNamingConvention + '\n'
-        if self.description.numberOfEventIndicators is not None:
-            tipText += 'Event indicators:  ' + chr(9) + self.description.numberOfEventIndicators + '\n'
+        if self.isConnected is False:
+            tipText += 'FMI Version:       ' + chr(9) + self.description.fmiVersion + '\n'
+            tipText += 'Model name:        ' + chr(9) + self.description.modelName + '\n'       
+            tipText += 'Guid:                       ' + chr(9) + self.description.guid + '\n'
+            if self.description.description is not None:
+                tipText += 'Description:           ' + chr(9) + self.description.description + '\n'
+            if self.description.author is not None:
+                tipText += 'Author:                   ' + chr(9) + self.description.author + '\n'
+            if self.description.version is not None:
+                tipText += 'Version:                ' + chr(9) + self.description.version + '\n'
+            if self.description.copyright is not None:
+                tipText += 'Copyright:                ' + chr(9) + self.description.copyright + '\n'
+            if self.description.license is not None:
+                tipText += 'License:                ' + chr(9) + self.description.license + '\n'
+            if self.description.generationTool is not None:
+                tipText += 'Generation tool:   ' + chr(9) + self.description.generationTool + '\n'
+            if self.description.generationDateAndTime is not None:
+                tipText += 'Gen. date and time:' + chr(9) + self.description.generationDateAndTime + '\n'
+            if self.description.variableNamingConvention is not None:
+                tipText += 'Naming convention: ' + chr(9) + self.description.variableNamingConvention + '\n'
+            if self.description.numberOfEventIndicators is not None:
+                tipText += 'Event indicators:  ' + chr(9) + self.description.numberOfEventIndicators + '\n'
+    
+            if self.description.me is not None and self.interface.activeFmiType == 'me':
+                tipText += '--------\n' 
+                tipText += 'MODEL EXCHANGE\n'
+                tipText += 'Model identifier:  ' + chr(9) + self.description.me.modelIdentifier + '\n'
+                if self.description.me.needsExecutionTool is not None:
+                    tipText += 'needsExecutionTool:                    ' + chr(9) + self.description.me.needsExecutionTool + '\n'
+                if self.description.me.completedIntegratorStepNotNeeded is not None:
+                    tipText += 'completedIntegratorStepNotNeeded: ' + chr(9) + self.description.me.completedIntegratorStepNotNeeded + '\n'
+                if self.description.me.canBeInstantiatedOnlyOncePerProcess is not None:
+                    tipText += 'canBeInstantiatedOnlyOncePerProcess:  ' + chr(9) + self.description.me.canBeInstantiatedOnlyOncePerProcess + '\n'
+                if self.description.me.canNotUseMemoryManagementFunctions is not None:
+                    tipText += 'canNotUseMemoryManagementFunctions:  ' + chr(9) + self.description.me.canNotUseMemoryManagementFunctions + '\n'
+                if self.description.me.canGetAndSetFMUstate is not None:
+                    tipText += 'canGetAndSetFMUstate:                ' + chr(9) + self.description.me.canGetAndSetFMUstate + '\n'
+                if self.description.me.canSerializeFMUstate is not None:
+                    tipText += 'canSerializeFMUstate:                 ' + chr(9) + self.description.me.canSerializeFMUstate + '\n'
+                if self.description.me.providesDirectionalDerivative is not None:
+                    tipText += 'providesDirectionalDerivative:        ' + chr(9) + self.description.me.providesDirectionalDerivative + '\n'
 
-
-
-        if self.description.me is not None and self.interface.activeFmiType == 'me':
+            if self.description.cs is not None and self.interface.activeFmiType == 'cs':
+                tipText += '--------\n'
+                tipText += 'COSIMULATION\n'  
+                tipText += 'Model identifier:  ' + chr(9) + self.description.cs.modelIdentifier + '\n'
+                if self.description.cs.needsExecutionTool is not None:
+                    tipText += 'needsExecutionTool:                    ' + chr(9) + self.description.cs.needsExecutionTool + '\n'
+                if self.description.cs.canHandleVariableCommunicationStepSize is not None:
+                    tipText += 'canHandleVariableCommunicationStepSize:  ' + chr(9) + self.description.cs.canHandleVariableCommunicationStepSize + '\n'
+                if self.description.cs.canInterpolateInputs is not None:
+                    tipText += 'canInterpolateInputs:                    ' + chr(9) + self.description.cs.canInterpolateInputs + '\n'
+                if self.description.cs.maxOutputDerivativeOrder is not None:
+                    tipText += 'maxOutputDerivativeOrder:                 ' + chr(9) + self.description.cs.maxOutputDerivativeOrder + '\n'
+                if self.description.cs.canRunAsynchronuously is not None:
+                    tipText += 'canRunAsynchronuously:                   ' + chr(9) + self.description.cs.canRunAsynchronuously + '\n'           
+                if self.description.cs.canBeInstantiatedOnlyOncePerProcess is not None:
+                    tipText += 'canBeInstantiatedOnlyOncePerProcess:  ' + chr(9) + self.description.cs.canBeInstantiatedOnlyOncePerProcess + '\n'
+                if self.description.cs.canNotUseMemoryManagementFunctions is not None:
+                    tipText += 'canNotUseMemoryManagementFunctions:  ' + chr(9) + self.description.cs.canNotUseMemoryManagementFunctions + '\n'
+                if self.description.cs.canGetAndSetFMUstate is not None:
+                    tipText += 'canGetAndSetFMUstate:                ' + chr(9) + self.description.cs.canGetAndSetFMUstate + '\n'
+                if self.description.cs.canSerializeFMUstate is not None:
+                    tipText += 'canSerializeFMUstate:                 ' + chr(9) + self.description.cs.canSerializeFMUstate + '\n'
+                if self.description.cs.providesDirectionalDerivative is not None:
+                    tipText += 'providesDirectionalDerivative:        ' + chr(9) + self.description.cs.providesDirectionalDerivative + '\n'         
+        
             tipText += '--------\n'
-            tipText += 'MODEL EXCHANGE\n'
-            tipText += 'Model identifier:  ' + chr(9) + self.description.me.modelIdentifier + '\n'
-            if self.description.me.needsExecutionTool is not None:
-                tipText += 'needsExecutionTool:                    ' + chr(9) + self.description.me.needsExecutionTool + '\n'
-            if self.description.me.completedIntegratorStepNotNeeded is not None:
-                tipText += 'completedIntegratorStepNotNeeded: ' + chr(9) + self.description.me.completedIntegratorStepNotNeeded + '\n'
-            if self.description.me.canBeInstantiatedOnlyOncePerProcess is not None:
-                tipText += 'canBeInstantiatedOnlyOncePerProcess:  ' + chr(9) + self.description.me.canBeInstantiatedOnlyOncePerProcess + '\n'
-            if self.description.me.canNotUseMemoryManagementFunctions is not None:
-                tipText += 'canNotUseMemoryManagementFunctions:  ' + chr(9) + self.description.me.canNotUseMemoryManagementFunctions + '\n'
-            if self.description.me.canGetAndSetFMUstate is not None:
-                tipText += 'canGetAndSetFMUstate:                ' + chr(9) + self.description.me.canGetAndSetFMUstate + '\n'
-            if self.description.me.canSerializeFMUstate is not None:
-                tipText += 'canSerializeFMUstate:                 ' + chr(9) + self.description.me.canSerializeFMUstate + '\n'
-            if self.description.me.providesDirectionalDerivative is not None:
-                tipText += 'providesDirectionalDerivative:        ' + chr(9) + self.description.me.providesDirectionalDerivative + '\n'
-
-
-        if self.description.cs is not None and self.interface.activeFmiType == 'cs':
-            tipText += '--------\n'
-            tipText += 'COSIMULATION\n'
-            tipText += 'Model identifier:  ' + chr(9) + self.description.cs.modelIdentifier + '\n'
-            if self.description.cs.needsExecutionTool is not None:
-                tipText += 'needsExecutionTool:                    ' + chr(9) + self.description.cs.needsExecutionTool + '\n'
-            if self.description.cs.canHandleVariableCommunicationStepSize is not None:
-                tipText += 'canHandleVariableCommunicationStepSize:  ' + chr(9) + self.description.cs.canHandleVariableCommunicationStepSize + '\n'
-            if self.description.cs.canInterpolateInputs is not None:
-                tipText += 'canInterpolateInputs:                    ' + chr(9) + self.description.cs.canInterpolateInputs + '\n'
-            if self.description.cs.maxOutputDerivativeOrder is not None:
-                tipText += 'maxOutputDerivativeOrder:                 ' + chr(9) + self.description.cs.maxOutputDerivativeOrder + '\n'
-            if self.description.cs.canRunAsynchronuously is not None:
-                tipText += 'canRunAsynchronuously:                   ' + chr(9) + self.description.cs.canRunAsynchronuously + '\n'
-            if self.description.cs.canBeInstantiatedOnlyOncePerProcess is not None:
-                tipText += 'canBeInstantiatedOnlyOncePerProcess:  ' + chr(9) + self.description.cs.canBeInstantiatedOnlyOncePerProcess + '\n'
-            if self.description.cs.canNotUseMemoryManagementFunctions is not None:
-                tipText += 'canNotUseMemoryManagementFunctions:  ' + chr(9) + self.description.cs.canNotUseMemoryManagementFunctions + '\n'
-            if self.description.cs.canGetAndSetFMUstate is not None:
-                tipText += 'canGetAndSetFMUstate:                ' + chr(9) + self.description.cs.canGetAndSetFMUstate + '\n'
-            if self.description.cs.canSerializeFMUstate is not None:
-                tipText += 'canSerializeFMUstate:                 ' + chr(9) + self.description.cs.canSerializeFMUstate + '\n'
-            if self.description.cs.providesDirectionalDerivative is not None:
-                tipText += 'providesDirectionalDerivative:        ' + chr(9) + self.description.cs.providesDirectionalDerivative + '\n'
-
-        tipText += '--------\n'
-        if self.description.defaultStartTime is not None:
-            tipText += 'Default start time:' + chr(9) + self.description.defaultStartTime + '\n'
-        if self.description.defaultStopTime is not None:
-            tipText += 'Default stop time: ' + chr(9) + self.description.defaultStopTime + '\n'
-        if self.description.defaultTolerance is not None:
-            tipText += 'Default tolerance: ' + chr(9) + self.description.defaultTolerance + '\n'
-        if self.description.defaultStepSize is not None:
-            tipText += 'Default step size: ' + chr(9) + self.description.defaultStepSize + '\n'
-
-
-        # ----> Here the rootAttribute of self.variableTree is set
-        self.variableTree.rootAttribute = tipText
+            if self.description.defaultStartTime is not None:        
+                tipText += 'Default start time:' + chr(9) + self.description.defaultStartTime + '\n'
+            if self.description.defaultStopTime is not None:
+                tipText += 'Default stop time: ' + chr(9) + self.description.defaultStopTime + '\n'
+            if self.description.defaultTolerance is not None:
+                tipText += 'Default tolerance: ' + chr(9) + self.description.defaultTolerance + '\n'
+            if self.description.defaultStepSize is not None:
+                tipText += 'Default step size: ' + chr(9) + self.description.defaultStepSize + '\n'
+            
+    
+            # ----> Here the rootAttribute of self.variableTree is set
+            self.variableTree.rootAttribute = tipText
 
         for vName, v in self.description.scalarVariables.iteritems():
             variableAttribute = ''
             if v.description is not None:
                 variableAttribute += 'Description:' + chr(9) + v.description + '\n'
-            variableAttribute += 'Reference:' + chr(9) + v.valueReference
+            variableAttribute += 'Reference:' + chr(9) + v.valueReference            
             if v.causality is not None:
-                variableAttribute += '\nCausality:' + chr(9) + v.causality
+                variableAttribute += '\nCausality:' + chr(9) + v.causality    
             if v.variability is not None:
                 variableAttribute += '\nVariability:' + chr(9) + v.variability
             if v.initial is not None:
@@ -928,7 +1027,7 @@ class Model(SimulatorBase.Model):
             if v.type is not None:
                 variableAttribute += '\nBasic type:' + chr(9) + v.type.basicType
                 if v.type.declaredType is not None:
-                    variableAttribute += '\nDeclared type:' + chr(9) + v.type.declaredType
+                    variableAttribute += '\nDeclared type:' + chr(9) + v.type.declaredType             
                 if v.type.quantity is not None:
                     variableAttribute += '\nQuantity:' + chr(9) + v.type.quantity
                 if v.type.unit is not None:
@@ -944,19 +1043,21 @@ class Model(SimulatorBase.Model):
                 if v.type.nominal is not None:
                     variableAttribute += '\nNominal:' + chr(9) + v.type.nominal
                 if v.type.unbounded is not None:
-                    variableAttribute += '\nUnbounded:' + chr(9) + v.type.unbounded
+                    variableAttribute += '\nUnbounded:' + chr(9) + v.type.unbounded                
                 if v.type.start is not None:
-                    variableAttribute += '\nStart:' + chr(9) + v.type.start
+                    variableAttribute += '\nStart:' + chr(9) + v.type.start    
                 if v.type.derivative is not None:
-                    variableAttribute += '\nDerivative:' + chr(9) + v.type.derivative
+                    variableAttribute += '\nDerivative:' + chr(9) + v.type.derivative    
                 if v.type.reinit is not None:
                     variableAttribute += '\nReinit:' + chr(9) + v.type.reinit
-
 
             valueEdit = True  # for the moment
             # ----> Here variable of self.variableTree is set (one entry of the dictionary)
             self.variableTree.variable[vName] = SimulatorBase.TreeVariable(self.structureVariableName(vName), v.type.start, valueEdit, v.type.unit, v.variability, variableAttribute)
 
+    def export(self, gui):
+        exportconnectedFMUsDialog = ExportConnectFMUsDialog(self._xml, gui)
+        exportconnectedFMUsDialog.exec_()
 
 class ExplicitEulerSolver():
     '''

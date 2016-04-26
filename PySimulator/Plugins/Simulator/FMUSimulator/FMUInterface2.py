@@ -92,7 +92,6 @@ def createfmiBooleanVector(n):
 def createfmiStringVector(n):
     return (fmiString * n)()
 
-
 def createfmiReferenceVector(n):
     return (numpy.ndarray(n, numpy.uint32))
 
@@ -121,16 +120,24 @@ class FMUInterface:
     ''' This class encapsulates the FMU C-Interface
         all fmi* functions are a public interface to the FMU-functions        
     '''
-    def __init__(self, fileName, parent=None, loggingOn=True, preferredFmiType='me',connectedFMU=None, instanceName=None):
+    def __init__(self, fileName, parent=None, loggingOn=True, preferredFmiType='me'):
         ''' Load an FMU-File and start a new instance
             @param fileName: complete path and name of FMU-file (.fmu)
             @type fileName: string
         '''
+        
+        ''' Need instanceName when dealing with connected FMUs
+            We need to build a proper scalar variable name like FMU.var.X.X
+            Used in FMIDescription2_Connected.py
+        '''
+        self.instanceName = None
+        
         self.activeFmiType = preferredFmiType  # 'me' or 'cs'
         self.visible = fmiFalse
         
         self._loggingOn = loggingOn
         self._tempDir = tempfile.mkdtemp()     
+
         ''' Open the given fmu-file (read only)'''
         try:
             self._file = zipfile.ZipFile(fileName, 'r')                  
@@ -153,7 +160,7 @@ class FMUInterface:
         except BaseException as e:
             raise FMUError.FMUError('Error when reading modelDescription.xml\n' + str(e) + '\n')
         
-        self.description = FMIDescription(xmlFileHandle,self,connectedFMU,instanceName)
+        self.description = FMIDescription(xmlFileHandle)
         if self.description.me is None:
             self.activeFmiType = 'cs'
         elif self.description.cs is None:
@@ -242,7 +249,7 @@ class FMUInterface:
             self.freeModelInstance()            
             _ctypes.FreeLibrary(self._libraryHandle)        
 
-    def free(self):        
+    def free(self):
         self.freeLibrary()
         shutil.rmtree(self._tempDir)
 
