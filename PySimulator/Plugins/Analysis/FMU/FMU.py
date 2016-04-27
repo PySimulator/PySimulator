@@ -315,12 +315,12 @@ class FMUsListModel(QtCore.QAbstractItemModel):
         self.endRemoveRows()
 
     def getUniqueFMUName(self, name, number = 1):
-      fmuName = name + str(number)
-      for fmu in self._fmus:
-          if fmu._name == fmuName:
-              fmuName = self.getUniqueFMUName(name, number + 1)
-              break
-      return fmuName
+        fmuName = name + str(number)
+        for fmu in self._fmus:
+            if fmu._name == fmuName:
+                fmuName = self.getUniqueFMUName(name, number + 1)
+                break
+        return fmuName
 
 class ConnectFMUsDialog(QtGui.QDialog):
 
@@ -406,25 +406,25 @@ class ConnectFMUsDialog(QtGui.QDialog):
         self.setLayout(mainLayout)
 
         if self._setupfile is not None:
-             tree = ET.parse(self._setupfile)
-             root = tree.getroot()
+            tree = ET.parse(self._setupfile)
+            root = tree.getroot()
 
-             self._fmuType = root.get('type')
-             ## Add fmu's to list with correct instance from xmlsetup
-             for fmu in root.iter('fmu'):
-                 location = fmu.get('path')
-                 absoluteLocation = location
-                 fmuName = fmu.get('name')
-                 # if fmu paths are relative then make them absolute properly
-                 fmuFileInfo = QtCore.QFileInfo(location)
-                 setupFileInfo = QtCore.QFileInfo(self._setupfile)
-                 if fmuFileInfo.isRelative():
-                     absoluteLocation = setupFileInfo.absolutePath() + '/' + location
-                 self._fmusListModel.addFMU(location, absoluteLocation, fmuName)
-                 self._fmusTableView.resizeColumnsToContents()
+            self._fmuType = root.get('type')
+            ## Add fmu's to list with correct instance from xmlsetup
+            for fmu in root.iter('fmu'):
+                location = fmu.get('path')
+                absoluteLocation = location
+                fmuName = fmu.get('name')
+                # if fmu paths are relative then make them absolute properly
+                fmuFileInfo = QtCore.QFileInfo(location)
+                setupFileInfo = QtCore.QFileInfo(self._setupfile)
+                if fmuFileInfo.isRelative():
+                    absoluteLocation = setupFileInfo.absolutePath() + '/' + location
+                self._fmusListModel.addFMU(location, absoluteLocation, fmuName)
+                self._fmusTableView.resizeColumnsToContents()
 
-             ## Add connection information to table from xmlsetup
-             for connection in root.iter('connection'):
+            ## Add connection information to table from xmlsetup
+            for connection in root.iter('connection'):
                 fromFmuName = connection.get('fromFmuName')
                 fromFMU = None
                 fromvar = connection.get('fromVariableName')
@@ -435,23 +435,23 @@ class ConnectFMUsDialog(QtGui.QDialog):
                 outputVar = None
 
                 for i in xrange(len(self._fmusListModel._fmus)):
-                      name = self._fmusListModel._fmus[i]._name
+                    name = self._fmusListModel._fmus[i]._name
 
-                      if (name == fromFmuName):
-                           fromFMU = self._fmusListModel._fmus[i]
-                           frominputoutputvar = self._fmusListModel._fmus[i]._inputsOutputs
-                           for j in xrange(len(frominputoutputvar)):
-                                varname = frominputoutputvar[j]['name']
-                                if (fromvar == varname):
-                                    inputVar = frominputoutputvar[j]
+                    if (name == fromFmuName):
+                        fromFMU = self._fmusListModel._fmus[i]
+                        frominputoutputvar = self._fmusListModel._fmus[i]._inputsOutputs
+                        for j in xrange(len(frominputoutputvar)):
+                            varname = frominputoutputvar[j]['name']
+                            if (fromvar == varname):
+                                inputVar = frominputoutputvar[j]
 
-                      if (name == toFmuName):
-                           toFMU = self._fmusListModel._fmus[i]
-                           toinputoutputvar = self._fmusListModel._fmus[i]._inputsOutputs
-                           for j in xrange(len(toinputoutputvar)):
-                                varname = toinputoutputvar[j]['name']
-                                if (tovar == varname):
-                                    outputVar=toinputoutputvar[j]
+                    if (name == toFmuName):
+                        toFMU = self._fmusListModel._fmus[i]
+                        toinputoutputvar = self._fmusListModel._fmus[i]._inputsOutputs
+                        for j in xrange(len(toinputoutputvar)):
+                            varname = toinputoutputvar[j]['name']
+                            if (tovar == varname):
+                                outputVar=toinputoutputvar[j]
 
                 if (fromFMU is None or inputVar is None or toFMU is None or outputVar is None):
                     pass
@@ -512,25 +512,25 @@ class ConnectFMUsDialog(QtGui.QDialog):
         if (fromFMU is None or inputVar is None or toFMU is None or outputVar is None):
             pass
         else:
-          if(fromFMU!=toFMU):
-            if(inputVar['type']==outputVar['type']):
-               if(inputVar['causality']!=outputVar['causality']):
-                  if self._connectionsListModel.addConnection(fromFMU, inputVar, toFMU, outputVar):
-                     self._connectionsTableView.resizeColumnsToContents()
-                  else:
-                     QtGui.QMessageBox().information(self, self.tr("Information"),
-                              self.tr("This connection already exists."), QtGui.QMessageBox.Ok)
-               else:
-                 causalitymismatch="Invalid connection of component"+' '+str(inputVar['causality'])+' '+'connected to' +' '+str(outputVar['causality'])
-                 QtGui.QMessageBox().information(self, self.tr("causality Mismatch"),
-                              self.tr(causalitymismatch), QtGui.QMessageBox.Ok)
+            if(fromFMU!=toFMU):
+                if(inputVar['type']==outputVar['type']):
+                    if(inputVar['causality']!=outputVar['causality']):
+                        if self._connectionsListModel.addConnection(fromFMU, inputVar, toFMU, outputVar):
+                            self._connectionsTableView.resizeColumnsToContents()
+                        else:
+                            QtGui.QMessageBox().information(self, self.tr("Information"),
+                                     self.tr("This connection already exists."), QtGui.QMessageBox.Ok)
+                    else:
+                        causalitymismatch="Invalid connection of component"+' '+str(inputVar['causality'])+' '+'connected to' +' '+str(outputVar['causality'])
+                        QtGui.QMessageBox().information(self, self.tr("causality Mismatch"),
+                                     self.tr(causalitymismatch), QtGui.QMessageBox.Ok)
+                else:
+                    typemismatch="Invalid connection of type"+' '+str(inputVar['type'])+' '+'to'+' '+str(outputVar['type'])
+                    QtGui.QMessageBox().information(self, self.tr("Type Mismatch"),
+                                 self.tr(typemismatch), QtGui.QMessageBox.Ok)
             else:
-                 typemismatch="Invalid connection of type"+' '+str(inputVar['type'])+' '+'to'+' '+str(outputVar['type'])
-                 QtGui.QMessageBox().information(self, self.tr("Type Mismatch"),
-                              self.tr(typemismatch), QtGui.QMessageBox.Ok)
-          else:
-                 QtGui.QMessageBox().information(self, self.tr("Type Mismatch"),
-                              self.tr("Algebraic Loop: Components of same instance should not be connected "), QtGui.QMessageBox.Ok)
+                QtGui.QMessageBox().information(self, self.tr("Type Mismatch"),
+                             self.tr("Algebraic Loop: Components of same instance should not be connected "), QtGui.QMessageBox.Ok)
 
     def removeFromToConnection(self):
         i = 0
@@ -565,12 +565,12 @@ class ConnectFMUsDialog(QtGui.QDialog):
         xml = prettify(rootElement)
 
         if fileName is not None:
-          try:
-            xmlFile = codecs.open(fileName, "w", "utf-8")
-            xmlFile.write(xml)
-            xmlFile.close()
-          except IOError, e:
-            print "Failed to write the xml file. %s" % e
+            try:
+                xmlFile = codecs.open(fileName, "w", "utf-8")
+                xmlFile.write(xml)
+                xmlFile.close()
+            except IOError, e:
+                print "Failed to write the xml file. %s" % e
 
         self.accept()
         StartSimulation(self._gui, xml, fileName, self._fmuType)

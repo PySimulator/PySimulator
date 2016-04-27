@@ -118,32 +118,32 @@ class _fmiCallbackFunctions(ctypes.Structure):
 
 class FMUInterface:
     ''' This class encapsulates the FMU C-Interface
-        all fmi* functions are a public interface to the FMU-functions        
+        all fmi* functions are a public interface to the FMU-functions
     '''
     def __init__(self, fileName, parent=None, loggingOn=True, preferredFmiType='me'):
         ''' Load an FMU-File and start a new instance
             @param fileName: complete path and name of FMU-file (.fmu)
             @type fileName: string
         '''
-        
+
         ''' Need instanceName when dealing with connected FMUs
             We need to build a proper scalar variable name like FMU.var.X.X
             Used in FMIDescription2_Connected.py
         '''
         self.instanceName = None
-        
+
         self.activeFmiType = preferredFmiType  # 'me' or 'cs'
         self.visible = fmiFalse
-        
+
         self._loggingOn = loggingOn
-        self._tempDir = tempfile.mkdtemp()     
+        self._tempDir = tempfile.mkdtemp()
 
         ''' Open the given fmu-file (read only)'''
         try:
-            self._file = zipfile.ZipFile(fileName, 'r')                  
+            self._file = zipfile.ZipFile(fileName, 'r')
             self._file.extractall(self._tempDir)
             self._file.close()
-            
+
         except BaseException as e:
             raise FMUError.FMUError('Error when reading zip-file.\n' + str(e) + '\n')
 
@@ -159,12 +159,12 @@ class FMUInterface:
             xmlFileHandle = open(os.path.join(self._tempDir,'modelDescription.xml'))
         except BaseException as e:
             raise FMUError.FMUError('Error when reading modelDescription.xml\n' + str(e) + '\n')
-        
+
         self.description = FMIDescription(xmlFileHandle)
         if self.description.me is None:
             self.activeFmiType = 'cs'
         elif self.description.cs is None:
-            self.activeFmiType = 'me'      
+            self.activeFmiType = 'me'
         self._InstantiateModel()
         self._createCInterface()
 
@@ -195,7 +195,7 @@ class FMUInterface:
     def _InstantiateModel(self):
         ''' unpacks the model binary and loads it into memory
         '''
-        self._binaryName = os.path.join(self._tempDir, self._assembleBinaryName(self.description.me.modelIdentifier if self.activeFmiType=='me' else self.description.cs.modelIdentifier))       
+        self._binaryName = os.path.join(self._tempDir, self._assembleBinaryName(self.description.me.modelIdentifier if self.activeFmiType=='me' else self.description.cs.modelIdentifier))
 
         def _Logger(c, instanceName, status, category, message):
             if self._loggingOn:
@@ -203,10 +203,10 @@ class FMUInterface:
                 #f.write(str(status) + " " + str(category) + " " + message + "\n")
                 #f.close()
                 print(message)
-                
-                # self.log.append( (c, instanceName, status, category, message) )        
 
-        
+                # self.log.append( (c, instanceName, status, category, message) )
+
+
         ''' mapping of memory management functions for FMU to operating system functions, depending on OS.
             For Linux it refers to the std-C library - this should always be present
         '''
@@ -219,7 +219,7 @@ class FMUInterface:
         c_lib.calloc.restype = ctypes.c_void_p
         c_lib.calloc.argtypes = [ctypes.c_size_t, ctypes.c_size_t]
         c_lib.free.restype = None
-        c_lib.free.argtypes = [ctypes.c_void_p]    
+        c_lib.free.argtypes = [ctypes.c_void_p]
         self._fmiCallbackFunctions = _fmiCallbackFunctions(
                                  logger=Logger(_Logger),
                                  allocateMemory=AllocateMemory(c_lib.calloc),
@@ -246,7 +246,7 @@ class FMUInterface:
     def freeLibrary(self):
         ''' Call FMU destructor before being destructed. Just cleaning up. '''
         if hasattr(self, '_library'):
-            self.freeModelInstance()            
+            self.freeModelInstance()
             _ctypes.FreeLibrary(self._libraryHandle)
 
     def free(self):
@@ -284,15 +284,15 @@ class FMUInterface:
         self._fmiSetupExperiment = getattr(self._library, 'fmi2SetupExperiment')
         self._fmiSetupExperiment.argtypes = [fmiComponent, fmiBoolean, fmiReal, fmiReal, fmiBoolean, fmiReal]
         self._fmiSetupExperiment.restype = fmiStatus
-        
+
         self._fmiEnterInitializationMode = getattr(self._library, 'fmi2EnterInitializationMode')
         self._fmiEnterInitializationMode.argtypes = [fmiComponent]
         self._fmiEnterInitializationMode.restype = fmiStatus
-        
+
         self._fmiExitInitializationMode = getattr(self._library, 'fmi2ExitInitializationMode')
         self._fmiExitInitializationMode.argtypes = [fmiComponent]
         self._fmiExitInitializationMode.restype = fmiStatus
-        
+
         self._fmiTerminate = getattr(self._library, 'fmi2Terminate')
         self._fmiTerminate.argtypes = [fmiComponent]
         self._fmiTerminate.restype = fmiStatus
@@ -300,7 +300,7 @@ class FMUInterface:
         self._fmiReset = getattr(self._library, 'fmi2Reset')
         self._fmiReset.argtypes = [fmiComponent]
         self._fmiReset.restype = fmiStatus
-        
+
         self._fmiGetReal = getattr(self._library, 'fmi2GetReal')
         self._fmiGetReal.argtypes = [fmiComponent, fmiValueReferenceVector, ctypes.c_size_t, fmiRealVector]
         self._fmiGetReal.restype = fmiStatus
@@ -316,7 +316,7 @@ class FMUInterface:
         self._fmiGetString = getattr(self._library, 'fmi2GetString')
         self._fmiGetString.argtypes = [fmiComponent, fmiValueReferenceVector, ctypes.c_size_t, fmiStringVector]
         self._fmiGetString.restype = fmiStatus
-        
+
         self._fmiSetReal = getattr(self._library, 'fmi2SetReal')
         self._fmiSetReal.argtypes = [fmiComponent, fmiValueReferenceVector, ctypes.c_size_t, fmiRealVector]
         self._fmiSetReal.restype = fmiStatus
@@ -332,117 +332,117 @@ class FMUInterface:
         self._fmiSetString = getattr(self._library, 'fmi2SetString')
         self._fmiSetString.argtypes = [fmiComponent, fmiValueReferenceVector, ctypes.c_size_t, fmiStringVector]
         self._fmiSetString.restype = fmiStatus
-        
+
         self._fmiGetFMUstate = getattr(self._library, 'fmi2GetFMUstate')
         self._fmiGetFMUstate.argtypes = [fmiComponent, fmiFMUstatePtr]
         self._fmiGetFMUstate.restype = fmiStatus
-        
+
         self._fmiSetFMUstate = getattr(self._library, 'fmi2SetFMUstate')
         self._fmiSetFMUstate.argtypes = [fmiComponent, fmiFMUstate]
         self._fmiSetFMUstate.restype = fmiStatus
-        
+
         self._fmiFreeFMUstate = getattr(self._library, 'fmi2FreeFMUstate')
         self._fmiFreeFMUstate.argtypes = [fmiComponent, fmiFMUstatePtr]
         self._fmiFreeFMUstate.restype = fmiStatus
-        
+
         self._fmiSerializedFMUstateSize = getattr(self._library, 'fmi2SerializedFMUstateSize')
         self._fmiSerializedFMUstateSize.argtypes = [fmiComponent, fmiFMUstate, ctypes.POINTER(ctypes.c_size_t)]
         self._fmiSerializedFMUstateSize.restype = fmiStatus
-        
+
         self._fmiSerializeFMUstate = getattr(self._library, 'fmi2SerializeFMUstate')
         self._fmiSerializeFMUstate.argtypes = [fmiComponent, fmiFMUstate, fmiByteVector, ctypes.c_size_t]
         self._fmiSerializeFMUstate.restype = fmiStatus
-        
+
         self._fmiDeSerializeFMUstate = getattr(self._library, 'fmi2DeSerializeFMUstate')
         self._fmiDeSerializeFMUstate.argtypes = [fmiComponent, fmiByteVector, ctypes.c_size_t, fmiFMUstatePtr]
         self._fmiDeSerializeFMUstate.restype = fmiStatus
-        
+
         self._fmiGetDirectionalDerivative = getattr(self._library, 'fmi2GetDirectionalDerivative')
         self._fmiGetDirectionalDerivative.argtypes = [fmiComponent, fmiValueReferenceVector, ctypes.c_size_t, fmiValueReferenceVector, ctypes.c_size_t, fmiRealVector, fmiRealVector]
         self._fmiGetDirectionalDerivative.restype = fmiStatus
-        
-        
+
+
         if self.activeFmiType == 'me':
-        
+
             self._fmiEnterEventMode = getattr(self._library, 'fmi2EnterEventMode')
             self._fmiEnterEventMode.argtypes = [fmiComponent]
             self._fmiEnterEventMode.restype = fmiStatus
-            
+
             self._fmiNewDiscreteStates = getattr(self._library, 'fmi2NewDiscreteStates')
             self._fmiNewDiscreteStates.argtypes = [fmiComponent, ctypes.POINTER(fmiEventInfo)]
             self._fmiNewDiscreteStates.restype = fmiStatus
-            
+
             self._fmiEnterContinuousTimeMode = getattr(self._library, 'fmi2EnterContinuousTimeMode')
             self._fmiEnterContinuousTimeMode.argtypes = [fmiComponent]
             self._fmiEnterContinuousTimeMode.restype = fmiStatus
-            
+
             self._fmiCompletedIntegratorStep = getattr(self._library, 'fmi2CompletedIntegratorStep')
             self._fmiCompletedIntegratorStep.argtypes = [fmiComponent, fmiBoolean, fmiBooleanPtr, fmiBooleanPtr]
             self._fmiCompletedIntegratorStep.restype = fmiStatus
-            
+
             self._fmiSetTime = getattr(self._library, 'fmi2SetTime')
             self._fmiSetTime.argtypes = [fmiComponent, fmiReal]
             self._fmiSetTime.restype = fmiStatus
-    
+
             self._fmiSetContinuousStates = getattr(self._library, 'fmi2SetContinuousStates')
             self._fmiSetContinuousStates.argtypes = [fmiComponent, fmiRealVector, ctypes.c_size_t]
             self._fmiSetContinuousStates.restype = fmiStatus
-            
+
             self._fmiGetDerivatives = getattr(self._library, 'fmi2GetDerivatives')
             self._fmiGetDerivatives.argtypes = [fmiComponent, fmiRealVector, ctypes.c_size_t]
             self._fmiGetDerivatives.restype = fmiStatus
-    
+
             self._fmiGetEventIndicators = getattr(self._library, 'fmi2GetEventIndicators')
             self._fmiGetEventIndicators.argtypes = [fmiComponent, fmiRealVector, ctypes.c_size_t]
             self._fmiGetEventIndicators.restype = fmiStatus
-            
+
             self._fmiGetContinuousStates = getattr(self._library, 'fmi2GetContinuousStates')
             self._fmiGetContinuousStates.argtypes = [fmiComponent, fmiRealVector, ctypes.c_size_t]
             self._fmiGetContinuousStates.restype = fmiStatus
-    
+
             self._fmiGetNominalsOfContinuousStates = getattr(self._library, 'fmi2GetNominalsOfContinuousStates')
             self._fmiGetNominalsOfContinuousStates.argtypes = [fmiComponent, fmiRealVector, ctypes.c_size_t]
             self._fmiGetNominalsOfContinuousStates.restype = fmiStatus
-            
-        elif self.activeFmiType == 'cs':       
-        
+
+        elif self.activeFmiType == 'cs':
+
             self._fmiSetRealInputDerivatives = getattr(self._library, 'fmi2SetRealInputDerivatives')
             self._fmiSetRealInputDerivatives.argtypes = [fmiComponent, fmiValueReferenceVector, ctypes.c_size_t, fmiIntegerVector, fmiRealVector]
             self._fmiSetRealInputDerivatives.restype = fmiStatus
-            
+
             self._fmiGetRealOutputDerivatives = getattr(self._library, 'fmi2GetRealOutputDerivatives')
             self._fmiGetRealOutputDerivatives.argtypes = [fmiComponent, fmiValueReferenceVector, ctypes.c_size_t, fmiIntegerVector, fmiRealVector]
             self._fmiGetRealOutputDerivatives.restype = fmiStatus
-            
+
             self._fmiDoStep = getattr(self._library, 'fmi2DoStep')
             self._fmiDoStep.argtypes = [fmiComponent, fmiReal, fmiReal, fmiBoolean]
             self._fmiDoStep.restype = fmiStatus
-            
+
             self._fmiCancelStep = getattr(self._library, 'fmi2CancelStep')
             self._fmiCancelStep.argtypes = [fmiComponent]
             self._fmiCancelStep.restype = fmiStatus
-            
+
             self._fmiGetStatus = getattr(self._library, 'fmi2GetStatus')
             self._fmiGetStatus.argtypes = [fmiComponent, fmiStatusKind, ctypes.POINTER(fmiStatus)]
             self._fmiGetStatus.restype = fmiStatus
-            
+
             self._fmiGetRealStatus = getattr(self._library, 'fmi2GetRealStatus')
             self._fmiGetRealStatus.argtypes = [fmiComponent, fmiStatusKind, ctypes.POINTER(fmiReal)]
             self._fmiGetRealStatus.restype = fmiStatus
-            
+
             self._fmiGetIntegerStatus = getattr(self._library, 'fmi2GetIntegerStatus')
             self._fmiGetIntegerStatus.argtypes = [fmiComponent, fmiStatusKind, ctypes.POINTER(fmiInteger)]
             self._fmiGetIntegerStatus.restype = fmiStatus
-     
+
             self._fmiGetBooleanStatus = getattr(self._library, 'fmi2GetBooleanStatus')
             self._fmiGetBooleanStatus.argtypes = [fmiComponent, fmiStatusKind, ctypes.POINTER(fmiBoolean)]
             self._fmiGetBooleanStatus.restype = fmiStatus
-     
+
             self._fmiGetStringStatus = getattr(self._library, 'fmi2GetStringStatus')
             self._fmiGetStringStatus.argtypes = [fmiComponent, fmiStatusKind, ctypes.POINTER(fmiString)]
             self._fmiGetStringStatus.restype = fmiStatus
- 
-              
+
+
     def fmiGetTypesPlatform(self):
         return self._fmiGetTypesPlatform()
 
@@ -454,19 +454,19 @@ class FMUInterface:
 
     def fmiSetupExperiment(self, toleranceDefined, tolerance, startTime, stopTimeDefined, stopTime):
         return self._fmiSetupExperiment(self._fmiComponent, toleranceDefined, tolerance, startTime, stopTimeDefined, stopTime)
-    
+
     def fmiEnterInitializationMode(self):
         return self._fmiEnterInitializationMode(self._fmiComponent)
-    
+
     def fmiExitInitializationMode(self):
         return self._fmiExitInitializationMode(self._fmiComponent)
-    
+
     def fmiTerminate(self):
         return self._fmiTerminate(self._fmiComponent)
-    
+
     def fmiReset(self):
         return self._fmiReset(self._fmiComponent)
-    
+
     def fmiGetReal(self, valueReference):
         value = createfmiRealVector(len(valueReference))
         status = self._fmiGetReal(self._fmiComponent, valueReference.ctypes.data_as(fmiValueReferenceVector), len(valueReference), value.ctypes.data_as(fmiRealVector))
@@ -486,7 +486,7 @@ class FMUInterface:
         value = createfmiStringVector(len(valueReference))
         status = self._fmiGetString(self._fmiComponent, valueReference.ctypes.data_as(fmiValueReferenceVector), len(valueReference), value)
         return status, value
-   
+
     def fmiSetReal(self, valueReference, value):
         if len(valueReference) != len(value):
             raise IndexError('length of valueReference not corresponding to length of value')
@@ -507,58 +507,58 @@ class FMUInterface:
             raise IndexError('length of valueReference not corresponding to length of value')
         return self._fmiSetString(self._fmiComponent, valueReference.ctypes.data_as(fmiValueReferenceVector), len(valueReference), value.ctypes.data_as(fmiStringVector))
 
-    def fmiGetFMUstate(self):              
-        FMUstate = ctypes.c_void_p()        
-        status = self._fmiGetFMUstate(self._fmiComponent, ctypes.byref(FMUstate))        
+    def fmiGetFMUstate(self):
+        FMUstate = ctypes.c_void_p()
+        status = self._fmiGetFMUstate(self._fmiComponent, ctypes.byref(FMUstate))
         return status, FMUstate
- 
+
     def fmiSetFMUstate(self, FMUstate):
         status = self._fmiSetFMUstate(self._fmiComponent, FMUstate)
         return status
-   
+
     def fmiFreeFMUstate(self, FMUstate):
         status = self._fmiFreeFMUstate(self._fmiComponent, ctypes.byref(FMUstate))
         return status, FMUstate
-   
+
     def fmiSerializedFMUstateSize(self, FMUstate):
         size = ctypes.c_size_t()
         status = self._fmiSerializedFMUstateSize(self._fmiComponent, FMUstate, ctypes.byref(size))
         return status, size
-    
-    def fmiSerializeFMUstate(self, FMUstate, size):        
-        byteVector = (fmiByte*size.value)()        
+
+    def fmiSerializeFMUstate(self, FMUstate, size):
+        byteVector = (fmiByte*size.value)()
         status = self._fmiSerializeFMUstate(self._fmiComponent, FMUstate, byteVector, size)
         return status, byteVector
-   
+
     def fmiDeSerializeFMUstate(self, byteVector):
         FMUstate = ctypes.c_void_p()
         size = ctypes.c_size_t(len(byteVector))
         status = self._fmiDeSerializeFMUstate(self._fmiComponent, byteVector, size, ctypes.byref(FMUstate))
         return status, FMUstate
-    
+
     def fmiGetDirectionalDerivative(self, vUnknown_ref, vKnown_ref, dvKnown):
         dvUnknown = createfmiRealVector(len(vUnknown_ref))
-        status = self._fmiGetDirectionalDerivative(self._fmiComponent, vUnknown_ref.ctypes.data_as(fmiValueReferenceVector), len(vUnknown_ref), 
+        status = self._fmiGetDirectionalDerivative(self._fmiComponent, vUnknown_ref.ctypes.data_as(fmiValueReferenceVector), len(vUnknown_ref),
                                                    vKnown_ref.ctypes.data_as(fmiValueReferenceVector), len(vKnown_ref), dvKnown.ctypes.data_as(fmiRealVector), dvUnknown)
         return status, dvUnknown
-    
+
     def fmiEnterEventMode(self):
         status = self._fmiEnterEventMode(self._fmiComponent)
         return status
-    
+
     def fmiNewDiscreteStates(self):
         eventInfo = fmiEventInfo()
         status = self._fmiNewDiscreteStates(self._fmiComponent, eventInfo)
         return status, eventInfo
-    
+
     def fmiEnterContinuousTimeMode(self):
         status = self._fmiEnterContinuousTimeMode(self._fmiComponent)
         return status
-    
+
     def fmiCompletedIntegratorStep(self, noSetFMUStatePriorToCurrentPoint):
         enterEventMode = fmiBoolean()
-        terminateSimulation = fmiBoolean()        
-        status = self._fmiCompletedIntegratorStep(self._fmiComponent, fmiTrue if noSetFMUStatePriorToCurrentPoint else fmiFalse, 
+        terminateSimulation = fmiBoolean()
+        status = self._fmiCompletedIntegratorStep(self._fmiComponent, fmiTrue if noSetFMUStatePriorToCurrentPoint else fmiFalse,
                                                   ctypes.byref(enterEventMode), ctypes.byref(terminateSimulation))
         return status, enterEventMode.value==fmiTrue, terminateSimulation.value==fmiTrue
 
@@ -580,7 +580,7 @@ class FMUInterface:
         ret = createfmiRealVector(int(self.description.numberOfEventIndicators))
         status = self._fmiGetEventIndicators(self._fmiComponent, ret.ctypes.data_as(fmiRealVector), int(self.description.numberOfEventIndicators))
         return status, ret
-   
+
     def fmiGetContinuousStates(self):
         value = createfmiRealVector(self.description.numberOfContinuousStates)
         status = self._fmiGetContinuousStates(self._fmiComponent, value.ctypes.data_as(fmiRealVector), self.description.numberOfContinuousStates)
@@ -590,51 +590,51 @@ class FMUInterface:
         value = createfmiRealVector(self.description.numberOfContinuousStates)
         status = self._fmiGetNominalsOfContinuousStates(self._fmiComponent, value.ctypes.data_as(fmiRealVector), self.description.numberOfContinuousStates)
         return status, value
-    
+
     def fmiSetRealInputDerivatives(self, valueReference, order, value):
-        status = self._fmiSetRealInputDerivatives(self._fmiComponent, valueReference.ctypes.data_as(fmiValueReferenceVector), len(valueReference), 
+        status = self._fmiSetRealInputDerivatives(self._fmiComponent, valueReference.ctypes.data_as(fmiValueReferenceVector), len(valueReference),
                                                   order.ctypes.data_as(fmiIntegerVector), value.ctypes.data_as(fmiRealVector))
         return status
-    
+
     def fmiGetRealOutputDerivatives(self, valueReference, order):
         value = createfmiRealVector(len(valueReference))
-        status = self._fmiGetRealOutputDerivatives(self._fmiComponent, valueReference.ctypes.data_as(fmiValueReferenceVector), len(valueReference), 
+        status = self._fmiGetRealOutputDerivatives(self._fmiComponent, valueReference.ctypes.data_as(fmiValueReferenceVector), len(valueReference),
                                                   order.ctypes.data_as(fmiIntegerVector), value.ctypes.data_as(fmiRealVector))
         return status, value
-    
+
     def fmiDoStep(self, currentCommunicationPoint, communicationStepSize, noSetFMUStatePriorToCurrentPoint):
         status = self._fmiDoStep(self._fmiComponent, currentCommunicationPoint, communicationStepSize, noSetFMUStatePriorToCurrentPoint)
         return status
-        
+
     def fmiCancelStep(self):
         status = self._fmiCancelStep(self._fmiComponent)
         return status
-    
+
     def fmiGetStatus(self, kind):
-        value = fmiStatus()        
+        value = fmiStatus()
         status = self._fmiGetStatus(self._fmiComponent, kind, ctypes.byref(value))
         return status, value.value
-    
+
     def fmiGetRealStatus(self, kind):
         value = fmiReal()
         status = self._fmiGetRealStatus(self._fmiComponent, kind, ctypes.byref(value))
-        return status, value.value 
+        return status, value.value
 
     def fmiGetIntegerStatus(self, kind):
         value = fmiInteger()
         status = self._fmiGetIntegerStatus(self._fmiComponent, kind, ctypes.byref(value))
         return status, value.value
-    
+
     def fmiGetBooleanStatus(self, kind):
         value = fmiBoolean()
         status = self._fmiGetBooleanStatus(self._fmiComponent, kind, ctypes.byref(value))
         return status, value.value
-    
+
     def fmiGetStringStatus(self, kind):
         value = fmiString()
         status = self._fmiGetStringStatus(self._fmiComponent, kind, ctypes.byref(value))
         return status, value.value
-        
+
 
 
 
@@ -643,19 +643,18 @@ if __name__ == '__main__':
     fmu.fmiInstantiate()
     fmu.fmiSetupExperiment(fmiTrue, 1e-6, 0.0, fmiTrue, 1.0)
     fmu.fmiEnterInitializationMode()
-    fmu.fmiExitInitializationMode()   
+    fmu.fmiExitInitializationMode()
     status, state = fmu.fmiGetFMUstate()
     print status, state
-    
+
     fmu.fmiSetFMUstate(state)
-    
-    
+
+
     status, size = fmu.fmiSerializedFMUstateSize(state)
     status, vec = fmu.fmiSerializeFMUstate(state, size)
-    
-    status, state = fmu.fmiFreeFMUstate(state)
-    print status, state  
-    
-    
-    fmu.free()
 
+    status, state = fmu.fmiFreeFMUstate(state)
+    print status, state
+
+
+    fmu.free()

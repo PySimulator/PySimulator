@@ -52,7 +52,7 @@ class FMIVarType(Enum):
 
 class FMUInterface:
     ''' This class encapsulates the FMU C-Interface
-        all fmi* functions are a public interface to the FMU-functions        
+        all fmi* functions are a public interface to the FMU-functions
     '''
     def __init__(self, connectedfmusitems, xml, connectionorder, parent=None, loggingOn=True, preferredFmiType='me'):
         ''' Load an FMU-File and start a new instance
@@ -64,7 +64,7 @@ class FMUInterface:
         self.FMUInterfaces = {}
         self.activeFmiType = preferredFmiType  # 'me' or 'cs'
         self.visible = 0
-        
+
         self._loggingOn = loggingOn
         self._tempDir = tempfile.mkdtemp()
         # create FMUInterface objects
@@ -74,7 +74,7 @@ class FMUInterface:
             FMUInterfaceObj.instanceName = connectedfmusitems[i]['instancename']
             # assuming we won't get FMUs more than 999.
             self.FMUInterfaces[str(i+1).ljust(3, '0')] = FMUInterfaceObj
-        
+
         self.description = FMIDescription2_Connected.FMIDescription(self.FMUInterfaces)
 
                 # read the xml to know the connections
@@ -224,7 +224,7 @@ class FMUInterface:
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             status.append(FMUInterfaceObj.fmiEnterInitializationMode())
         return max(status)
-    
+
     def fmiExitInitializationMode(self):
         status = []
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():

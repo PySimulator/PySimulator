@@ -43,9 +43,9 @@ class FMIDescription:
         self.defaultTolerance = None
         self.defaultStepSize = None
         self.scalarVariables = collections.OrderedDict()
-        
+
         self.fmiVersion = None
-        self.modelName = None     
+        self.modelName = None
         self.guid = None
         self.description = None
         self.author = None
@@ -54,21 +54,21 @@ class FMIDescription:
         self.license = None
         self.generationTool = None
         self.generationDateAndTime = None
-        self.variableNamingConvention = 'flat'        
+        self.variableNamingConvention = 'flat'
         self.numberOfEventIndicators = None
-        
+
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             description = FMUInterfaceObj.description
-            
+
             self.me = description.me
             self.cs = description.cs
             self.defaultStartTime = description.defaultStartTime
             self.defaultStopTime = description.defaultStopTime
             self.defaultTolerance = description.defaultTolerance
             self.defaultStepSize = description.defaultStepSize
-            
+
             self.fmiVersion = description.fmiVersion
-            self.modelName = description.modelName     
+            self.modelName = description.modelName
             self.guid = description.guid
             self.description = description.description
             self.author = description.author
@@ -77,9 +77,9 @@ class FMIDescription:
             self.license = description.license
             self.generationTool = description.generationTool
             self.generationDateAndTime = description.generationDateAndTime
-            self.variableNamingConvention = description.variableNamingConvention        
+            self.variableNamingConvention = description.variableNamingConvention
             self.numberOfEventIndicators = description.numberOfEventIndicators
-            
+
             for scalarName, var in description.scalarVariables.iteritems():
                 scalarName = FMUInterfaceObj.instanceName + '.' + scalarName
                 var.valueReference = key + var.valueReference
