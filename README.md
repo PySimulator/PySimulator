@@ -25,10 +25,11 @@ with PySimulator](http:www.modprod.liu.se/modprod2013-program/1.456422/modprod20
 * Run PySimulator by clicking on the desktop icon after the installation.
 * Further information about the installation can be found in the [wiki](../../wiki/Installation).
 
-####
-
 ####Release notes
 
+* Additional features of the master branch:
+- Import of FMUs according to FMI 2.0 for Model Exchange and Co-Simulation
+- Simulator plugin for Wolfram SystemModeler
 
 * [Version 0.61](https://github.com/PySimulator/PySimulator/archive/0.61.zip) (2014-03-07) for 10th Modelica Conference 2014:
  - Added Simulator plugin SimulationX
