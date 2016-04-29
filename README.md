@@ -27,7 +27,7 @@ with PySimulator](http:www.modprod.liu.se/modprod2013-program/1.456422/modprod20
 
 ####Release notes
 
-* Additional features of the [master branch]:
+* Additional features of the master branch:
  - Import of FMUs according to FMI 2.0 for Model Exchange and Co-Simulation
  - Simulator plugin for Wolfram SystemModeler
 
