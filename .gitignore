@@ -7,4 +7,5 @@ PySimulator.egg-info/*
 PySimulator.psproj
 .idea/*
 PySimulator/Plugins/Simulator/Wolfram/pythonica/build/*
+.spyderworkspace
 .spyderproject
