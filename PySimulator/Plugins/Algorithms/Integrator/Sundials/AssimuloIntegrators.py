@@ -28,11 +28,13 @@ from assimulo.solvers import CVode, IDA, RungeKutta34
 
 import numpy as np
 
+
+'''
 try:
     import sundials
 except:
     raise ImportError('No module named sundials')
-
+'''
 
 class AssimuloRK34():
     '''Function for using the RK34 solver of Assimulo.
@@ -451,6 +453,7 @@ class AssimuloRK():
         self.finalize()
 
 
+'''
 class SundialsIDA():
 
     def __init__(self):
@@ -487,7 +490,7 @@ class SundialsIDA():
 
     def simulate(self, Tend, nIntervals, gridWidth):
 
-        ''' Create Solver and set settings '''
+        # Create Solver and set settings 
         noRootFunctions = np.size(self.state_events(self.t0, np.array(self.y0)))
         solver = sundials.IDASolver(RES=self.f, ROOT=self.rootf, SW=[False] * noRootFunctions,
                        abstol=self.atol, reltol=self.rtol)
@@ -502,7 +505,7 @@ class SundialsIDA():
 
 
 
-        '''Initialize problem '''
+        # Initialize problem 
         solver.init(self.t0, self.y0, self.yd0)
         self.handle_result(self.t0, self.y0)
         nextTimeEvent = self.time_events(self.t0, self.y0)
@@ -585,3 +588,4 @@ class SundialsIDA():
 
         self.finalize()
 
+'''
