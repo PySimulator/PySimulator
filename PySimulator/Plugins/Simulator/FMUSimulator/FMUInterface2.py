@@ -247,7 +247,12 @@ class FMUInterface:
         ''' Call FMU destructor before being destructed. Just cleaning up. '''
         if hasattr(self, '_library'):
             self.freeModelInstance()
-            _ctypes.FreeLibrary(self._libraryHandle)
+            if platform.system() == 'Linux':
+                _ctypes.dlclose(self._libraryHandle)
+            elif platform.system() == 'Windows':
+                _ctypes.FreeLibrary(self._libraryHandle)
+            else:
+                raise FMUError.FMUError('Unknown platform: %s\n' % platform.system())
 
     def free(self):
         self.freeLibrary()
