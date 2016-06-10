@@ -503,6 +503,9 @@ class Model(SimulatorBase.Model):
                 Returns True,  if there was a step event
                         False, if there was no step event
             '''
+            if self.isConnected is True:
+                self.interface.fmiCompletedIntegratorStep()
+                
             return False  # to be done for FMI2.0
             '''
             if self.interface.fmiCompletedIntegratorStep() == fmiTrue:

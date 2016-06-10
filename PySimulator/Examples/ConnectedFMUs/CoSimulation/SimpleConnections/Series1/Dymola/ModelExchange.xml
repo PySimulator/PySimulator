@@ -1,0 +1,12 @@
+<?xml version="1.0" ?>
+<connectedFmus type="me">
+  <fmus>
+    <fmu name="Modelica_Blocks_Sources_Sine1" path="C:/FMUPysimulator/PySimulator/PySimulator/Examples/ConnectedFMUs/CoSimulation/SimpleConnections/Series1/Dymola/Modelica_Blocks_Sources_Sine.fmu"/>
+    <fmu name="FMITest_SimpleConnections_Series1_FMUModels_Gain11" path="C:/FMUPysimulator/PySimulator/PySimulator/Examples/ConnectedFMUs/CoSimulation/SimpleConnections/Series1/Dymola/FMITest_SimpleConnections_Series1_FMUModels_Gain1.fmu"/>
+    <fmu name="FMITest_SimpleConnections_Series1_FMUModels_Gain21" path="C:/FMUPysimulator/PySimulator/PySimulator/Examples/ConnectedFMUs/CoSimulation/SimpleConnections/Series1/Dymola/FMITest_SimpleConnections_Series1_FMUModels_Gain2.fmu"/>
+  </fmus>
+  <connections>
+    <connection fromFmuName="Modelica_Blocks_Sources_Sine1" fromVariableName="y" toFmuName="FMITest_SimpleConnections_Series1_FMUModels_Gain11" toVariableName="u"/>
+    <connection fromFmuName="FMITest_SimpleConnections_Series1_FMUModels_Gain11" fromVariableName="y" toFmuName="FMITest_SimpleConnections_Series1_FMUModels_Gain21" toVariableName="u"/>
+  </connections>
+</connectedFmus>

@@ -292,3 +292,67 @@ class FMUInterface:
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             status.append(FMUInterfaceObj.fmiDoStep(currentCommunicationPoint, communicationStepSize, noSetFMUStatePriorToCurrentPoint))
         return max(status)
+     
+    ## FMI functions for ModelExchange  ## 
+    def fmiSetTime(self,tstart):
+        status=[]
+        for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
+            status.append(FMUInterfaceObj.fmiSetTime(tstart))
+        return max(status)
+    
+    def fmiNewDiscreteStates(self):
+        ## doubts in this function,regarding returning the eventinfo from interface functions
+        status=[]
+        for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
+            status.append(FMUInterfaceObj.fmiNewDiscreteStates())
+        return max(status)
+    
+    def fmiEnterContinuousTimeMode(self):
+        status=[]
+        for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
+            status.append(FMUInterfaceObj.fmiEnterContinuousTimeMode())
+        return max(status)
+       
+    def fmiGetEventIndicators(self):
+        ## not sure on how to return the values
+        status=[]
+        for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
+            status.append(FMUInterfaceObj.fmiGetEventIndicators())
+        return max(status)
+     
+    def fmiGetContinuousStates(self):
+        ## not sure on how to return the values from fmi_interface functions
+        status = []
+        for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
+            status, value = FMUInterfaceObj.fmiGetContinuousStates()
+            statuses.append(status)
+        return max(status)       
+    
+    def fmiGetDerivatives(self):
+        ## not sure on how to return the values
+        status=[]
+        for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
+            status.append(FMUInterfaceObj.fmiGetDerivatives())
+        return max(status)    
+     
+    def fmiSetContinuousStates(self,x):
+        status=[]
+        for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
+            status.append(FMUInterfaceObj.fmiSetContinuousStates(x))
+        return max(status)
+    
+    def fmiEnterEventMode(self):
+        status=[]
+        for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
+            status.append(FMUInterfaceObj.fmiEnterEventMode())
+        return max(status)     
+         
+    def fmiCompletedIntegratorStep(self):
+       for i in xrange(len(self._connectionorder)):
+            for j in self._connectionorder[i]:
+                for ele in xrange(len(self._connections)):
+                    if self._connections[ele]['fromFmuName'] == j:
+                        fromName = self._connections[ele]['fromFmuName'] + '.' + self._connections[ele]['fromVariableName']
+                        fromValue = self.getValue(fromName)
+                        toName = self._connections[ele]['toFmuName'] + '.' + self._connections[ele]['toVariableName']
+                        self.setValue(toName, fromValue)
