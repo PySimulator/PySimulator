@@ -85,6 +85,9 @@ class FMIDescription:
             self.numberOfContinuousStates += description.numberOfContinuousStates
             
             for scalarName, var in description.scalarVariables.iteritems():
-                scalarName = FMUInterfaceObj.instanceName + '.' + scalarName
+                if (scalarName.startswith("der(")):
+                    scalarName = "der(" + FMUInterfaceObj.instanceName + '.' + scalarName[4:]
+                else:
+                    scalarName = FMUInterfaceObj.instanceName + '.' + scalarName
                 var.valueReference = key + var.valueReference
                 self.scalarVariables[scalarName] = var

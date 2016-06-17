@@ -37,6 +37,9 @@ import xml.etree.ElementTree as ET
 '''
 def createfmiReferenceVector(n):
     return (numpy.ndarray(n, numpy.long))
+    
+def createfmiRealVector(n):
+    return (numpy.ndarray(n, numpy.float))
 
 class FMUData:
     def __init__(self):
@@ -315,39 +318,72 @@ class FMUInterface:
        
     def fmiGetEventIndicators(self):
         ## not sure on how to return the values
-        status=[]
+        values = createfmiRealVector(self.description.numberOfEventIndicators)
+        statuses=[]
+        evector=[]
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
-            status.append(FMUInterfaceObj.fmiGetEventIndicators())
-        return max(status)
+            if (FMUInterfaceObj.description.numberOfEventIndicators!=0):
+                status,value=FMUInterfaceObj.fmiGetEventIndicators()
+                for i in xrange(len(value)):
+                    val=value[i]
+                    evector.append(val)
+                statuses.append(status)            
+        for z in xrange(len(evector)):
+            values[z]=evector[z]            
+        #print 'finalevantindicator',values
+        return max(statuses),values
      
     def fmiGetContinuousStates(self):
         ## not sure on how to return the values from fmi_interface functions
-        status = []
+        values =createfmiRealVector(self.description.numberOfContinuousStates)
+        statuses=[]
+        svector=[]
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
-            status, value = FMUInterfaceObj.fmiGetContinuousStates()
-            statuses.append(status)
-        return max(status)       
+            if (FMUInterfaceObj.description.numberOfContinuousStates!=0):
+                status, value = FMUInterfaceObj.fmiGetContinuousStates()
+                for i in xrange(len(value)):
+                    val=value[i]
+                    svector.append(val)
+                statuses.append(status)
+        for z in xrange(len(svector)):
+            values[z]=svector[z]
+        return max(statuses),values       
     
     def fmiGetDerivatives(self):
-        ## not sure on how to return the values
-        status=[]
+        ## not sure on how to return the values    
+        values =createfmiRealVector(self.description.numberOfContinuousStates)
+        statuses=[]
+        svector=[]
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
-            status.append(FMUInterfaceObj.fmiGetDerivatives())
-        return max(status)    
-     
+            status,value=FMUInterfaceObj.fmiGetDerivatives()
+            for i in xrange(len(value)):
+                val=value[i]
+                svector.append(val)
+            statuses.append(status)
+        for z in xrange(len(svector)):
+            values[z]=svector[z]
+        return max(statuses),values 
+        
     def fmiSetContinuousStates(self,x):
         status=[]
+        c=0
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
-            status.append(FMUInterfaceObj.fmiSetContinuousStates(x))
+            if (FMUInterfaceObj.description.numberOfContinuousStates!=0):
+                length=FMUInterfaceObj.description.numberOfContinuousStates
+                getval=x[c:length+c] 
+                c=c+length
+                status.append(FMUInterfaceObj.fmiSetContinuousStates(getval))
         return max(status)
     
     def fmiEnterEventMode(self):
+        ## this function is not implemented by DLR, but they are calling in handle_event
         status=[]
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             status.append(FMUInterfaceObj.fmiEnterEventMode())
         return max(status)     
          
     def fmiCompletedIntegratorStep(self):
+       #print 'insideCompetedstep'
        for i in xrange(len(self._connectionorder)):
             for j in self._connectionorder[i]:
                 for ele in xrange(len(self._connections)):
