@@ -301,15 +301,37 @@ class FMUInterface:
         status=[]
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             status.append(FMUInterfaceObj.fmiSetTime(tstart))
+        
+        self.ResolveConnection()        
         return max(status)
     
     def fmiNewDiscreteStates(self):
         ## doubts in this function,regarding returning the eventinfo from interface functions
-        status=[]
+        statuses=[]
+        eventinfo=[]
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
-            status.append(FMUInterfaceObj.fmiNewDiscreteStates())
-        return max(status)
-    
+            status,info=FMUInterfaceObj.fmiNewDiscreteStates()
+            statuses.append(status)
+            eventinfo.append(info)
+        
+        infolist=[]
+        for i in xrange(len(eventinfo)):
+             e=eventinfo[i]
+             #print e.nextEventTimeDefined,e.nextEventTime
+             if (e.nextEventTimeDefined==1):
+                  infolist.append((i,e.nextEventTime))
+                  
+        #print infolist
+        if (len(infolist)!=0):
+            id=min(infolist, key = lambda t: t[1])
+            id1=id[0]
+            einfo=eventinfo[id1]
+        else:
+            einfo=min(eventinfo)           
+        #print einfo
+        #self.ResolveConnection()        
+        return max(statuses),einfo
+        
     def fmiEnterContinuousTimeMode(self):
         status=[]
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
@@ -350,7 +372,7 @@ class FMUInterface:
         return max(statuses),values       
     
     def fmiGetDerivatives(self):
-        ## not sure on how to return the values    
+        ## not sure on how to return the values
         values =createfmiRealVector(self.description.numberOfContinuousStates)
         statuses=[]
         svector=[]
@@ -370,19 +392,20 @@ class FMUInterface:
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             if (FMUInterfaceObj.description.numberOfContinuousStates!=0):
                 length=FMUInterfaceObj.description.numberOfContinuousStates
+                ## indexing on the appropriate FMUs state vector 
                 getval=x[c:length+c] 
                 c=c+length
-                status.append(FMUInterfaceObj.fmiSetContinuousStates(getval))
+                status.append(FMUInterfaceObj.fmiSetContinuousStates(getval))                
+        self.ResolveConnection()        
         return max(status)
     
     def fmiEnterEventMode(self):
-        ## this function is not implemented by DLR, but they are calling in handle_event
         status=[]
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             status.append(FMUInterfaceObj.fmiEnterEventMode())
         return max(status)     
          
-    def fmiCompletedIntegratorStep(self):
+    def ResolveConnection(self):
        #print 'insideCompetedstep'
        for i in xrange(len(self._connectionorder)):
             for j in self._connectionorder[i]:

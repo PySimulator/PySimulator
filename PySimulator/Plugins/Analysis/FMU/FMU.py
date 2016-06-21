@@ -598,14 +598,14 @@ def StartSimulation(gui, xml, xmlFileName, fmiType):
             graph[fromFMU] = [toFMU]
     ## Provide the the graph edges to find the strongly connected components using tarjan's algorithm
     connected_components = StronglyConnectedComponents(graph)
-
+    #print 'connectedorder', connected_components
     ## Check for Algebraic loops  ##
     Algebraic_loops=[]
     for i in xrange(len(connected_components)):
         Algebraic_loops.append(len(connected_components[i]))
 
     True=Algebraic_loops.count(1)==len(Algebraic_loops)
-
+    
     ## Loop the List FMUs and display in the variable Browser as a SingleComponent
     if True:
         import configobj
