@@ -37,6 +37,9 @@ import xml.etree.ElementTree as ET
 '''
 def createfmiReferenceVector(n):
     return (numpy.ndarray(n, numpy.long))
+    
+def createfmiRealVector(n):
+    return (numpy.ndarray(n, numpy.float))
 
 class FMUData:
     def __init__(self):
@@ -292,3 +295,123 @@ class FMUInterface:
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             status.append(FMUInterfaceObj.fmiDoStep(currentCommunicationPoint, communicationStepSize, noSetFMUStatePriorToCurrentPoint))
         return max(status)
+     
+    ## FMI functions for ModelExchange  ## 
+    def fmiSetTime(self,tstart):
+        status=[]
+        for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
+            status.append(FMUInterfaceObj.fmiSetTime(tstart))
+        
+        self.ResolveConnection()        
+        return max(status)
+    
+    def fmiNewDiscreteStates(self):
+        ## doubts in this function,regarding returning the eventinfo from interface functions
+        statuses=[]
+        eventinfo=[]
+        for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
+            status,info=FMUInterfaceObj.fmiNewDiscreteStates()
+            statuses.append(status)
+            eventinfo.append(info)
+        
+        infolist=[]
+        for i in xrange(len(eventinfo)):
+             e=eventinfo[i]
+             #print e.nextEventTimeDefined,e.nextEventTime
+             if (e.nextEventTimeDefined==1):
+                  infolist.append((i,e.nextEventTime))
+                  
+        #print infolist
+        if (len(infolist)!=0):
+            id=min(infolist, key = lambda t: t[1])
+            id1=id[0]
+            einfo=eventinfo[id1]
+        else:
+            einfo=min(eventinfo)           
+        #print einfo
+        #self.ResolveConnection()        
+        return max(statuses),einfo
+        
+    def fmiEnterContinuousTimeMode(self):
+        status=[]
+        for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
+            status.append(FMUInterfaceObj.fmiEnterContinuousTimeMode())
+        return max(status)
+       
+    def fmiGetEventIndicators(self):
+        ## not sure on how to return the values
+        values = createfmiRealVector(self.description.numberOfEventIndicators)
+        statuses=[]
+        evector=[]
+        for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
+            if (FMUInterfaceObj.description.numberOfEventIndicators!=0):
+                status,value=FMUInterfaceObj.fmiGetEventIndicators()
+                for i in xrange(len(value)):
+                    val=value[i]
+                    evector.append(val)
+                statuses.append(status)            
+        for z in xrange(len(evector)):
+            values[z]=evector[z]            
+        #print 'finalevantindicator',values
+        return max(statuses),values
+     
+    def fmiGetContinuousStates(self):
+        ## not sure on how to return the values from fmi_interface functions
+        values =createfmiRealVector(self.description.numberOfContinuousStates)
+        statuses=[]
+        svector=[]
+        for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
+            if (FMUInterfaceObj.description.numberOfContinuousStates!=0):
+                status, value = FMUInterfaceObj.fmiGetContinuousStates()
+                for i in xrange(len(value)):
+                    val=value[i]
+                    svector.append(val)
+                statuses.append(status)
+        for z in xrange(len(svector)):
+            values[z]=svector[z]
+        return max(statuses),values       
+    
+    def fmiGetDerivatives(self):
+        ## not sure on how to return the values
+        values =createfmiRealVector(self.description.numberOfContinuousStates)
+        statuses=[]
+        svector=[]
+        for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
+            status,value=FMUInterfaceObj.fmiGetDerivatives()
+            for i in xrange(len(value)):
+                val=value[i]
+                svector.append(val)
+            statuses.append(status)
+        for z in xrange(len(svector)):
+            values[z]=svector[z]
+        return max(statuses),values 
+        
+    def fmiSetContinuousStates(self,x):
+        status=[]
+        c=0
+        for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
+            if (FMUInterfaceObj.description.numberOfContinuousStates!=0):
+                length=FMUInterfaceObj.description.numberOfContinuousStates
+                ## indexing on the appropriate FMUs state vector 
+                getval=x[c:length+c] 
+                c=c+length
+                status.append(FMUInterfaceObj.fmiSetContinuousStates(getval))                
+        self.ResolveConnection()        
+        return max(status)
+    
+    def fmiEnterEventMode(self):
+        status=[]
+        for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
+            status.append(FMUInterfaceObj.fmiEnterEventMode())
+        return max(status)     
+         
+    def ResolveConnection(self):
+       #print 'insideCompetedstep'
+       for i in xrange(len(self._connectionorder)):
+            for j in self._connectionorder[i]:
+                for ele in xrange(len(self._connections)):
+                    if self._connections[ele]['fromFmuName'] == j:
+                        fromName = self._connections[ele]['fromFmuName'] + '.' + self._connections[ele]['fromVariableName']
+                        fromValue = self.getValue(fromName)
+                        toName = self._connections[ele]['toFmuName'] + '.' + self._connections[ele]['toVariableName']
+                        self.setValue(toName, fromValue)

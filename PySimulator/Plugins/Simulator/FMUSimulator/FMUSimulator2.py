@@ -219,9 +219,7 @@ class Model(SimulatorBase.Model):
             self.changedStartValue.
             The function returns a status flag and the next time event.
         '''
-
         self.interface.fmiInstantiate()
-
         if self.interface.activeFmiType == 'me':
             # Set start time
             self.interface.fmiSetTime(tStart)
@@ -435,7 +433,6 @@ class Model(SimulatorBase.Model):
                 Returns True,  if simulation shall be continued
                         False, if simulation shall be terminated
             '''
-
             if event_info[1]:
                 self.integrationStatistics.nTimeEvents += 1
                 # print "Handle time event at   ", solver.t_cur
@@ -503,6 +500,10 @@ class Model(SimulatorBase.Model):
                 Returns True,  if there was a step event
                         False, if there was no step event
             '''
+            '''
+            if self.isConnected is True:
+                self.interface.fmiCompletedIntegratorStep()'''
+                
             return False  # to be done for FMI2.0
             '''
             if self.interface.fmiCompletedIntegratorStep() == fmiTrue:
@@ -561,6 +562,7 @@ class Model(SimulatorBase.Model):
         ######################
         # Initialize model
         (status, nextTimeEvent) = self.initialize(Tstart, Tend, ErrorTolerance if self.interface.activeFmiType == 'cs' else min(1e-15, ErrorTolerance*1e-5))
+        #print 'initialize',nextTimeEvent
         if status > 1:
             print("Model initialization failed. fmiStatus = " + str(status))
             return
@@ -1085,6 +1087,7 @@ class ExplicitEulerSolver():
         for i in xrange(len(z)):
             zb[i] = (z[i] > 0.0)
         nextTimeEvent = self.time_events(self.t_cur, self.y_cur, None)
+
         # Write initial values to results
         self.handle_result(None, self.t_cur, self.y_cur)
         # Define next step point and next output point
@@ -1144,7 +1147,7 @@ class ExplicitEulerSolver():
                 self.handle_result(None, nextOutputPoint, y_Output)
                 outputStepCounter += 1
                 nextOutputPoint = min(Tstart + outputStepCounter * dOutput, Tend)
-
+            
             # Depending on events have been detected do different tasks
             if state_event.any() or time_event:
                 # Event handling
