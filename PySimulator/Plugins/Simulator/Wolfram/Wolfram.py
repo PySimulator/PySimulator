@@ -32,10 +32,18 @@ iconImage = 'simulatorWolfram.ico'
 modelExtension = ['mo']  # e.g. ['mo']
 simulationProgressData = 0.0
 
+#Creates a link to a Mathematica Kernel and stores information needed for communication
+mathLinkPath = os.environ['MATHEMATHICAKERNEL']
+if mathLinkPath == '' or not os.path.exists(mathLinkPath):
+	print "No MathLink executable (math.exe or MathKernel.exe) found to run Wolfram. Please set in the environemnt variable"
+else:
+	mathLink = pythonica.Pythonica(path= "" + mathLinkPath + "" )
+	mathLink.eval('Needs["WSMLink`"]')
+
 def closeSimulationPlugin():
     pass
 
-def getNewModel(modelName=None, modelFileName=None, config=None):    
+def getNewModel(modelName=None, modelFileName=None, config=None):
     return Model(modelName, modelFileName, config)
 
 class Model(SimulatorBase.Model):
@@ -54,23 +62,6 @@ class Model(SimulatorBase.Model):
         self._IntegrationAlgorithmHasFixedStepSize = [False, False, True, True, True]
         self._IntegrationAlgorithmCanProvideStepSizeResults = [False, False, True, True, True]
 
-        if not config['Plugins']['Wolfram'].has_key('mathLinkPath'):
-            config['Plugins']['Wolfram']['mathLinkPath'] = ''
-        mathLinkPath = config['Plugins']['Wolfram']['mathLinkPath']
-
-        if mathLinkPath == '' or not os.path.exists(mathLinkPath):
-            ''' Ask for MathLink executable '''
-            print "No MathLink executable (math.exe or MathKernel.exe) found to run Wolfram. Please select one ..."
-            (mathLinkPath, trash) = QtGui.QFileDialog().getOpenFileName(None, 'Select MathLink executable file', os.getcwd(), 'Executable file (*.exe)')
-        if mathLinkPath == '':
-            print "failed. No MathLink executable (math.exe or MathKernel.exe) specified."
-            return None
-        else:
-            config['Plugins']['Wolfram']['mathLinkPath'] = mathLinkPath
-            config.write()
-
-        #Creates a link to a Mathematica Kernel and stores information needed for communication
-        self.mathLink = pythonica.Pythonica(path= "" + mathLinkPath + "" )
         self.compileModel()
 
         self._initialResult = loadResultFileInit(os.path.join(os.getcwd(), self.name + ".sim"))
@@ -85,12 +76,11 @@ class Model(SimulatorBase.Model):
                 raise FileDoesNotExist("File '" + self.fileName[0] + "' does not exist")
 
         # Load Wolfram SystemModeler Link and Modelica Model and then compiles a model
-        self.mathLink.eval('Needs["WSMLink`"]')
-        self.mathLink.eval('Import["' + self.fileName[0].encode('utf8') + '",{"ModelicaModel"}]')
-        self.mathLink.eval('sim = WSMSimulate["' + self.name + '",{' + str('0') + str(',') + str('10')+ '} ]')
+        mathLink.eval('Import["' + self.fileName[0].encode('utf8') + '",{"ModelicaModel"}]')
+        mathLink.eval('sim = WSMSimulate["' + self.name + '",{' + str('0') + str(',') + str('10')+ '} ]')
 
         # Retrieve the path to the result file and copy the simulation settings result file(.sim) to the current working directory
-        simResultFileName = self.mathLink.eval('sim[[1]]')
+        simResultFileName = mathLink.eval('sim[[1]]')
         resultDirectory = os.path.dirname(simResultFileName)
         fileName =  os.path.splitext(os.path.basename(simResultFileName))[0]
 
@@ -128,10 +118,10 @@ class Model(SimulatorBase.Model):
         ChangedParameters = str('WSMInitialValues->{')+ changedParameters +  str('}')
 
         # Simulate a model with a new parameter values and simulation interval
-        self.mathLink.eval('sim = WSMSimulate["' + self.name + '",{' + simInterval + '}, '+ simMethod +', '+ ChangedParameters +']')
+        mathLink.eval('sim = WSMSimulate["' + self.name + '",{' + simInterval + '}, '+ simMethod +', '+ ChangedParameters +']')
 
         # Retrieve the path to the result file and copy to the current working directory
-        simResultFileName = self.mathLink.eval('sim[[1]]')
+        simResultFileName = mathLink.eval('sim[[1]]')
         resultDirectory = os.path.dirname(simResultFileName)
         fileName =  os.path.splitext(os.path.basename(simResultFileName))[0]
 

@@ -218,7 +218,7 @@ class Pythonica(object):
     def __init__(self,
                  path,
                  mode='launch',
-                 timeout=1,
+                 timeout=5,
                  debug=False,
                  plot_dir=None,
                  plot_size=None,
