@@ -60,7 +60,7 @@ class Model(SimulatorBase.Model):
         self.integrationSettings.algorithmName = self._availableIntegrationAlgorithms[0]
 
         self._IntegrationAlgorithmHasFixedStepSize = [False, False, True, True, True]
-        self._IntegrationAlgorithmCanProvideStepSizeResults = [False, False, True, True, True]
+        self._IntegrationAlgorithmCanProvideStepSizeResults = [False, False, False, False, False]
 
         self.compileModel()
 
@@ -100,21 +100,32 @@ class Model(SimulatorBase.Model):
         return t
 
     def simulate(self):
+        # 
+        def convertToString(value):
+            return '%.25f' % value
 
         s = self.integrationSettings
-
+        
+        if s.gridPointsMode == 'NumberOf':
+            nGridPoints = s.gridPoints
+        elif s.gridPointsMode == 'Width':
+            nGridPoints = int(round((s.stopTime-s.startTime)/s.gridWidth)) +1
+        nGridPoints = max(1, nGridPoints)-1
+        
         # Set simulation interval
-        simInterval = str(s.startTime) + str(',') + str(s.stopTime)
+        simInterval = convertToString(s.startTime) + str(',') + convertToString(s.stopTime)
+        
 
         # Set simulation method
         intAlg = self._availableIntegrationAlgorithms.index(s.algorithmName)
 	if self._IntegrationAlgorithmHasFixedStepSize[intAlg]:
-            simMethod = str('Method->{"')+ str(s.algorithmName)+ str('","StepSize" ->') + str(s.fixedStepSize)+ str('}')
+            simMethod = str('Method->{"')+ str(s.algorithmName)+ str('","InterpolationPoints"->') + str(nGridPoints)+ str('","StepSize" ->') + convertToString(s.fixedStepSize)+ str('}')
         else:
-           simMethod = str('Method->{"')+ str(s.algorithmName)+ str('","Tolerance" ->') + str(s.errorToleranceRel)+ str('}')
+           # simMethod = str('Method->{"')+ str(s.algorithmName)+ str('","InterpolationPoints"->') + str(nGridPoints)+ str(',"Tolerance" ->') + str(s.errorToleranceRel)+ str('}')
+           simMethod = str('Method->{"')+ str(s.algorithmName)+ str('","InterpolationPoints"->') + str(nGridPoints)+ str(',"Tolerance" ->') + convertToString(s.errorToleranceRel)+ str('}')
 
         # Set new parameter and initial values for state variables
-        changedParameters = ','.join(['"%s" -> %s' % (name,newValue) for name,newValue in self.changedStartValue.iteritems()])
+        changedParameters = ','.join(['"%s" -> %s' % (name,convertToString(float(newValue))) for name,newValue in self.changedStartValue.iteritems()])
         ChangedParameters = str('WSMInitialValues->{')+ changedParameters +  str('}')
 
         # Simulate a model with a new parameter values and simulation interval
@@ -142,7 +153,7 @@ class Model(SimulatorBase.Model):
         shutil.copyfile(sourceSettingsFileName, destinationSettingsFileName)
 
         if not os.path.isfile(self.integrationSettings.resultFileName):
-           raise FileDoesNotExist(self.integrationSettings.resultFileName)
+           raise FileDoesNotExist(self.integrationSettings.resultFileName)      
 
     def setVariableTree(self):
         #if self.resFile == '""':
