@@ -1093,7 +1093,6 @@ class ExplicitEulerSolver():
             dOutput = dt
         outputStepCounter = 1
         nextOutputPoint = min(Tstart + dOutput, Tend)
-        f=open("time.txt",'w')
         # Start the integration loop
         while self.t_cur < Tend:
             # Define stepsize h, next step point, t_new and time_event
