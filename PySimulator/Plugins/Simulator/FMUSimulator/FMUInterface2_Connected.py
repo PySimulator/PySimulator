@@ -80,7 +80,7 @@ class FMUInterface:
             # assuming we won't get FMUs more than 999.
             self.FMUInterfaces[str(i+1).ljust(3, '0')] = FMUInterfaceObj
             self.FMUItems[FMUInterfaceObj.instanceName] = str(i+1).ljust(3, '0')
-        self.description = FMIDescription2_Connected.FMIDescription(self.FMUInterfaces,xml,self.FMUItems)
+        self.description = FMIDescription2_Connected.FMIDescription(self.FMUInterfaces,xml)
         
         ## Get the internaldependencyorder and connection information
         self.internaldependencyorder=self.description.internaldependencyorder
@@ -389,6 +389,7 @@ class FMUInterface:
         if(tstart==0.0):
             #print 'settime'
             self.setValue('Modelica_Blocks_Math_Feedback1.u2', "0.5")'''
+                    
         return max(status)
     
     def fmiNewDiscreteStates(self):
@@ -482,17 +483,18 @@ class FMUInterface:
         return max(statuses),values       
     
     '''Connection resolve without internal dependency '''
-    # def ResolveLeftConnections(self,solvelist):
-        # for i in xrange(len(solvelist)):
-            # name=solvelist[i]
-            # for ele in xrange(len(self._connections)):
-                # if self._connections[ele]['fromFmuName'] == name:
-                    # fromName = self._connections[ele]['fromFmuName'] + '.' + self._connections[ele]['fromVariableName']
-                    # fromValue = self.getValue(fromName)
-                    # toName = self._connections[ele]['toFmuName'] + '.' + self._connections[ele]['toVariableName']
-                    # self.setValue(toName, fromValue)
-    
-    '''Connection resolve with internal dependency'''   
+    '''
+    def ResolveLeftConnections(self,solvelist):
+        for i in xrange(len(solvelist)):
+            name=solvelist[i]
+            for ele in xrange(len(self._connections)):
+                if self._connections[ele]['fromFmuName'] == name:
+                    fromName = self._connections[ele]['fromFmuName'] + '.' + self._connections[ele]['fromVariableName']
+                    fromValue = self.getValue(fromName)
+                    toName = self._connections[ele]['toFmuName'] + '.' + self._connections[ele]['toVariableName']
+                    self.setValue(toName, fromValue)
+    '''
+    '''Connection resolve with internal dependency'''        
     def ResolveLeftConnections(self,solvelist):
         for i in xrange(len(solvelist)):
             name=solvelist[i]
@@ -530,6 +532,38 @@ class FMUInterface:
                                    pass
                                    #print "no output edge available or provided for the variable",fromName 
     
+    '''
+    def ResolveLeftConnections(self,solvelist):            
+        for order in xrange(len(self.internaldependencyorder)):
+               n1=self.internaldependencyorder[order]
+               if(len(n1)==1):
+                  fromName=n1[0]
+                  var2=fromName.split('.')
+                  try:
+                      tolist=self.connectioninfo[fromName]
+                      fromValue=self.getValue(fromName)
+                      for z in xrange(len(tolist)):
+                          toName=tolist[z]
+                          self.setValue(toName,fromValue)
+                  except KeyError as e:
+                      pass
+                      #print "no output edge available or provided for the variable",fromName                          
+               else:
+                   #Handling for Algebraic loops, not sure
+                   for k in xrange(len(n1)):
+                       fromName=n1[k]
+                       var2=fromName.split('.')
+                       try:
+                          tolist=self.connectioninfo[fromName]
+                          fromValue = self.getValue(fromName)
+                          for y in xrange(len(tolist)):
+                              toName=tolist[y]
+                              self.setValue(toName,fromValue)                             
+                       except KeyError as e:
+                           pass
+                           #print "no output edge available or provided for the variable",fromName 
+    '''                 
+    
     def fmiGetDerivatives(self):
         values =createfmiRealVector(self.description.numberOfContinuousStates)
         statuses=[]
@@ -551,12 +585,16 @@ class FMUInterface:
                         svector.append(val)
                     statuses.append(status)
             else:
-                ## handling for Algebraic loops
+                ## handling for Algebraic loops,should be investigated more
                 for x in xrange(len(name)):
                     solvelist.append(name[x])
                     getkey=self.FMUItems[name[x]]
                     FMUInterfaceObj=self.FMUInterfaces[getkey]
-                    leftdependencylist=solvelist[:pos]    
+                    # if(name[x]==name[-1]):
+                        # leftdependencylist=solvelist[:pos+1]
+                    # else:
+                        # leftdependencylist=solvelist[:pos] 
+                    leftdependencylist=solvelist[:pos]                         
                     self.ResolveLeftConnections(leftdependencylist)
                     if (FMUInterfaceObj.description.numberOfContinuousStates!=0):
                         status,value=FMUInterfaceObj.fmiGetDerivatives()

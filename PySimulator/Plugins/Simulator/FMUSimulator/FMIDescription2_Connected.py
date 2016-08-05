@@ -31,13 +31,12 @@ class FMIDescription:
         It parses an XML-file description as defined by FMI Version 2.0
         The model description (FMI) is usually part of a Functional Mock-Up Unit (FMU)
     '''
-    def __init__(self, FMUInterfaces,xml,fmuitems):
+    def __init__(self, FMUInterfaces,xml):
         ''' Create FMIDescription from XML-file
             @param xmlFile: File object of the describing XML-Document
         '''
         self.FMUInterfaces = FMUInterfaces
         self.xml=xml
-        self.fmuitems=fmuitems
         ''' initialization of variables and more visible public interface '''
         self.me = None
         self.cs = None
@@ -62,20 +61,26 @@ class FMIDescription:
         self.numberOfContinuousStates = 0
         self.internaldependencyorder=None
         self.connectioninfo={}
-
+        self.variableid={}
+        
+        ## store the variablelist of each fmu with ids to get correct order of evaluation from tarjan
+        for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
+            description = FMUInterfaceObj.description
+            varlist=description.scalarVariables.keys()
+            for v in xrange(len(varlist)):
+                name=FMUInterfaceObj.instanceName +'.'+varlist[v]
+                self.variableid[name]=key+str(v)
+        
         ## Create connection graph combining internal and  external dependency from xml
         root = ET.fromstring(xml)
         graphlist={}
-        
-        for connection in root.iter('connection'):
-            fromFMU=connection.get('fromFmuName')
-            toFMU=connection.get('toFmuName')           
-            ## add from and to info with real fmus name
-            fromfmuvar=fromFMU+'.'+connection.get('fromVariableName')
-            tofmuvar=toFMU+'.'+connection.get('toVariableName')         
+        for connection in root.iter('connection'):           
+            ## add from and to info with real fmus name and variables
+            fromfmuvar=connection.get('fromFmuName')+'.'+connection.get('fromVariableName')
+            tofmuvar=connection.get('toFmuName')+'.'+connection.get('toVariableName')         
             ## add from and to info with fmus id 
-            fromid=self.fmuitems[fromFMU]+connection.get('fromVariableName')
-            toid=self.fmuitems[toFMU]+connection.get('toVariableName')            
+            fromid=self.variableid[fromfmuvar]
+            toid=self.variableid[tofmuvar]           
             ## add connection information with fmus names which will be used in connection resolve           
             True=self.connectioninfo.has_key(fromfmuvar)
             if True:
@@ -116,59 +121,84 @@ class FMIDescription:
             
             ## get the internaldependency information
             varlist=description.scalarVariables.keys()
-            ModelStructureOutputdependency(varlist,modelstructure,graphlist,FMUInterfaceObj,self.connectioninfo,self.fmuitems)
-                                                               
-            for scalarName, var in description.scalarVariables.iteritems():
+            ModelStructureOutputdependency(varlist,modelstructure,graphlist,FMUInterfaceObj,self.connectioninfo,self.variableid)
+            outvarlist=[]
+            othervarlist=[]                                                   
+            for scalarName, var in description.scalarVariables.iteritems():                                
+                ## for worst case scenario when no output dependency is provided in xml, assume output depends on all variables
+                if(len(modelstructure.outputs)==0):                
+                    if(description.scalarVariables[scalarName].causality=="output"):
+                        outvar = FMUInterfaceObj.instanceName + '.' + scalarName
+                        outvarlist.append(outvar)
+                    else:
+                        othervar = FMUInterfaceObj.instanceName + '.' + scalarName
+                        othervarlist.append(othervar)
+                        
                 if (scalarName.startswith("der(")):
                     scalarName = "der(" + FMUInterfaceObj.instanceName + '.' + scalarName[4:]
                 else:
-                    scalarName = FMUInterfaceObj.instanceName + '.' + scalarName                      
+                    scalarName = FMUInterfaceObj.instanceName + '.' + scalarName
                 var.valueReference = key + var.valueReference
                 self.scalarVariables[scalarName] = var
-               
-        scc=StronglyConnected.StronglyConnectedComponents(graphlist)        
-        ## create the ordered list with fmunames matching the fmuids
+            
+            ## This loop will be used for worst case scenario when no output dependency is provided in xml, and to create graph information
+            for k in xrange(len(othervarlist)):
+                fromname=othervarlist[k]
+                fromid=self.variableid[fromname]
+                for m in xrange(len(outvarlist)):
+                    toname=outvarlist[m]
+                    toid=self.variableid[toname]
+                    ## add connection information with fmus names
+                    True=self.connectioninfo.has_key(fromname)
+                    if True:
+                        self.connectioninfo[fromname].append(toname)
+                    else:
+                        self.connectioninfo[fromname] = [toname]                    
+                    ## add connection information with fmus id which will be used to get correct order of evaluation from tarjan
+                    True=graphlist.has_key(fromid)
+                    if True:
+                        graphlist[fromid].append(toid)
+                    else:
+                        graphlist[fromid] = [toid]
+        
+        scc=StronglyConnected.StronglyConnectedComponents(graphlist)
+                      
+        ## create the ordered list with fmunames+variables matching the fmuids        
         orderedlist=[]
-        for z in xrange(len(scc)):
+        for z in xrange(len(scc)):          
             var=scc[z]
             if(len(var)==1):
                 val=var[0]
-                getkey=val[:3]
-                getvar=val[3:]
-                fmuname=self.fmuitems.keys()[self.fmuitems.values().index(getkey)]
-                fmuvarname=fmuname+'.'+getvar
-                orderedlist.append((fmuvarname,))
+                fmuname=self.variableid.keys()[self.variableid.values().index(val)]
+                orderedlist.append((fmuname,))
             else:
                 l=[]
                 var=var[::-1]
                 for k in xrange(len(var)):
                     val=var[k]
-                    getkey=val[:3]
-                    getvar=val[3:]
-                    fmuname=self.fmuitems.keys()[self.fmuitems.values().index(getkey)]
-                    fmuvarname=fmuname+'.'+getvar
-                    l.append(fmuvarname)
+                    fmuname=self.variableid.keys()[self.variableid.values().index(val)]
+                    l.append(fmuname)
                 orderedlist.append(tuple(l))
-                
-        self.internaldependencyorder=orderedlist
-
         
-def ModelStructureOutputdependency(varlist,modelstructure,graphlist,FMUInterfaceObj,connectioninfo,fmuitems):
+        self.internaldependencyorder=orderedlist
+        
+def ModelStructureOutputdependency(varlist,modelstructure,graphlist,FMUInterfaceObj,connectioninfo,variableid):
     ## Handle internal connection dependency for outputs of modelstructure
     for i in xrange(len(modelstructure.outputs)):
         outputindex=modelstructure.outputs[i].index
         inputindex=modelstructure.outputs[i].dependencies
         outvar=varlist[int(outputindex)-1]
         toconnection=FMUInterfaceObj.instanceName + '.' + outvar
-        toconnection_id=fmuitems[FMUInterfaceObj.instanceName]+outvar 
+        #toconnection_id=fmuitems[FMUInterfaceObj.instanceName]+outvar
+        toconnection_id=variableid[toconnection]       
         if (inputindex!=''):
             val=inputindex.split()
             for z in xrange(len(val)):
                 v1=val[z]
                 invar=varlist[int(v1)-1]
                 fromconnection=(FMUInterfaceObj.instanceName)+ '.' + invar
-                fromconnection_id=fmuitems[FMUInterfaceObj.instanceName]+invar
-                
+                #fromconnection_id=fmuitems[FMUInterfaceObj.instanceName]+invar
+                fromconnection_id=variableid[fromconnection]
                 ## add connection info with fmus id for correct order of evaluation from tarjan
                 True=graphlist.has_key(fromconnection_id)
                 if True:
