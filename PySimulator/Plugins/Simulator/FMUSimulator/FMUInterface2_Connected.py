@@ -231,14 +231,14 @@ class FMUInterface:
         status = []
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             status.append(FMUInterfaceObj.fmiEnterInitializationMode())
-        return max(status)
-
+        return max(status)                
+    
     def fmiExitInitializationMode(self):
         status = []
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             status.append(FMUInterfaceObj.fmiExitInitializationMode())
-        return max(status)
-
+        return max(status)        
+        
     def fmiTerminate(self):
         status = []
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
@@ -265,7 +265,7 @@ class FMUInterface:
                         # self.setValue(toName, getval[0])
                         
     ''' Resolve connection combining  internal and external dependency'''
-    def ResolveSetGet(self):            
+    def ResolveSetGet(self):
         for order in xrange(len(self.internaldependencyorder)):
                n1=self.internaldependencyorder[order]
                if(len(n1)==1):
@@ -291,7 +291,7 @@ class FMUInterface:
                       pass
                       #print "no output edge available or provided for the variable",fromName                          
                else:
-                   #Handling for Algebraic loops, not sure
+                   #Handling for Algebraic loops, to be investigated
                    for k in xrange(len(n1)):
                        fromName=n1[k]
                        var2=fromName.split('.')
@@ -310,11 +310,11 @@ class FMUInterface:
                           status,getval=fmu.fmiGetReal(FMUValueReference)
                           for y in xrange(len(tolist)):
                               toName=tolist[y]
-                              self.setValue(toName,getval[0])                             
+                              self.setValue(toName,getval[0])
                        except KeyError as e:
                            pass
                            #print "no output edge available or provided for the variable",fromName 
-                          
+                            
     def fmiGetReal(self, valueReference):
         if (self.activeFmiType=='me'):
             self.ResolveSetGet()
@@ -344,7 +344,6 @@ class FMUInterface:
         return max(statuses), values
 
     def fmiSetReal(self, valueReference, value):
-        #print 'setReal',valueReference,value
         fmus = self.createFmiData(valueReference, value)
         status = self.makeFmiSetCall(fmus, FMIVarType.Real)
         return max(status)
@@ -384,12 +383,7 @@ class FMUInterface:
     def fmiSetTime(self,tstart):
         status=[]
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
-            status.append(FMUInterfaceObj.fmiSetTime(tstart))
-        '''
-        if(tstart==0.0):
-            #print 'settime'
-            self.setValue('Modelica_Blocks_Math_Feedback1.u2', "0.5")'''
-                    
+            status.append(FMUInterfaceObj.fmiSetTime(tstart))                  
         return max(status)
     
     def fmiNewDiscreteStates(self):
@@ -483,87 +477,52 @@ class FMUInterface:
         return max(statuses),values       
     
     '''Connection resolve without internal dependency '''
-    '''
-    def ResolveLeftConnections(self,solvelist):
-        for i in xrange(len(solvelist)):
-            name=solvelist[i]
-            for ele in xrange(len(self._connections)):
-                if self._connections[ele]['fromFmuName'] == name:
-                    fromName = self._connections[ele]['fromFmuName'] + '.' + self._connections[ele]['fromVariableName']
-                    fromValue = self.getValue(fromName)
-                    toName = self._connections[ele]['toFmuName'] + '.' + self._connections[ele]['toVariableName']
-                    self.setValue(toName, fromValue)
-    '''
-    '''Connection resolve with internal dependency'''        
-    def ResolveLeftConnections(self,solvelist):
-        for i in xrange(len(solvelist)):
-            name=solvelist[i]
-            for order in xrange(len(self.internaldependencyorder)):
-                   n1=self.internaldependencyorder[order]
-                   if(len(n1)==1):
-                      fromName=n1[0]
-                      var2=fromName.split('.')
-                      if(name==var2[0]):
-                          try:
-                              tolist=self.connectioninfo[fromName]
-                              fromValue = self.getValue(fromName)
-                              for z in xrange(len(tolist)):
-                                  toName=tolist[z]
-                                  self.setValue(toName,fromValue)
-                                  #print 'fromname:',var1,'toname:',tolist[z]
-                          except KeyError as e:
-                               pass
-                               #print "no output edge available or provided for the variable",fromName                          
-                   else:
+    # def ResolveLeftConnections(self,solvelist):
+        # for i in xrange(len(solvelist)):
+            # name=solvelist[i]
+            # for ele in xrange(len(self._connections)):
+                # if self._connections[ele]['fromFmuName'] == name:
+                    # fromName = self._connections[ele]['fromFmuName'] + '.' + self._connections[ele]['fromVariableName']
+                    # fromValue = self.getValue(fromName)
+                    # toName = self._connections[ele]['toFmuName'] + '.' + self._connections[ele]['toVariableName']
+                    # self.setValue(toName, fromValue)
+    
+    '''Connection resolve with combining internal and external dependency'''  
+    # def ResolveLeftConnections(self,solvelist):
+        # for i in xrange(len(solvelist)):
+            # name=solvelist[i]
+            # for order in xrange(len(self.internaldependencyorder)):
+                   # n1=self.internaldependencyorder[order]
+                   # if(len(n1)==1):
+                      # fromName=n1[0]
+                      # var2=fromName.split('.')
+                      # if(name==var2[0]):
+                          # try:
+                              # tolist=self.connectioninfo[fromName]
+                              # fromValue = self.getValue(fromName)
+                              # for z in xrange(len(tolist)):
+                                  # toName=tolist[z]
+                                  # self.setValue(toName,fromValue)
+                          # except KeyError as e:
+                               # pass
+                               # print "no output edge available or provided for the variable",fromName                          
+                   # else:
                        #Handling for Algebraic loops
-                       for k in xrange(len(n1)):
-                           fromName=n1[k]
-                           var2=fromName.split('.')
-                           if(name==var2[0]):
-                              #print 'else match',name,var1
-                              try:
-                                  tolist=self.connectioninfo[fromName]
-                                  fromValue = self.getValue(fromName)
-                                  for y in xrange(len(tolist)):
-                                      toName=tolist[y]
-                                      self.setValue(toName,fromValue)
-                                      #print 'fromname:',var1,'toname:',tolist[z]
-                              except KeyError as e:
-                                   pass
-                                   #print "no output edge available or provided for the variable",fromName 
+                       # for k in xrange(len(n1)):
+                           # fromName=n1[k]
+                           # var2=fromName.split('.')
+                           # if(name==var2[0]):
+                              # try:
+                                  # tolist=self.connectioninfo[fromName]
+                                  # fromValue = self.getValue(fromName)
+                                  # for y in xrange(len(tolist)):
+                                      # toName=tolist[y]
+                                      # self.setValue(toName,fromValue)
+                              # except KeyError as e:
+                                   # pass
+                                   # print "no output edge available or provided for the variable",fromName 
     
-    '''
-    def ResolveLeftConnections(self,solvelist):            
-        for order in xrange(len(self.internaldependencyorder)):
-               n1=self.internaldependencyorder[order]
-               if(len(n1)==1):
-                  fromName=n1[0]
-                  var2=fromName.split('.')
-                  try:
-                      tolist=self.connectioninfo[fromName]
-                      fromValue=self.getValue(fromName)
-                      for z in xrange(len(tolist)):
-                          toName=tolist[z]
-                          self.setValue(toName,fromValue)
-                  except KeyError as e:
-                      pass
-                      #print "no output edge available or provided for the variable",fromName                          
-               else:
-                   #Handling for Algebraic loops, not sure
-                   for k in xrange(len(n1)):
-                       fromName=n1[k]
-                       var2=fromName.split('.')
-                       try:
-                          tolist=self.connectioninfo[fromName]
-                          fromValue = self.getValue(fromName)
-                          for y in xrange(len(tolist)):
-                              toName=tolist[y]
-                              self.setValue(toName,fromValue)                             
-                       except KeyError as e:
-                           pass
-                           #print "no output edge available or provided for the variable",fromName 
-    '''                 
-    
+        
     def fmiGetDerivatives(self):
         values =createfmiRealVector(self.description.numberOfContinuousStates)
         statuses=[]
@@ -575,9 +534,10 @@ class FMUInterface:
                 solvelist.append(name[0])
                 getkey=self.FMUItems[name[0]]
                 FMUInterfaceObj=self.FMUInterfaces[getkey]
-                pos=solvelist.index(name[0])
-                leftdependencylist=solvelist[:pos]
-                self.ResolveLeftConnections(leftdependencylist)
+                # pos=solvelist.index(name[0])
+                # leftdependencylist=solvelist[:pos]
+                # self.ResolveLeftConnections(leftdependencylist)
+                self.ResolveSetGet()
                 if (FMUInterfaceObj.description.numberOfContinuousStates!=0):
                     status,value=FMUInterfaceObj.fmiGetDerivatives()
                     for i in xrange(len(value)):
@@ -585,7 +545,6 @@ class FMUInterface:
                         svector.append(val)
                     statuses.append(status)
             else:
-                ## handling for Algebraic loops,should be investigated more
                 for x in xrange(len(name)):
                     solvelist.append(name[x])
                     getkey=self.FMUItems[name[x]]
@@ -594,15 +553,16 @@ class FMUInterface:
                         # leftdependencylist=solvelist[:pos+1]
                     # else:
                         # leftdependencylist=solvelist[:pos] 
-                    leftdependencylist=solvelist[:pos]                         
-                    self.ResolveLeftConnections(leftdependencylist)
+                    # leftdependencylist=solvelist[:pos]                         
+                    # self.ResolveLeftConnections(leftdependencylist)
+                    self.ResolveSetGet()
                     if (FMUInterfaceObj.description.numberOfContinuousStates!=0):
                         status,value=FMUInterfaceObj.fmiGetDerivatives()
                         for i in xrange(len(value)):
                             val=value[i]
                             svector.append(val)
                         statuses.append(status)
-                                                   
+              
         for z in xrange(len(svector)):
             values[z]=svector[z]       
         return max(statuses),values 
@@ -611,16 +571,11 @@ class FMUInterface:
     def fmiSetContinuousStates(self,x):
         status=[]
         c=0
-        solvelist=[]
         for i in xrange(len(self._connectionorder)):
             name=self._connectionorder[i]
             if(len(name)==1):
-                solvelist.append(name[0])
                 getkey=self.FMUItems[name[0]]
                 FMUInterfaceObj=self.FMUInterfaces[getkey]
-                # pos=solvelist.index(name[0])
-                # leftdependencylist=solvelist[:pos]
-                # self.ResolveLeftConnections(leftdependencylist)
                 if (FMUInterfaceObj.description.numberOfContinuousStates!=0):
                     length=FMUInterfaceObj.description.numberOfContinuousStates
                     getval=x[c:length+c]
@@ -628,12 +583,8 @@ class FMUInterface:
                     status.append(FMUInterfaceObj.fmiSetContinuousStates(getval)) 
             else:
                 for z in xrange(len(name)):
-                    solvelist.append(name[z])
                     getkey=self.FMUItems[name[z]]
                     FMUInterfaceObj=self.FMUInterfaces[getkey]
-                    # pos=solvelist.index(name[0])
-                    # leftdependencylist=solvelist[:pos]
-                    # self.ResolveLeftConnections(leftdependencylist)
                     if (FMUInterfaceObj.description.numberOfContinuousStates!=0):
                         length=FMUInterfaceObj.description.numberOfContinuousStates
                         getval=x[c:length+c]
@@ -646,7 +597,8 @@ class FMUInterface:
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             status.append(FMUInterfaceObj.fmiEnterEventMode())        
         return max(status)     
-                        
     
+   
 
+  
         
