@@ -200,7 +200,7 @@ class FMUInterface:
             self.fmiSetInteger(ScalarVariableReferenceVector, ScalarVariableValueVector)
         elif self.description.scalarVariables[valueName].type.basicType == 'Boolean':
             ScalarVariableValueVector = FMUInterface2.createfmiBooleanVector(1)
-            ScalarVariableValueVector[0] = FMUInterface2.fmiTrue if valueValue == "true" else FMUInterface2.fmiFalse
+            ScalarVariableValueVector[0] = FMUInterface2.fmiTrue if valueValue == 1 else FMUInterface2.fmiFalse
             self.fmiSetBoolean(ScalarVariableReferenceVector, ScalarVariableValueVector)
         elif self.description.scalarVariables[valueName].type.basicType == 'String':
             ScalarVariableValueVector = FMUInterface2.createfmiStringVector(1)
