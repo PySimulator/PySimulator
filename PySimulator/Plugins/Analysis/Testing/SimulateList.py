@@ -130,18 +130,25 @@ def simulateListMenu(model, gui):
                 if gui._simThreadTesting.running:
                     print "A list of simulations is still running."
                     return
-
+            simulatorName=''
             # Get data from GUI
             setupFile = self.setupFileEdit.text()
             resultsDir = self.dirResultsEdit.text()
+            wolframsimulator=[]
             simulators = []
             for item in self.simulator.selectedItems():
-                simulators.append(gui.simulatorPlugins[item.text()])
+                if(item.text()=="Wolfram"):
+                    wolframsimulator.append(gui.simulatorPlugins[item.text()])
+                else:                    
+                    simulators.append(gui.simulatorPlugins[item.text()])
             deleteDir = self.deleteDir.isChecked()
-                        
+                       
             # Run parallel simulations
-            gui._simThreadTesting = ParallelSimulation.runParallelSimulation(gui.rootDir, setupFile, resultsDir, simulators, deleteDir)
-
+            if (len(simulators)!=0):
+                gui._simThreadTesting = ParallelSimulation.runParallelSimulation(gui.rootDir, setupFile, resultsDir, simulators, deleteDir)
+            if (len(wolframsimulator)!=0):
+                gui._simThreadTesting = runListSimulation(gui.rootDir, setupFile, resultsDir, wolframsimulator, deleteDir)
+    
 
         def stop(self):
             if hasattr(gui, '_simThreadTesting'):
