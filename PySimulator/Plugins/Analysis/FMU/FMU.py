@@ -637,7 +637,7 @@ def StartSimulation(gui, xml, xmlFileName, fmiType):
             connected_components.append(tuple(l))
     
     ## Check for Algebraic loops  ##
-    #print 'connectedorder', connected_components
+    print 'connectedorder', connected_components
     algebraicloop=Algebraic_loops.count(1)==len(Algebraic_loops)
     True="test"
     ## Loop the List FMUs and display in the variable Browser as a SingleComponent

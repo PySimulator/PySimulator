@@ -181,6 +181,10 @@ class FMIDescription:
                 orderedlist.append(tuple(l))
         
         self.internaldependencyorder=orderedlist
+        print 'graphlist',self.connectioninfo
+        print "******************"
+        print "******************"
+        print 'finalorder',orderedlist
         
 def ModelStructureOutputdependency(varlist,modelstructure,graphlist,FMUInterfaceObj,connectioninfo,variableid):
     ## Handle internal connection dependency for outputs of modelstructure

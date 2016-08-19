@@ -233,7 +233,7 @@ class Model(SimulatorBase.Model):
         s1 = self.interface.fmiSetupExperiment(fmiTrue, errorTolerance, tStart, fmiTrue, tStop)
         s2 = self.interface.fmiEnterInitializationMode()
         s3 = self.interface.fmiExitInitializationMode()
-
+        #fmiEnterInitializationMode
         status = max(s1,s2,s3)
         nextTimeEvent = None
 

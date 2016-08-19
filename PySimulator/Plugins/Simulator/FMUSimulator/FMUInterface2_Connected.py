@@ -236,8 +236,17 @@ class FMUInterface:
     def fmiExitInitializationMode(self):
         status = []
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
-            status.append(FMUInterfaceObj.fmiExitInitializationMode())
-        return max(status)        
+            status.append(FMUInterfaceObj.fmiExitInitializationMode())        
+        print 'exitinitialization'
+        '''
+        val='352321537'
+        FMUValueReference = numpy.array(map(numpy.uint32,[val]))
+        fmu=self.FMUInterfaces['300']
+        status,getval=fmu.fmiGetReal(FMUValueReference)
+        c=getval[0]
+        print 'arun',c'''
+        return max(status)
+                
         
     def fmiTerminate(self):
         status = []
@@ -292,6 +301,7 @@ class FMUInterface:
                       #print "no output edge available or provided for the variable",fromName                          
                else:
                    #Handling for Algebraic loops, to be investigated
+                   checkvar={}
                    for k in xrange(len(n1)):
                        fromName=n1[k]
                        var2=fromName.split('.')
@@ -314,7 +324,78 @@ class FMUInterface:
                        except KeyError as e:
                            pass
                            #print "no output edge available or provided for the variable",fromName 
-                            
+                       '''
+                       if(k==0):
+                            #print 'start',fromName,getval
+                            xstart=getval[0]
+                       if(n1[k]==n1[-1]):
+                            #print 'last',fromName,getval
+                            finalval=getval[0]
+                            #va='335544320'
+                            FMUValueReference = numpy.array(map(numpy.uint32,[va]))
+                            fmu=self.FMUInterfaces['300']
+                            status,getval=fmu.fmiGetReal(FMUValueReference)
+                            xnew=getval[0]
+                            residual=xstart-xnew
+                            #print 'after',n1[0],getval,residual
+                            if(residual>1e-3):
+                                self.AlgebraicLoopSover(n1,residual,xstart,xnew)'''
+
+    
+
+    def AlgebraicLoopSover(self,loops,residual,xstart,xnew):
+        #xstart=''
+        print 'LoopSolver*******'
+        print xstart,xnew
+        old=xstart
+        new=xnew
+        #self.setValue(loops[0],xstart)
+        count=0
+        checklist={}
+        while(abs(old-new)>1e-4):         
+            for k in xrange(len(loops)):
+               fromName=loops[k]
+               var2=fromName.split('.')
+               try:
+                  tolist=self.connectioninfo[fromName]
+                  #fromValue = self.getValue(fromName)
+                  ## Handling of getvalue has to be constructed in this way as self.getValue function cannot be used here due recursion
+                  valref=self.description.scalarVariables[fromName].valueReference                        
+                  #get the fmu key from valuereference
+                  getkey=valref[:3]
+                  #get the correct valuereference of the corresponding fmus
+                  getcorrectvalref=valref[3:]
+                  FMUValueReference = numpy.array(map(numpy.uint32,[getcorrectvalref]))
+                  #get the correct fmu instance from key to get the value                        
+                  fmu=self.FMUInterfaces[getkey]
+                  status,getval=fmu.fmiGetReal(FMUValueReference)
+                  for y in xrange(len(tolist)):
+                      toName=tolist[y]
+                      self.setValue(toName,getval[0])
+               except KeyError as e:
+                   pass
+               if(k==0):
+                    #print '***loopsolver1***',fromName,getval
+                    checklist['name']=fmu
+                    checklist['ValueReference']=FMUValueReference
+                    old=getval[0]                   
+               if(loops[k]==loops[-1]):
+                    #print 'last',fromName,getval
+                    finalvalue=getval[0]
+                    # va='335544320'
+                    # FMUValueReference = numpy.array(map(numpy.uint32,[va]))
+                    # fmu=self.FMUInterfaces['300']
+                    fmu=checklist['name']
+                    FMUValueReference=checklist['ValueReference']
+                    status,getval=fmu.fmiGetReal(FMUValueReference)
+                    new=getval[0]
+                    residual=old-new
+                    #print '***loopsolver2***',count,new,old,residual
+            count+=1
+            if(count==200):
+                print "Failed to converge"
+                break
+        #print "loopsolveend",count               
     def fmiGetReal(self, valueReference):
         if (self.activeFmiType=='me'):
             self.ResolveSetGet()
@@ -330,6 +411,7 @@ class FMUInterface:
         return max(statuses), values
 
     def fmiGetBoolean(self, valueReference):
+        print 'getBoolean'
         if (self.activeFmiType=='me'):
             self.ResolveSetGet()
         fmus = self.createFmiData(valueReference, None)
