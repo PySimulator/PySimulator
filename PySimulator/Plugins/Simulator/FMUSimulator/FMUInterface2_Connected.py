@@ -237,14 +237,6 @@ class FMUInterface:
         status = []
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             status.append(FMUInterfaceObj.fmiExitInitializationMode())        
-        print 'exitinitialization'
-        '''
-        val='352321537'
-        FMUValueReference = numpy.array(map(numpy.uint32,[val]))
-        fmu=self.FMUInterfaces['300']
-        status,getval=fmu.fmiGetReal(FMUValueReference)
-        c=getval[0]
-        print 'arun',c'''
         return max(status)
                 
         
@@ -300,7 +292,7 @@ class FMUInterface:
                       pass
                       #print "no output edge available or provided for the variable",fromName                          
                else:
-                   #Handling for Algebraic loops, to be investigated
+                   #Handling for real time Algebraic loops, to be investigated
                    checkvar={}
                    for k in xrange(len(n1)):
                        fromName=n1[k]
@@ -345,8 +337,8 @@ class FMUInterface:
 
     def AlgebraicLoopSover(self,loops,residual,xstart,xnew):
         #xstart=''
-        print 'LoopSolver*******'
-        print xstart,xnew
+        #print 'LoopSolver*******'
+        #print xstart,xnew
         old=xstart
         new=xnew
         #self.setValue(loops[0],xstart)
@@ -411,7 +403,7 @@ class FMUInterface:
         return max(statuses), values
 
     def fmiGetBoolean(self, valueReference):
-        print 'getBoolean'
+        #print 'getBoolean'
         if (self.activeFmiType=='me'):
             self.ResolveSetGet()
         fmus = self.createFmiData(valueReference, None)
@@ -476,22 +468,36 @@ class FMUInterface:
             statuses.append(status)
             eventinfo.append(info)
         
-        infolist=[]
+        newDiscreteStatesNeeded=[]
+        terminateSimulation=[]
+        nominalsOfContinuousStatesChanged=[]
+        valuesOfContinuousStatesChanged=[]
+        nextEventTimeDefined=[]
+        nextEventTime=[]
         for i in xrange(len(eventinfo)):
              e=eventinfo[i]
-             #print e.nextEventTimeDefined,e.nextEventTime
-             if (e.nextEventTimeDefined==1):
-                  infolist.append((i,e.nextEventTime))
-                  
-        #print infolist
-        if (len(infolist)!=0):
-            id=min(infolist, key = lambda t: t[1])
-            id1=id[0]
-            einfo=eventinfo[id1]
+             newDiscreteStatesNeeded.append(e.newDiscreteStatesNeeded)
+             terminateSimulation.append(e.terminateSimulation)
+             nominalsOfContinuousStatesChanged.append(e.nominalsOfContinuousStatesChanged)
+             valuesOfContinuousStatesChanged.append(e.valuesOfContinuousStatesChanged)
+             nextEventTimeDefined.append(e.nextEventTimeDefined)
+             if(e.nextEventTime!=0.0):
+                nextEventTime.append(e.nextEventTime)
+        
+        eventInfo = FMUInterface2.fmiEventInfo()
+        eventInfo.newDiscreteStatesNeeded=max(newDiscreteStatesNeeded)
+        eventInfo.terminateSimulation=max(terminateSimulation)
+        eventInfo.nominalsOfContinuousStatesChanged=max(nominalsOfContinuousStatesChanged)
+        eventInfo.valuesOfContinuousStatesChanged=max(valuesOfContinuousStatesChanged)
+        eventInfo.nextEventTimeDefined=max(nextEventTimeDefined) 
+        
+        if(len(nextEventTime)!=0):        
+            eventInfo.nextEventTime=min(nextEventTime)
         else:
-            einfo=min(eventinfo)           
-        #print einfo
-        return max(statuses),einfo
+            eventInfo.nextEventTime=0.0
+            
+        #print 'final',eventInfo.nextEventTime
+        return max(statuses),eventInfo
         
     def fmiEnterContinuousTimeMode(self):
         status=[]

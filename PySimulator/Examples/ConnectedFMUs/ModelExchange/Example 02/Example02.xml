@@ -1,0 +1,13 @@
+<?xml version="1.0" ?>
+<connectedFmus type="me">
+  <fmus>
+    <fmu name="FMUTestME_Example02_PID_0Controller_0Part11" path="FMUTestME_Example02_PID_0Controller_0Part1.fmu"/>
+    <fmu name="FMUTestME_Example02_PID_0Controller_0Part21" path="FMUTestME_Example02_PID_0Controller_0Part2.fmu"/>
+    <fmu name="FMUTestME_Example02_PID_0Controller_0Part31" path="FMUTestME_Example02_PID_0Controller_0Part3.fmu"/>
+  </fmus>
+  <connections>
+    <connection fromFmuName="FMUTestME_Example02_PID_0Controller_0Part11" fromVariableName="y" toFmuName="FMUTestME_Example02_PID_0Controller_0Part21" toVariableName="u"/>
+    <connection fromFmuName="FMUTestME_Example02_PID_0Controller_0Part21" fromVariableName="y" toFmuName="FMUTestME_Example02_PID_0Controller_0Part31" toVariableName="tau"/>
+    <connection fromFmuName="FMUTestME_Example02_PID_0Controller_0Part31" fromVariableName="w" toFmuName="FMUTestME_Example02_PID_0Controller_0Part21" toVariableName="u_m"/>
+  </connections>
+</connectedFmus>

@@ -437,7 +437,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
 
                 for i in xrange(len(self._fmusListModel._fmus)):
                     name = self._fmusListModel._fmus[i]._name
-
+    
                     if (name == fromFmuName):
                         fromFMU = self._fmusListModel._fmus[i]
                         frominputoutputvar = self._fmusListModel._fmus[i]._inputsOutputs
@@ -637,7 +637,7 @@ def StartSimulation(gui, xml, xmlFileName, fmiType):
             connected_components.append(tuple(l))
     
     ## Check for Algebraic loops  ##
-    print 'connectedorder', connected_components
+    #print 'connectedorder', connected_components
     algebraicloop=Algebraic_loops.count(1)==len(Algebraic_loops)
     True="test"
     ## Loop the List FMUs and display in the variable Browser as a SingleComponent
