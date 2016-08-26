@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<connectedFmus type="me">
+  <fmus>
+    <fmu name="Modelica_Blocks_Sources_BooleanPulse1" path="Modelica_Blocks_Sources_BooleanPulse.fmu"/>
+    <fmu name="VirtualLoops_Negations_FMUModels_ParallelNot11" path="VirtualLoops_Negations_FMUModels_ParallelNot1.fmu"/>
+    <fmu name="VirtualLoops_Negations_FMUModels_ParallelNot21" path="VirtualLoops_Negations_FMUModels_ParallelNot2.fmu"/>
+  </fmus>
+  <connections>
+    <connection fromFmuName="Modelica_Blocks_Sources_BooleanPulse1" fromVariableName="y" toFmuName="VirtualLoops_Negations_FMUModels_ParallelNot11" toVariableName="u1"/>
+    <connection fromFmuName="VirtualLoops_Negations_FMUModels_ParallelNot11" fromVariableName="y1" toFmuName="VirtualLoops_Negations_FMUModels_ParallelNot21" toVariableName="u1"/>
+    <connection fromFmuName="VirtualLoops_Negations_FMUModels_ParallelNot21" fromVariableName="y1" toFmuName="VirtualLoops_Negations_FMUModels_ParallelNot11" toVariableName="u2"/>
+    <connection fromFmuName="VirtualLoops_Negations_FMUModels_ParallelNot11" fromVariableName="y2" toFmuName="VirtualLoops_Negations_FMUModels_ParallelNot21" toVariableName="u2"/>
+  </connections>
+</connectedFmus>

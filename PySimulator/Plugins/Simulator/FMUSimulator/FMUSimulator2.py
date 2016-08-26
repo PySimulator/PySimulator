@@ -131,7 +131,7 @@ class Model(SimulatorBase.Model):
     ''' Class to describe a whole "model", including all FMU information
         and some more information that is needed.
     '''
-    def __init__(self, modelName=None, modelFileName=None, config=None, isConnected=False, connectedfmusitems=None, xml=None, xmlFileName=None, fmiType=None, connectionorder=None):
+    def __init__(self, modelName=None, modelFileName=None, config=None, isConnected=False, connectedfmusitems=None, xml=None, xmlFileName=None, fmiType=None, connectionorder=None, algebraicloop=None):
         ''' Opens a given model and sets it up with its default values
             @param modelFileName: fully qualified file name and path of model
         '''
@@ -171,7 +171,7 @@ class Model(SimulatorBase.Model):
             SimulatorBase.Model.__init__(self, modelName, modelFileName, config)
             self.modelType = 'FMU 2.0 ' + ('Model Exchange' if self.interface.activeFmiType == 'me' else 'CoSimulation') + ' in FMUSimulator'
         else:
-            self.interface = FMUInterface2_Connected.FMUInterface(connectedfmusitems, xml, connectionorder, self, loggingOn, fmiType)
+            self.interface = FMUInterface2_Connected.FMUInterface(connectedfmusitems, xml, connectionorder, self, loggingOn, fmiType,algebraicloop)
             self.description = self.interface.description
             SimulatorBase.Model.__init__(self, modelName, [], config)
             # do not change the following line. It is used in FMU.py function export.
@@ -219,9 +219,7 @@ class Model(SimulatorBase.Model):
             self.changedStartValue.
             The function returns a status flag and the next time event.
         '''
-
         self.interface.fmiInstantiate()
-
         if self.interface.activeFmiType == 'me':
             # Set start time
             self.interface.fmiSetTime(tStart)
@@ -235,7 +233,7 @@ class Model(SimulatorBase.Model):
         s1 = self.interface.fmiSetupExperiment(fmiTrue, errorTolerance, tStart, fmiTrue, tStop)
         s2 = self.interface.fmiEnterInitializationMode()
         s3 = self.interface.fmiExitInitializationMode()
-
+        #fmiEnterInitializationMode
         status = max(s1,s2,s3)
         nextTimeEvent = None
 
@@ -435,7 +433,6 @@ class Model(SimulatorBase.Model):
                 Returns True,  if simulation shall be continued
                         False, if simulation shall be terminated
             '''
-
             if event_info[1]:
                 self.integrationStatistics.nTimeEvents += 1
                 # print "Handle time event at   ", solver.t_cur
@@ -502,7 +499,7 @@ class Model(SimulatorBase.Model):
             ''' Function that is called after each successful integrator step
                 Returns True,  if there was a step event
                         False, if there was no step event
-            '''
+            '''                
             return False  # to be done for FMI2.0
             '''
             if self.interface.fmiCompletedIntegratorStep() == fmiTrue:
@@ -561,6 +558,7 @@ class Model(SimulatorBase.Model):
         ######################
         # Initialize model
         (status, nextTimeEvent) = self.initialize(Tstart, Tend, ErrorTolerance if self.interface.activeFmiType == 'cs' else min(1e-15, ErrorTolerance*1e-5))
+        #print 'initialize',nextTimeEvent
         if status > 1:
             print("Model initialization failed. fmiStatus = " + str(status))
             return
@@ -574,12 +572,12 @@ class Model(SimulatorBase.Model):
             if 'Discrete' in self.integrationResults._mtsf.results.series:
                 # Write discrete variables
                 writeResults('Discrete', Tstart)
-
             # Retrieve initial state x
             if self.description.numberOfContinuousStates == 0:
                 x0 = numpy.zeros([1, ])
             else:
                 status, x0 = self.interface.fmiGetContinuousStates()
+            
             # x_nominal = numpy.array(self.interface.fmiGetNominalContinuousStates())
 
             # Prepare the solver
@@ -589,7 +587,6 @@ class Model(SimulatorBase.Model):
                 implicitSolver = True
                 # Define the solver object
                 simulator = AssimuloIda()
-
                 # Retrieve initial derivatives dx
                 if self.description.numberOfContinuousStates == 0:
                     dx0 = numpy.zeros([1, ])
@@ -1096,7 +1093,6 @@ class ExplicitEulerSolver():
             dOutput = dt
         outputStepCounter = 1
         nextOutputPoint = min(Tstart + dOutput, Tend)
-
         # Start the integration loop
         while self.t_cur < Tend:
             # Define stepsize h, next step point, t_new and time_event
@@ -1130,8 +1126,8 @@ class ExplicitEulerSolver():
             state_event = (zb_new != zb)
             temp = zb
             zb = zb_new
-            zb_new = temp
-
+            zb_new = temp           
+            
             # Inform about completed step
             self.completed_step(self)
 
@@ -1144,7 +1140,7 @@ class ExplicitEulerSolver():
                 self.handle_result(None, nextOutputPoint, y_Output)
                 outputStepCounter += 1
                 nextOutputPoint = min(Tstart + outputStepCounter * dOutput, Tend)
-
+            
             # Depending on events have been detected do different tasks
             if state_event.any() or time_event:
                 # Event handling

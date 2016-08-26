@@ -1,0 +1,13 @@
+<?xml version="1.0" ?>
+<connectedFmus type="me">
+  <fmus>
+    <fmu name="Modelica_Blocks_Sources_Step1" path="Modelica_Blocks_Sources_Step.fmu"/>
+    <fmu name="VirtualLoops_ClosedLoopControl1_FMUModels_Controller11" path="VirtualLoops_ClosedLoopControl1_FMUModels_Controller1.fmu"/>
+    <fmu name="VirtualLoops_ClosedLoopControl1_FMUModels_Plant11" path="VirtualLoops_ClosedLoopControl1_FMUModels_Plant1.fmu"/>
+  </fmus>
+  <connections>
+    <connection fromFmuName="Modelica_Blocks_Sources_Step1" fromVariableName="y" toFmuName="VirtualLoops_ClosedLoopControl1_FMUModels_Controller11" toVariableName="u_s"/>
+    <connection fromFmuName="VirtualLoops_ClosedLoopControl1_FMUModels_Controller11" fromVariableName="y" toFmuName="VirtualLoops_ClosedLoopControl1_FMUModels_Plant11" toVariableName="u"/>
+    <connection fromFmuName="VirtualLoops_ClosedLoopControl1_FMUModels_Plant11" fromVariableName="y" toFmuName="VirtualLoops_ClosedLoopControl1_FMUModels_Controller11" toVariableName="u_m"/>
+  </connections>
+</connectedFmus>

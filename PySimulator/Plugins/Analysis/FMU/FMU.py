@@ -30,6 +30,7 @@ import zipfile
 import xml.etree.ElementTree as ET
 import codecs
 from xml.dom import minidom
+import StronglyConnected
 
 class FMU(object):
 
@@ -436,7 +437,7 @@ class ConnectFMUsDialog(QtGui.QDialog):
 
                 for i in xrange(len(self._fmusListModel._fmus)):
                     name = self._fmusListModel._fmus[i]._name
-
+    
                     if (name == fromFmuName):
                         fromFMU = self._fmusListModel._fmus[i]
                         frominputoutputvar = self._fmusListModel._fmus[i]._inputsOutputs
@@ -587,30 +588,62 @@ def StartSimulation(gui, xml, xmlFileName, fmiType):
     ##   'gain' : ['test'] }
 
     root = ET.fromstring(xml)
+    ## create ids for each fmus, to get correct order of execution from tarjan especially for loops, because when fmu names have special characters return different order
+    fmus_id={}
+    count=1
+    for fmus in root.iter('fmu'):
+        fmuname=fmus.get('name')
+        if(count%10==0):
+            count+=1
+        id=str(count).ljust(3, '0')
+        fmus_id[fmuname]=id
+        count+=1
+    #print fmus_id  
+    
+    ## construct Graph information with fmu ids
     graph={}
     for connection in root.iter('connection'):
         fromFMU=connection.get('fromFmuName')
         toFMU=connection.get('toFmuName')
-        True=graph.has_key(fromFMU)
+        fromid=fmus_id[fromFMU]
+        toid=fmus_id[toFMU]
+       
+        True=graph.has_key(fromid)
         if True:
-            graph[fromFMU].append(toFMU)
+            graph[fromid].append(toid)
         else:
-            graph[fromFMU] = [toFMU]
+            graph[fromid] = [toid]
+    
     ## Provide the the graph edges to find the strongly connected components using tarjan's algorithm
-    connected_components = StronglyConnectedComponents(graph)
-
-    ## Check for Algebraic loops  ##
+    scc =StronglyConnected.StronglyConnectedComponents(graph)
+    
+    ## recreate the FMUs order according to the names from fmus_id
     Algebraic_loops=[]
-    for i in xrange(len(connected_components)):
-        Algebraic_loops.append(len(connected_components[i]))
-
-    True=Algebraic_loops.count(1)==len(Algebraic_loops)
-
+    connected_components=[]
+    for i in xrange(len(scc)):
+        var=scc[i]
+        Algebraic_loops.append(len(var))
+        if(len(var)==1):
+            val=var[0]
+            fmuname=fmus_id.keys()[fmus_id.values().index(val)]
+            connected_components.append((fmuname,))
+        else:
+            l=[]
+            var=var[::-1]
+            for z in xrange(len(var)):
+                val=var[z]
+                fmuname=fmus_id.keys()[fmus_id.values().index(val)]
+                l.append(fmuname)
+            connected_components.append(tuple(l))
+    
+    ## Check for Algebraic loops  ##
+    #print 'connectedorder', connected_components
+    algebraicloop=Algebraic_loops.count(1)==len(Algebraic_loops)
+    True="test"
     ## Loop the List FMUs and display in the variable Browser as a SingleComponent
     if True:
         import configobj
         config = configobj.ConfigObj(os.path.join(os.path.expanduser("~"), '.config', 'PySimulator', 'PySimulator.ini'), encoding='utf8')
-
         connectedfmusitems=[]
         for fmu in root.iter('fmu'):
             fname=fmu.get('name')
@@ -630,7 +663,7 @@ def StartSimulation(gui, xml, xmlFileName, fmiType):
             fmuitems={'instancename':fname,'filename':fpath,'independent':ival}
             connectedfmusitems.append(fmuitems)
 
-        model = FMUSimulator.Model('ConnectedFMUS', None, config, True, connectedfmusitems, xml, xmlFileName, fmiType, connected_components)
+        model = FMUSimulator.Model('ConnectedFMUS', None, config, True, connectedfmusitems, xml, xmlFileName, fmiType, connected_components,algebraicloop)
         gui._newModel(model)
 #       try:
 #           model = FMUSimulator.Model('ConnectedFMUS', None, config, True, connectedfmusitems, xml, xmlFileName, fmiType, connected_components)
@@ -646,110 +679,6 @@ def StartSimulation(gui, xml, xmlFileName, fmiType):
         msg.setText("The connections contains Algebraic Loops, Currently PySimulator supports ConnectedFMU Simulation without Algebraic Loops")
         msg.exec_()
 
-def StronglyConnectedComponents(graph):
-    ## For each node in the graph the following two information must be set namely index and lowlinks according to tarjan algorithm
-    ## eg: If there is node 'A' then Node A should contain A(index,lowlink)
-    index_counter =[0]
-    stack = []
-    lowlinks = {}
-    index = {}
-    result = []
-    def strongconnect(node):
-        ## set the index and lowlink of starting Node to be 0
-        ## eg: if A is the starting node in the graph then set A(0,0) and increment the index and lowlink for each successor of a node
-
-        index[node] = index_counter[0]
-        lowlinks[node] = index_counter[0]
-        index_counter[0] += 1
-        stack.append(node)
-
-        # Get successors of 'node'
-        try:
-            successors = graph[node]
-        except:
-            successors = []
-
-        for successor in successors:
-            if successor not in lowlinks:
-                # Successor has not yet been visited;
-                strongconnect(successor)
-                lowlinks[node] = min(lowlinks[node],lowlinks[successor])
-            elif successor in stack:
-                # the successor is in the stack and hence in the current strongly connected component (SCC)
-                lowlinks[node] = min(lowlinks[node],index[successor])
-
-        # If `node` is a root node, pop the stack and generate an SCC
-        if lowlinks[node] == index[node]:
-            connected_component = []
-            while True:
-                successor = stack.pop()
-                connected_component.append(successor)
-                if successor == node:
-                    break
-            component = tuple(connected_component)
-            # storing the result
-            result.append(component)
-
-    for node in graph:
-        if node not in lowlinks:
-            strongconnect(node)
-
-    ## End of the Algorithm, get the Strongly connected component list and pass it to Topological Sort function to get the order of execution
-    orderedlist=GetNodeComponentOrder(result,graph)
-    return orderedlist
-
-def GetNodeComponentOrder(result,graph):
-    ## This Function is used to get Strongly connected Components list from Tarjan algorithm and create a New Graph components information
-    ## to find the order of execution of a Directed Graph using Topological Sort Algorithm
-
-    components = result
-
-    node_component = {}
-    for component in components:
-        for node in component:
-            node_component[node] = component
-
-    component_graph = {}
-    for component in components:
-        component_graph[component] = []
-
-    for node in graph:
-        node_c = node_component[node]
-        for successor in graph[node]:
-            successor_c = node_component[successor]
-            if node_c != successor_c:
-                component_graph[node_c].append(successor_c)
-
-    return topological_sort(component_graph)
-
-def topological_sort(graph):
-    ### Find the order of execution from the Connected Graph components ###
-
-    ## As a first step, Assign each node in Graph with number of incoming edges set to 0
-    count = { }
-    for node in graph:
-        count[node] = 0
-
-    ## For each node in the graph determine the number of incoming edges and set the count,
-    ## In this phase we determine the root node, A node with no incoming edge will be the start node
-    for node in graph:
-        for successor in graph[node]:
-            count[successor] += 1
-
-    startnode = [ node for node in graph if count[node] == 0 ]
-
-    ## After finding the start node, append it to list until all the successor of graph is completed which gives the order of execution
-    result = [ ]
-    while startnode:
-        node = startnode.pop(-1)
-        result.append(node)
-
-        for successor in graph[node]:
-            count[successor] -= 1
-            if count[successor] == 0:
-                startnode.append(successor)
-
-    return result
 
 def fmuTypeToString(fmuType):
     """Returns the FMU type as readable string"""
@@ -767,8 +696,9 @@ def prettify(elem):
     return reparsed.toprettyxml(indent="  ")
 
 def NewConnectME(model, gui):
-    print "New connected FMU for Model Exchange is under development"
-    pass
+    connectFMUsDialog = ConnectFMUsDialog(gui, 'me', None)
+    connectFMUsDialog.exec_()
+
 
 def NewConnectCS(model, gui):
     connectFMUsDialog = ConnectFMUsDialog(gui, 'cs', None)
