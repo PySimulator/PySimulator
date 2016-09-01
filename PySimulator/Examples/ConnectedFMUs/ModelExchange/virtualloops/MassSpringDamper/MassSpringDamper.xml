@@ -1,0 +1,12 @@
+<?xml version="1.0" ?>
+<connectedFmus type="me">
+  <fmus>
+    <fmu name="VirtualLoops_MassSpringDamper_FMUModels_MassWithGravity1" path="VirtualLoops_MassSpringDamper_FMUModels_MassWithGravity.fmu"/>
+    <fmu name="VirtualLoops_MassSpringDamper_FMUModels_SpringDamper1" path="VirtualLoops_MassSpringDamper_FMUModels_SpringDamper.fmu"/>
+  </fmus>
+  <connections>
+    <connection fromFmuName="VirtualLoops_MassSpringDamper_FMUModels_MassWithGravity1" fromVariableName="x" toFmuName="VirtualLoops_MassSpringDamper_FMUModels_SpringDamper1" toVariableName="x"/>
+    <connection fromFmuName="VirtualLoops_MassSpringDamper_FMUModels_MassWithGravity1" fromVariableName="v" toFmuName="VirtualLoops_MassSpringDamper_FMUModels_SpringDamper1" toVariableName="v"/>
+    <connection fromFmuName="VirtualLoops_MassSpringDamper_FMUModels_MassWithGravity1" fromVariableName="f" toFmuName="VirtualLoops_MassSpringDamper_FMUModels_SpringDamper1" toVariableName="f"/>
+  </connections>
+</connectedFmus>

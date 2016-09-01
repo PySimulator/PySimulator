@@ -1,14 +1,14 @@
 <?xml version="1.0" ?>
 <connectedFmus type="me">
   <fmus>
-    <fmu name="Modelica_Blocks_Sources_SampleTrigger1" path="Modelica_Blocks_Sources_SampleTrigger.fmu"/>
-    <fmu name="Modelica_Blocks_Sources_SampleTrigger2" path="Modelica_Blocks_Sources_SampleTrigger.fmu"/>
+    <fmu name="Modelica_Blocks_Sources_SampleTrigger11" path="Modelica_Blocks_Sources_SampleTrigger1.fmu"/>
+    <fmu name="Modelica_Blocks_Sources_SampleTrigger12" path="Modelica_Blocks_Sources_SampleTrigger2.fmu"/>
     <fmu name="VirtualLoops_SRFlipFlop_FMUModels_Nor1" path="VirtualLoops_SRFlipFlop_FMUModels_Nor.fmu"/>
     <fmu name="VirtualLoops_SRFlipFlop_FMUModels_NorPre1" path="VirtualLoops_SRFlipFlop_FMUModels_NorPre.fmu"/>
   </fmus>
   <connections>
-    <connection fromFmuName="Modelica_Blocks_Sources_SampleTrigger1" fromVariableName="y" toFmuName="VirtualLoops_SRFlipFlop_FMUModels_NorPre1" toVariableName="u1"/>
-    <connection fromFmuName="Modelica_Blocks_Sources_SampleTrigger2" fromVariableName="y" toFmuName="VirtualLoops_SRFlipFlop_FMUModels_Nor1" toVariableName="u2"/>
+    <connection fromFmuName="Modelica_Blocks_Sources_SampleTrigger11" fromVariableName="y" toFmuName="VirtualLoops_SRFlipFlop_FMUModels_NorPre1" toVariableName="u1"/>
+    <connection fromFmuName="Modelica_Blocks_Sources_SampleTrigger12" fromVariableName="y" toFmuName="VirtualLoops_SRFlipFlop_FMUModels_Nor1" toVariableName="u2"/>
     <connection fromFmuName="VirtualLoops_SRFlipFlop_FMUModels_NorPre1" fromVariableName="y" toFmuName="VirtualLoops_SRFlipFlop_FMUModels_Nor1" toVariableName="u1"/>
     <connection fromFmuName="VirtualLoops_SRFlipFlop_FMUModels_Nor1" fromVariableName="y" toFmuName="VirtualLoops_SRFlipFlop_FMUModels_NorPre1" toVariableName="u2"/>
   </connections>
