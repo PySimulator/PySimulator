@@ -1,15 +1,15 @@
 <?xml version="1.0" ?>
 <connectedFmus type="me">
   <fmus>
-    <fmu name="Modelica_Blocks_Sources_BooleanPulse1" path="C:/FMUPysimulator/PySimulator/PySimulator/Examples/ConnectedFMUs/ModelExchange/SimpleConnections/Series3/Modelica_Blocks_Sources_BooleanPulse.fmu"/>
-    <fmu name="Modelica_Blocks_Sources_IntegerConstant1" path="C:/FMUPysimulator/PySimulator/PySimulator/Examples/ConnectedFMUs/ModelExchange/SimpleConnections/Series3/Modelica_Blocks_Sources_IntegerConstant.fmu"/>
-    <fmu name="Modelica_Blocks_Sources_Sine1" path="C:/FMUPysimulator/PySimulator/PySimulator/Examples/ConnectedFMUs/ModelExchange/SimpleConnections/Series3/Modelica_Blocks_Sources_Sine.fmu"/>
-    <fmu name="SimpleConnections_Series3_FMUModels_DifferentTypes11" path="C:/FMUPysimulator/PySimulator/PySimulator/Examples/ConnectedFMUs/ModelExchange/SimpleConnections/Series3/SimpleConnections_Series3_FMUModels_DifferentTypes1.fmu"/>
-    <fmu name="SimpleConnections_Series3_FMUModels_DifferentTypes21" path="C:/FMUPysimulator/PySimulator/PySimulator/Examples/ConnectedFMUs/ModelExchange/SimpleConnections/Series3/SimpleConnections_Series3_FMUModels_DifferentTypes2.fmu"/>
+    <fmu name="Modelica_Blocks_Sources_BooleanPulse1" path="Modelica_Blocks_Sources_BooleanPulse.fmu"/>
+    <fmu name="Modelica_Blocks_Sources_IntegerTable1" path="Modelica_Blocks_Sources_IntegerTable.fmu"/>
+    <fmu name="Modelica_Blocks_Sources_Sine1" path="Modelica_Blocks_Sources_Sine.fmu"/>
+    <fmu name="SimpleConnections_Series3_FMUModels_DifferentTypes11" path="SimpleConnections_Series3_FMUModels_DifferentTypes1.fmu"/>
+    <fmu name="SimpleConnections_Series3_FMUModels_DifferentTypes21" path="SimpleConnections_Series3_FMUModels_DifferentTypes2.fmu"/>
   </fmus>
   <connections>
     <connection fromFmuName="Modelica_Blocks_Sources_Sine1" fromVariableName="y" toFmuName="SimpleConnections_Series3_FMUModels_DifferentTypes11" toVariableName="u1"/>
-    <connection fromFmuName="Modelica_Blocks_Sources_IntegerConstant1" fromVariableName="y" toFmuName="SimpleConnections_Series3_FMUModels_DifferentTypes11" toVariableName="u2"/>
+    <connection fromFmuName="Modelica_Blocks_Sources_IntegerTable1" fromVariableName="y" toFmuName="SimpleConnections_Series3_FMUModels_DifferentTypes11" toVariableName="u2"/>
     <connection fromFmuName="Modelica_Blocks_Sources_BooleanPulse1" fromVariableName="y" toFmuName="SimpleConnections_Series3_FMUModels_DifferentTypes11" toVariableName="u3"/>
     <connection fromFmuName="SimpleConnections_Series3_FMUModels_DifferentTypes11" fromVariableName="y1" toFmuName="SimpleConnections_Series3_FMUModels_DifferentTypes21" toVariableName="u1"/>
     <connection fromFmuName="SimpleConnections_Series3_FMUModels_DifferentTypes11" fromVariableName="y2" toFmuName="SimpleConnections_Series3_FMUModels_DifferentTypes21" toVariableName="u2"/>
