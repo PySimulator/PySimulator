@@ -61,6 +61,8 @@ class FMIDescription:
         self.numberOfEventIndicators = 0
         self.numberOfContinuousStates = 0
         self.internaldependencyorder=None
+        self.intializeunknowndependencyorder=None
+        self.initializeunknownconnectioninfo={}
         self.connectioninfo={}
         self.variableid={}
         self.inputvarlist={}
@@ -73,10 +75,11 @@ class FMIDescription:
             for v in xrange(len(varlist)):
                 name=FMUInterfaceObj.instanceName +'.'+varlist[v]
                 self.variableid[name]=key+str(v)
-        
+                
         ## Create connection graph combining internal and  external dependency from xml
         root = ET.fromstring(xml)
         graphlist={}
+        initialunknowngraphlist={}
         for connection in root.iter('connection'):           
             ## add from and to info with real fmus name and variables
             fromfmuvar=connection.get('fromFmuName')+'.'+connection.get('fromVariableName')
@@ -85,18 +88,32 @@ class FMIDescription:
             fromid=self.variableid[fromfmuvar]
             toid=self.variableid[tofmuvar]           
             ## add connection information with fmus names which will be used in connection resolve           
-            True=self.connectioninfo.has_key(fromfmuvar)
-            if True:
+            key1=self.connectioninfo.has_key(fromfmuvar)
+            if (key1==True):
                 self.connectioninfo[fromfmuvar].append(tofmuvar)
             else:
                 self.connectioninfo[fromfmuvar] = [tofmuvar]
             ## add connection information with fmus id which will be used to get correct order of evaluation from tarjan
-            True=graphlist.has_key(fromid)
-            if True:
+            key2=graphlist.has_key(fromid)
+            if (key2==True):
                 graphlist[fromid].append(toid)
             else:
                 graphlist[fromid] = [toid]
-        
+            
+            ## add connection information with fmus names for initial unknowns           
+            key3=self.initializeunknownconnectioninfo.has_key(fromfmuvar)
+            if (key3==True):
+                self.initializeunknownconnectioninfo[fromfmuvar].append(tofmuvar)
+            else:
+                self.initializeunknownconnectioninfo[fromfmuvar] = [tofmuvar]
+                
+            ## add connection information with fmus id for initial unknowns 
+            key4=initialunknowngraphlist.has_key(fromid)
+            if (key4==True):
+                initialunknowngraphlist[fromid].append(toid)
+            else:
+                initialunknowngraphlist[fromid] = [toid]
+            
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             description = FMUInterfaceObj.description
 
@@ -125,6 +142,8 @@ class FMIDescription:
             ## get the internaldependency information
             varlist=description.scalarVariables.keys()
             ModelStructureOutputdependency(varlist,modelstructure,graphlist,FMUInterfaceObj,self.connectioninfo,self.variableid)
+            ModelStructureInitialUnknowndependency(varlist,modelstructure,initialunknowngraphlist,FMUInterfaceObj,self.initializeunknownconnectioninfo,self.variableid)
+              
             outvarlist=[]
             othervarlist=[]           
             for scalarName, var in description.scalarVariables.iteritems():                                
@@ -140,8 +159,8 @@ class FMIDescription:
                 ## dictionary to identify input variables of each fmus
                 if(description.scalarVariables[scalarName].causality=="input"):
                         inputvar = FMUInterfaceObj.instanceName + '.' + scalarName
-                        True=self.inputvarlist.has_key(FMUInterfaceObj.instanceName)
-                        if True:
+                        key5=self.inputvarlist.has_key(FMUInterfaceObj.instanceName)
+                        if (key5==True):
                             self.inputvarlist[FMUInterfaceObj.instanceName].append(inputvar)
                         else:
                             self.inputvarlist[FMUInterfaceObj.instanceName]=[inputvar]
@@ -149,8 +168,8 @@ class FMIDescription:
                 ## dictionary to identify output variables of each fmus       
                 if(description.scalarVariables[scalarName].causality=="output"):
                         outputvar = FMUInterfaceObj.instanceName + '.' + scalarName
-                        True=self.outputvarlist.has_key(FMUInterfaceObj.instanceName)
-                        if True:
+                        key6=self.outputvarlist.has_key(FMUInterfaceObj.instanceName)
+                        if (key6==True):
                             self.outputvarlist[FMUInterfaceObj.instanceName].append(outputvar)
                         else:
                             self.outputvarlist[FMUInterfaceObj.instanceName]=[outputvar]
@@ -171,20 +190,20 @@ class FMIDescription:
                     toname=outvarlist[m]
                     toid=self.variableid[toname]
                     ## add connection information with fmus names
-                    True=self.connectioninfo.has_key(fromname)
-                    if True:
+                    key7=self.connectioninfo.has_key(fromname)
+                    if (key7==True):
                         self.connectioninfo[fromname].append(toname)
                     else:
                         self.connectioninfo[fromname] = [toname]                    
                     ## add connection information with fmus id which will be used to get correct order of evaluation from tarjan
-                    True=graphlist.has_key(fromid)
-                    if True:
+                    key8=graphlist.has_key(fromid)
+                    if (key8==True):
                         graphlist[fromid].append(toid)
                     else:
                         graphlist[fromid] = [toid]
         
         scc=StronglyConnected.StronglyConnectedComponents(graphlist)
-                      
+        unknownscc=StronglyConnected.StronglyConnectedComponents(initialunknowngraphlist)              
         ## create the ordered list with fmunames+variables matching the fmuids        
         orderedlist=[]
         for z in xrange(len(scc)):          
@@ -201,9 +220,27 @@ class FMIDescription:
                     fmuname=self.variableid.keys()[self.variableid.values().index(val)]
                     l.append(fmuname)
                 orderedlist.append(tuple(l))
-        
         self.internaldependencyorder=orderedlist
         
+        ## create the ordered list for initial unknown depedencv with fmunames+variables matching the fmuids        
+        unknownorderedlist=[]
+        for z in xrange(len(unknownscc)):          
+            var=unknownscc[z]
+            if(len(var)==1):
+                val=var[0]
+                fmuname=self.variableid.keys()[self.variableid.values().index(val)]
+                unknownorderedlist.append((fmuname,))
+            else:
+                l=[]
+                var=var[::-1]
+                for k in xrange(len(var)):
+                    val=var[k]
+                    fmuname=self.variableid.keys()[self.variableid.values().index(val)]
+                    l.append(fmuname)
+                unknownorderedlist.append(tuple(l))
+                
+        self.internaldependencyorder=orderedlist
+        self.intializeunknowndependencyorder=unknownorderedlist
         
 def ModelStructureOutputdependency(varlist,modelstructure,graphlist,FMUInterfaceObj,connectioninfo,variableid):
     ## Handle internal connection dependency for outputs of modelstructure
@@ -223,17 +260,48 @@ def ModelStructureOutputdependency(varlist,modelstructure,graphlist,FMUInterface
                 #fromconnection_id=fmuitems[FMUInterfaceObj.instanceName]+invar
                 fromconnection_id=variableid[fromconnection]
                 ## add connection info with fmus id for correct order of evaluation from tarjan
-                True=graphlist.has_key(fromconnection_id)
-                if True:
+                key9=graphlist.has_key(fromconnection_id)
+                if (key9==True):
                     graphlist[fromconnection_id].append(toconnection_id)
                 else:
                     graphlist[fromconnection_id] = [toconnection_id]
                
                 ## add connection info with fmunames which will be used for connection resolve
-                True=connectioninfo.has_key(fromconnection)
-                if True:
+                key10=connectioninfo.has_key(fromconnection)
+                if (key10==True):
                     connectioninfo[fromconnection].append(toconnection)
                 else:
                     connectioninfo[fromconnection] = [toconnection]
-        
+
+
+def ModelStructureInitialUnknowndependency(varlist,modelstructure,unknowngraphlist,FMUInterfaceObj,unknownconnectioninfo,variableid):
+    ## Handle internal connection dependency for outputs of modelstructure
+    for i in xrange(len(modelstructure.initialUnknowns)):
+        outputindex=modelstructure.initialUnknowns[i].index
+        inputindex=modelstructure.initialUnknowns[i].dependencies
+        outvar=varlist[int(outputindex)-1]
+        toconnection=FMUInterfaceObj.instanceName + '.' + outvar
+        #toconnection_id=fmuitems[FMUInterfaceObj.instanceName]+outvar
+        toconnection_id=variableid[toconnection]       
+        if (inputindex!=''):
+            val=inputindex.split()
+            for z in xrange(len(val)):
+                v1=val[z]
+                invar=varlist[int(v1)-1]
+                fromconnection=(FMUInterfaceObj.instanceName)+ '.' + invar
+                #fromconnection_id=fmuitems[FMUInterfaceObj.instanceName]+invar
+                fromconnection_id=variableid[fromconnection]
+                ## add connection info with fmus id for correct order of evaluation from tarjan
+                key11=unknowngraphlist.has_key(fromconnection_id)
+                if (key11==True):
+                    unknowngraphlist[fromconnection_id].append(toconnection_id)
+                else:
+                    unknowngraphlist[fromconnection_id] = [toconnection_id]
+               
+                ## add connection info with fmunames which will be used for connection resolve
+                key12=unknownconnectioninfo.has_key(fromconnection)
+                if (key12==True):
+                    unknownconnectioninfo[fromconnection].append(toconnection)
+                else:
+                    unknownconnectioninfo[fromconnection] = [toconnection]                    
 

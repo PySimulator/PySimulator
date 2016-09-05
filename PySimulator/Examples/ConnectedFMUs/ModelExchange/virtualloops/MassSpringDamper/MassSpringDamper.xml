@@ -7,6 +7,6 @@
   <connections>
     <connection fromFmuName="VirtualLoops_MassSpringDamper_FMUModels_MassWithGravity1" fromVariableName="x" toFmuName="VirtualLoops_MassSpringDamper_FMUModels_SpringDamper1" toVariableName="x"/>
     <connection fromFmuName="VirtualLoops_MassSpringDamper_FMUModels_MassWithGravity1" fromVariableName="v" toFmuName="VirtualLoops_MassSpringDamper_FMUModels_SpringDamper1" toVariableName="v"/>
-    <connection fromFmuName="VirtualLoops_MassSpringDamper_FMUModels_MassWithGravity1" fromVariableName="f" toFmuName="VirtualLoops_MassSpringDamper_FMUModels_SpringDamper1" toVariableName="f"/>
+    <connection fromFmuName="VirtualLoops_MassSpringDamper_FMUModels_SpringDamper1" fromVariableName="f" toFmuName="VirtualLoops_MassSpringDamper_FMUModels_MassWithGravity1" toVariableName="f"/>
   </connections>
 </connectedFmus>
