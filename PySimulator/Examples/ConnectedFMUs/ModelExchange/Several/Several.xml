@@ -29,7 +29,7 @@
     <connection fromFmuName="VirtualLoops_ClosedLoopControl1_FMUModels_Plant11" fromVariableName="y" toFmuName="VirtualLoops_ClosedLoopControl1_FMUModels_Controller11" toVariableName="u_m"/>
     <connection fromFmuName="VirtualLoops_MassSpringDamper_FMUModels_MassWithGravity1" fromVariableName="x" toFmuName="VirtualLoops_MassSpringDamper_FMUModels_SpringDamper1" toVariableName="x"/>
     <connection fromFmuName="VirtualLoops_MassSpringDamper_FMUModels_MassWithGravity1" fromVariableName="v" toFmuName="VirtualLoops_MassSpringDamper_FMUModels_SpringDamper1" toVariableName="v"/>
-    <connection fromFmuName="VirtualLoops_MassSpringDamper_FMUModels_MassWithGravity1" fromVariableName="f" toFmuName="VirtualLoops_MassSpringDamper_FMUModels_SpringDamper1" toVariableName="f"/>
+    <connection fromFmuName="VirtualLoops_MassSpringDamper_FMUModels_SpringDamper1" fromVariableName="f" toFmuName="VirtualLoops_MassSpringDamper_FMUModels_MassWithGravity1" toVariableName="f"/>
     <connection fromFmuName="Modelica_Blocks_Sources_BooleanPulse1" fromVariableName="y" toFmuName="VirtualLoops_Negations_FMUModels_ParallelNot11" toVariableName="u1"/>
     <connection fromFmuName="VirtualLoops_Negations_FMUModels_ParallelNot11" fromVariableName="y1" toFmuName="VirtualLoops_Negations_FMUModels_ParallelNot21" toVariableName="u1"/>
     <connection fromFmuName="VirtualLoops_Negations_FMUModels_ParallelNot21" fromVariableName="y1" toFmuName="VirtualLoops_Negations_FMUModels_ParallelNot11" toVariableName="u2"/>

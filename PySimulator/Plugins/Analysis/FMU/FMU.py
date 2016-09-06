@@ -637,47 +637,38 @@ def StartSimulation(gui, xml, xmlFileName, fmiType):
             connected_components.append(tuple(l))
     
     ## Check for Algebraic loops  ##
-    #print 'connectedorder', connected_components
+    #print 'connectedorder', connected_components,fmiType
     algebraicloop=Algebraic_loops.count(1)==len(Algebraic_loops)
-    True="test"
+    
     ## Loop the List FMUs and display in the variable Browser as a SingleComponent
-    if True:
-        import configobj
-        config = configobj.ConfigObj(os.path.join(os.path.expanduser("~"), '.config', 'PySimulator', 'PySimulator.ini'), encoding='utf8')
-        connectedfmusitems=[]
-        for fmu in root.iter('fmu'):
-            fname=fmu.get('name')
-            fpath=fmu.get('path')
-            # if fmu paths are relative then make them absolute properly
-            fmuFileInfo = QtCore.QFileInfo(fpath)
-            setupFileInfo = QtCore.QFileInfo(xmlFileName)
-            if fmuFileInfo.isRelative():
-                fpath = setupFileInfo.absolutePath() + '/' + fpath
-            checkname = [s for s in connected_components if fname in s]
-            if not checkname:
-                tuple1 = (fname,)
-                connected_components.append(tuple1)
-                ival=True
-            else:
-                ival=False
-            fmuitems={'instancename':fname,'filename':fpath,'independent':ival}
-            connectedfmusitems.append(fmuitems)
-
-        model = FMUSimulator.Model('ConnectedFMUS', None, config, True, connectedfmusitems, xml, xmlFileName, fmiType, connected_components,algebraicloop)
-        gui._newModel(model)
-#       try:
-#           model = FMUSimulator.Model('ConnectedFMUS', None, config, True, connectedfmusitems, xml, xmlFileName, fmiType, connected_components)
-#           gui._newModel(model)
-#       except Exception as e:
-#           if hasattr(e, 'msg'):
-#               print e.msg
-#           else:
-#               print e
-
+    import configobj
+    config = configobj.ConfigObj(os.path.join(os.path.expanduser("~"), '.config', 'PySimulator', 'PySimulator.ini'), encoding='utf8')
+    connectedfmusitems=[]
+    for fmu in root.iter('fmu'):
+        fname=fmu.get('name')
+        fpath=fmu.get('path')
+        # if fmu paths are relative then make them absolute properly
+        fmuFileInfo = QtCore.QFileInfo(fpath)
+        setupFileInfo = QtCore.QFileInfo(xmlFileName)
+        if fmuFileInfo.isRelative():
+            fpath = setupFileInfo.absolutePath() + '/' + fpath
+        checkname = [s for s in connected_components if fname in s]
+        if not checkname:
+            tuple1 = (fname,)
+            connected_components.append(tuple1)
+            ival=True
+        else:
+            ival=False
+        fmuitems={'instancename':fname,'filename':fpath,'independent':ival}
+        connectedfmusitems.append(fmuitems)
+    
+    model = FMUSimulator.Model('ConnectedFMUS', None, config,"True", connectedfmusitems, xml, xmlFileName, fmiType, connected_components,algebraicloop)    
+    gui._newModel(model)
+    '''    
     else:
         msg=QtGui.QMessageBox()
         msg.setText("The connections contains Algebraic Loops, Currently PySimulator supports ConnectedFMU Simulation without Algebraic Loops")
-        msg.exec_()
+        msg.exec_()'''
 
 
 def fmuTypeToString(fmuType):
