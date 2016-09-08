@@ -252,92 +252,10 @@ class FMUInterface:
         for order in xrange(len(self.intializeunknowndependencyorder)):
             n1=self.intializeunknowndependencyorder[order]
             if(len(n1)==1):
-                  fromName=n1[0]
-                  var2=fromName.split('.')
-                  getkey=self.FMUItems[var2[0]]
-                  FMUInterfaceObj=self.FMUInterfaces[getkey]
-                  self.ResolveUnknownNamedConnections(fromName,FMUInterfaceObj)
-                  statuses.append(FMUInterfaceObj.fmiEnterInitializationMode())        
+                self.ResolveNamedConnections(n1,"fmiEnterInitializationMode",statuses,None)                                                 
             else:
-                ## handle for real algebraic loops, to be investigated 
-                checklist={}
-                xold=''
-                xnew=''
-                for k in xrange(len(n1)):
-                   fromName=n1[k]
-                   var2=fromName.split('.')
-                   getkey=self.FMUItems[var2[0]]
-                   FMUInterfaceObj=self.FMUInterfaces[getkey]
-                   try:
-                      tolist=self.initializeunknownconnectioninfo[fromName]
-                      ## Handling of getvalue 
-                      valref=self.description.scalarVariables[fromName].valueReference                           
-                      #get the correct valuereference of the corresponding fmus
-                      getcorrectvalref=valref[3:]
-                      FMUValueReference = numpy.array(map(numpy.uint32,[getcorrectvalref]))
-                      status,getval=FMUInterfaceObj.fmiGetReal(FMUValueReference)
-                      for z in xrange(len(tolist)):
-                          toName=tolist[z]
-                          self.setValue(toName,getval[0])
-                   except KeyError as e:
-                      pass
-                   statuses.append(FMUInterfaceObj.fmiEnterInitializationMode())
-                   #self.ResolveNamedConnections(fromName,FMUInterfaceObj)                                                 
-                   if(k==0):
-                        checklist['name']=FMUInterfaceObj
-                        checklist['ValueReference']=FMUValueReference
-                        old=getval[0]
-                        xold=old                            
-                   if(n1[k]==n1[-1]):
-                        ##check value on the last iteration
-                        finalvalue=getval[0]
-                        fmu=checklist['name']
-                        FMUValueReference=checklist['ValueReference']
-                        status,getval=fmu.fmiGetReal(FMUValueReference)
-                        new=finalvalue
-                        xnew=new                   
-                count=0
-                valuereflist={}
-                while((xold-xnew) > 1e-4):
-                     for k in xrange(len(n1)):
-                        fromName=n1[k]
-                        var2=fromName.split('.')
-                        getkey=self.FMUItems[var2[0]]
-                        FMUInterfaceObj=self.FMUInterfaces[getkey]
-                        #self.ResolveNamedConnections(fromName,FMUInterfaceObj)
-                        try:
-                          tolist=self.initializeunknownconnectioninfo[fromName]
-                          ## Handling of getvalue 
-                          valref=self.description.scalarVariables[fromName].valueReference                           
-                          #get the correct valuereference of the corresponding fmus
-                          getcorrectvalref=valref[3:]
-                          FMUValueReference = numpy.array(map(numpy.uint32,[getcorrectvalref]))
-                          status,getval=FMUInterfaceObj.fmiGetReal(FMUValueReference)
-                          for z in xrange(len(tolist)):
-                              toName=tolist[z]
-                              self.setValue(toName,getval[0])
-                        except KeyError as e:
-                          pass
-                        statuses.append(FMUInterfaceObj.fmiEnterInitializationMode())
-                        if(k==0):
-                             valuereflist['name']=FMUInterfaceObj
-                             valuereflist['ValueReference']=FMUValueReference                        
-                             xstart=getval[0]
-                             xold=xstart                            
-                             
-                        if(n1[k]==n1[-1]):
-                            ##check value on the last iteration
-                            finalvalue=getval[0]
-                            fmu=valuereflist['name']
-                            FMUValueReference=valuereflist['ValueReference']
-                            status,getval=fmu.fmiGetReal(FMUValueReference)
-                            new=getval[0]
-                            xnew=new
-                            residual=(xold-xnew)
-                     count+=1
-                     if(count==500):
-                        print "Failed to converge"
-                        break                    
+                ## handle for real algebraic loops, to be investigated
+                self.AlgebraicLoopSover(n1,"fmiEnterInitializationMode",statuses,None)                                 
         return max(statuses)        
     
     def fmiExitInitializationMode(self):
@@ -351,162 +269,26 @@ class FMUInterface:
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             status.append(FMUInterfaceObj.fmiTerminate())
         return max(status)
-                        
+    
+                    
     ''' Resolve connection combining  internal and external dependency'''
     def ResolveSetGet(self):
         for order in xrange(len(self.internaldependencyorder)):
                n1=self.internaldependencyorder[order]
                if(len(n1)==1):
-                  fromName=n1[0]
-                  var2=fromName.split('.')
-                  getkey=self.FMUItems[var2[0]]
-                  FMUInterfaceObj=self.FMUInterfaces[getkey]
-                  self.ResolveNamedConnections(fromName,FMUInterfaceObj)                         
+                  self.ResolveNamedConnections(n1,"ResolveSetGet",None,None)                                          
                else:
-                   #Handling for real time Algebraic loops, to be investigated
-                   checklist={}
-                   xold=''
-                   xnew=''
-                   for k in xrange(len(n1)):
-                       fromName=n1[k]
-                       var2=fromName.split('.')
-                       getkey=self.FMUItems[var2[0]]
-                       FMUInterfaceObj=self.FMUInterfaces[getkey]
-                       try:
-                          tolist=self.connectioninfo[fromName]
-                          ## Handling of getvalue 
-                          valref=self.description.scalarVariables[fromName].valueReference                           
-                          #get the correct valuereference of the corresponding fmus
-                          getcorrectvalref=valref[3:]
-                          FMUValueReference = numpy.array(map(numpy.uint32,[getcorrectvalref]))
-                          status,getval=FMUInterfaceObj.fmiGetReal(FMUValueReference)
-                          for z in xrange(len(tolist)):
-                              toName=tolist[z]
-                              self.setValue(toName,getval[0])
-                       except KeyError as e:
-                          pass
-                       #self.ResolveNamedConnections(fromName,FMUInterfaceObj)                                                 
-                       if(k==0):
-                            checklist['name']=FMUInterfaceObj
-                            checklist['ValueReference']=FMUValueReference
-                            old=getval[0]
-                            xold=old                            
-                       if(n1[k]==n1[-1]):
-                            ##check value on the last iteration
-                            finalvalue=getval[0]
-                            fmu=checklist['name']
-                            FMUValueReference=checklist['ValueReference']
-                            status,getval=fmu.fmiGetReal(FMUValueReference)
-                            new=finalvalue
-                            xnew=new                   
-                   count=0
-                   valuereflist={}
-                   while((xold-xnew) > 1e-4):
-                     for k in xrange(len(n1)):
-                        fromName=n1[k]
-                        var2=fromName.split('.')
-                        getkey=self.FMUItems[var2[0]]
-                        FMUInterfaceObj=self.FMUInterfaces[getkey]
-                        #self.ResolveNamedConnections(fromName,FMUInterfaceObj)
-                        try:
-                          tolist=self.connectioninfo[fromName]
-                          ## Handling of getvalue 
-                          valref=self.description.scalarVariables[fromName].valueReference                           
-                          #get the correct valuereference of the corresponding fmus
-                          getcorrectvalref=valref[3:]
-                          FMUValueReference = numpy.array(map(numpy.uint32,[getcorrectvalref]))
-                          status,getval=FMUInterfaceObj.fmiGetReal(FMUValueReference)
-                          for z in xrange(len(tolist)):
-                              toName=tolist[z]
-                              self.setValue(toName,getval[0])
-                        except KeyError as e:
-                          ## print no output edge available for the variable",fromName                                    
-                          pass
-                        if(k==0):
-                             valuereflist['name']=FMUInterfaceObj
-                             valuereflist['ValueReference']=FMUValueReference                        
-                             xstart=getval[0]
-                             xold=xstart                                                         
-                        if(n1[k]==n1[-1]):
-                            ##check value on the last iteration
-                            finalvalue=getval[0]
-                            fmu=valuereflist['name']
-                            FMUValueReference=valuereflist['ValueReference']
-                            status,getval=fmu.fmiGetReal(FMUValueReference)
-                            new=getval[0]
-                            xnew=new
-                            residual=(xold-xnew)
-                     count+=1
-                     if(count==500):
-                        print "Failed to converge"
-                        break  
-    
-
-    def AlgebraicLoopSover(self,loops,residual,xstart,xnew):
-        old=xstart
-        new=xnew
-        #self.setValue(loops[0],xstart)
-        count=0
-        checklist={}
-        while(abs(old-new)>1e-4):         
-            for k in xrange(len(loops)):
-               fromName=loops[k]
-               var2=fromName.split('.')
-               getkey=self.FMUItems[var2[0]]
-               FMUInterfaceObj=self.FMUInterfaces[getkey]
-               #self.ResolveNamedConnections(fromName,FMUInterfaceObj)
-               try:
-                  tolist=self.connectioninfo[fromName]
-                  ## Handling of getvalue 
-                  valref=self.description.scalarVariables[fromName].valueReference                           
-                  #get the correct valuereference of the corresponding fmus
-                  getcorrectvalref=valref[3:]
-                  FMUValueReference = numpy.array(map(numpy.uint32,[getcorrectvalref]))
-                  status,getval=FMUInterfaceObj.fmiGetReal(FMUValueReference)
-                  for z in xrange(len(tolist)):
-                      toName=tolist[z]
-                      self.setValue(toName,getval[0])
-               except KeyError as e:
-                  ## print no output edge available for the variable",fromName                                    
-                  pass
-               if(k==0):
-                    checklist['name']=FMUInterfaceObj
-                    checklist['ValueReference']=FMUValueReference
-                    old=getval[0]                   
-               if(loops[k]==loops[-1]):
-                    #print 'last',fromName,getval
-                    finalvalue=getval[0]
-                    # va='335544320'
-                    # FMUValueReference = numpy.array(map(numpy.uint32,[va]))
-                    # fmu=self.FMUInterfaces['300']
-                    fmu=checklist['name']
-                    FMUValueReference=checklist['ValueReference']
-                    status,getval=fmu.fmiGetReal(FMUValueReference)
-                    new=getval[0]
-                    residual=old-new
-            count+=1
-            if(count==500):
-                print "Failed to converge"
-                break
+                  #Handling for real time Algebraic loops, to be investigated                 
+                  self.AlgebraicLoopSover(n1,"ResolveSetGet",None,None)                                       
     
     def ResolveSolvedList(self,solvelist):
         for order in xrange(len(solvelist)):
                n1=solvelist[order]
                if(len(n1)==1):
-                  fromName=n1[0]
-                  var2=fromName.split('.')
-                  getkey=self.FMUItems[var2[0]]
-                  FMUInterfaceObj=self.FMUInterfaces[getkey]
-                  self.ResolveNamedConnections(fromName,FMUInterfaceObj)                         
+                   self.ResolveNamedConnections(n1,"ResolveSolvedList",None,None)                                                                  
                else:
                    #Handling for real time Algebraic loops, to be investigated
-                   checkvar={}
-                   for k in xrange(len(n1)):
-                       fromName=n1[k]
-                       var2=fromName.split('.')
-                       getkey=self.FMUItems[var2[0]]
-                       FMUInterfaceObj=self.FMUInterfaces[getkey]
-                       self.ResolveNamedConnections(fromName,FMUInterfaceObj)  
+                   self.AlgebraicLoopSover(n1,"ResolveSolvedList",None,None)                                        
     
     
     def ResolveValueReferenceConnections(self,solvelist):
@@ -659,50 +441,10 @@ class FMUInterface:
         for order in xrange(len(self.internaldependencyorder)):
             n1=self.internaldependencyorder[order]
             if(len(n1)==1):
-                  fromName=n1[0]
-                  var2=fromName.split('.')
-                  getkey=self.FMUItems[var2[0]]
-                  FMUInterfaceObj=self.FMUInterfaces[getkey]
-                  self.ResolveNamedConnections(fromName,FMUInterfaceObj)
-                  if (FMUInterfaceObj.description.numberOfEventIndicators!=0):
-                        status,value=FMUInterfaceObj.fmiGetEventIndicators()
-                        subval=[]
-                        for i in xrange(len(value)):
-                            val=value[i]
-                            subval.append(val)
-                        statuses.append(status)
-                        mapvalues[FMUInterfaceObj.instanceName]=subval
+                self.ResolveNamedConnections(n1,"fmiGetEventIndicators",statuses,mapvalues)
             else:
-                ## handle for real algebraic loops, to be investigated
-                for k in xrange(len(n1)):
-                    fromName=n1[k]
-                    var2=fromName.split('.')
-                    getkey=self.FMUItems[var2[0]]
-                    FMUInterfaceObj=self.FMUInterfaces[getkey]
-                    #self.ResolveNamedConnections(fromName,FMUInterfaceObj)
-                    try:
-                      tolist=self.connectioninfo[fromName]
-                      ## Handling of getvalue 
-                      valref=self.description.scalarVariables[fromName].valueReference                           
-                      #get the correct valuereference of the corresponding fmus
-                      getcorrectvalref=valref[3:]
-                      FMUValueReference = numpy.array(map(numpy.uint32,[getcorrectvalref]))
-                      status,getval=FMUInterfaceObj.fmiGetReal(FMUValueReference)
-                      for z in xrange(len(tolist)):
-                          toName=tolist[z]
-                          self.setValue(toName,getval[0])
-                    except KeyError as e:
-                      ## print no output edge available for the variable",fromName                                    
-                      pass
-                    if (FMUInterfaceObj.description.numberOfEventIndicators!=0):
-                        status,value=FMUInterfaceObj.fmiGetEventIndicators()
-                        subval=[]
-                        for i in xrange(len(value)):
-                            val=value[i]
-                            subval.append(val)
-                        statuses.append(status)                       
-                        mapvalues[FMUInterfaceObj.instanceName]=subval
-                                
+                self.AlgebraicLoopSover(n1,"fmiGetEventIndicators",statuses,mapvalues)                                 
+        
         for k, v in mapvalues.items():
              val=v
              for i in xrange(len(val)):
@@ -712,7 +454,6 @@ class FMUInterface:
             values[z]=evector[z]
         return max(statuses),values 
         
-    
     def fmiGetContinuousStates(self):
         values =createfmiRealVector(self.description.numberOfContinuousStates)
         statuses=[]
@@ -759,119 +500,10 @@ class FMUInterface:
         for order in xrange(len(self.internaldependencyorder)):
             n1=self.internaldependencyorder[order]
             if(len(n1)==1):
-                  fromName=n1[0]
-                  var2=fromName.split('.')
-                  getkey=self.FMUItems[var2[0]]
-                  FMUInterfaceObj=self.FMUInterfaces[getkey]
-                  self.ResolveNamedConnections(fromName,FMUInterfaceObj)
-                  if (FMUInterfaceObj.description.numberOfContinuousStates!=0):                       
-                        status,value=FMUInterfaceObj.fmiGetDerivatives()
-                        subval=[]
-                        for i in xrange(len(value)):
-                            val=value[i]
-                            subval.append(val)
-                        statuses.append(status)                       
-                        mapvalues[FMUInterfaceObj.instanceName]=subval     
+                self.ResolveNamedConnections(n1,"fmiGetDerivatives",statuses,mapvalues)    
             else:
-                 ## handle realtime ALgebraic loops, to be investigated
-                 xold=''
-                 xnew=''
-                 checklist={}
-                 for k in xrange(len(n1)):
-                        fromName=n1[k]
-                        var2=fromName.split('.')
-                        getkey=self.FMUItems[var2[0]]
-                        FMUInterfaceObj=self.FMUInterfaces[getkey]
-                        #self.ResolveNamedConnections(fromName,FMUInterfaceObj)
-                        try:
-                          tolist=self.connectioninfo[fromName]
-                          ## Handling of getvalue 
-                          valref=self.description.scalarVariables[fromName].valueReference                           
-                          #get the correct valuereference of the corresponding fmus
-                          getcorrectvalref=valref[3:]
-                          FMUValueReference = numpy.array(map(numpy.uint32,[getcorrectvalref]))
-                          status,getval=FMUInterfaceObj.fmiGetReal(FMUValueReference)
-                          for z in xrange(len(tolist)):
-                              toName=tolist[z]
-                              self.setValue(toName,getval[0])
-                        except KeyError as e:
-                          ## print no output edge available for the variable",fromName                                    
-                          pass
-                        if (FMUInterfaceObj.description.numberOfContinuousStates!=0):
-                                status,value=FMUInterfaceObj.fmiGetDerivatives()
-                                subval=[]
-                                for i in xrange(len(value)):
-                                    val=value[i]
-                                    subval.append(val)
-                                statuses.append(status)                       
-                                mapvalues[FMUInterfaceObj.instanceName]=subval
-                        if(k==0):
-                            checklist['name']=FMUInterfaceObj
-                            checklist['ValueReference']=FMUValueReference
-                            old=getval[0]
-                            xold=old                            
-                        if(n1[k]==n1[-1]):
-                            ##check value on the last iteration
-                            finalvalue=getval[0]
-                            fmu=checklist['name']
-                            FMUValueReference=checklist['ValueReference']
-                            status,getval=fmu.fmiGetReal(FMUValueReference)
-                            new=getval[0]
-                            xnew=new
-                            #residual=old-new
-                 #print 'beforeloop',xold,xnew,(old-new)                  
-                 count=0
-                 valuereflist={}
-                 while((xold-xnew) > 1e-4):
-                     for k in xrange(len(n1)):
-                        fromName=n1[k]
-                        var2=fromName.split('.')
-                        getkey=self.FMUItems[var2[0]]
-                        FMUInterfaceObj=self.FMUInterfaces[getkey]
-                        #self.ResolveNamedConnections(fromName,FMUInterfaceObj)
-                        try:
-                          tolist=self.connectioninfo[fromName]
-                          ## Handling of getvalue 
-                          valref=self.description.scalarVariables[fromName].valueReference                           
-                          #get the correct valuereference of the corresponding fmus
-                          getcorrectvalref=valref[3:]
-                          FMUValueReference = numpy.array(map(numpy.uint32,[getcorrectvalref]))
-                          status,getval=FMUInterfaceObj.fmiGetReal(FMUValueReference)
-                          for z in xrange(len(tolist)):
-                              toName=tolist[z]
-                              self.setValue(toName,getval[0])
-                        except KeyError as e:
-                          ## print no output edge available for the variable",fromName                                    
-                          pass
-                        if (FMUInterfaceObj.description.numberOfContinuousStates!=0):
-                                status,value=FMUInterfaceObj.fmiGetDerivatives()
-                                subval=[]
-                                for i in xrange(len(value)):
-                                    val=value[i]
-                                    subval.append(val)
-                                statuses.append(status)                       
-                                mapvalues[FMUInterfaceObj.instanceName]=subval
-                        if(k==0):
-                             valuereflist['name']=FMUInterfaceObj
-                             valuereflist['ValueReference']=FMUValueReference                        
-                             xstart=getval[0]
-                             xold=xstart                            
-                             
-                        if(n1[k]==n1[-1]):
-                            ##check value on the last iteration
-                            finalvalue=getval[0]
-                            fmu=valuereflist['name']
-                            FMUValueReference=valuereflist['ValueReference']
-                            status,getval=fmu.fmiGetReal(FMUValueReference)
-                            new=getval[0]
-                            xnew=new
-                            residual=(xold-xnew)
-                     count+=1
-                     if(count==500):
-                        print "Failed to converge"
-                        break
-    
-                 #pass 
+                ## handle realtime ALgebraic loops, to be investigated
+                self.AlgebraicLoopSover(n1,"fmiGetDerivatives",statuses,mapvalues)                
         c=0         
         for k, v in mapvalues.items():
              val=v
@@ -886,82 +518,133 @@ class FMUInterface:
         
         return max(statuses),values                                   
     
-    def ResolveNamedConnections(self,fromName,FMUInterfaceObj):
-        try:
-          tolist=self.connectioninfo[fromName]
-          ## Handling of getvalue 
-          valref=self.description.scalarVariables[fromName].valueReference                           
-          #get the correct valuereference of the corresponding fmus
-          getcorrectvalref=valref[3:]
-          FMUValueReference = numpy.array(map(numpy.uint32,[getcorrectvalref]))
-          status,getval=FMUInterfaceObj.fmiGetReal(FMUValueReference)
-          for z in xrange(len(tolist)):
-              toName=tolist[z]
-              self.setValue(toName,getval[0])
-        except KeyError as e:
-          ## print no output edge available for the variable",fromName                                    
-          pass
+    def AlgebraicLoopSover(self,n1,functionname=None,statuses=None,mapvalues=None): 
+         ##start the first iteration with dummy xold and xnew values
+         xold=2
+         xnew=1
+         count=0
+         valuereflist={}
+         while((xold-xnew) > 1e-4):
+             for k in xrange(len(n1)):
+                fromName=n1[k]
+                var2=fromName.split('.')
+                getkey=self.FMUItems[var2[0]]
+                FMUInterfaceObj=self.FMUInterfaces[getkey]
+                try:
+                  tolist=self.connectioninfo[fromName]
+                  ## Handling of getvalue 
+                  valref=self.description.scalarVariables[fromName].valueReference                           
+                  #get the correct valuereference of the corresponding fmus
+                  getcorrectvalref=valref[3:]
+                  FMUValueReference = numpy.array(map(numpy.uint32,[getcorrectvalref]))
+                  status,getval=FMUInterfaceObj.fmiGetReal(FMUValueReference)
+                  for z in xrange(len(tolist)):
+                      toName=tolist[z]
+                      self.setValue(toName,getval[0])
+                except KeyError as e:
+                  pass
+                
+                if(k==0):
+                     valuereflist['name']=FMUInterfaceObj
+                     valuereflist['ValueReference']=FMUValueReference                        
+                     xstart=getval[0]
+                     xold=xstart                            
+                     
+                if(n1[k]==n1[-1]):
+                    ##check value on the last iteration
+                    finalvalue=getval[0]
+                    fmu=valuereflist['name']
+                    FMUValueReference=valuereflist['ValueReference']
+                    status,getval=fmu.fmiGetReal(FMUValueReference)
+                    new=getval[0]
+                    xnew=new
+                    residual=(xold-xnew)
+                if(functionname=='fmiGetDerivatives'):
+                    #print 'getderivativefunction'                
+                    if (FMUInterfaceObj.description.numberOfContinuousStates!=0):
+                            status,value=FMUInterfaceObj.fmiGetDerivatives()
+                            subval=[]
+                            for i in xrange(len(value)):
+                                val=value[i]
+                                subval.append(val)
+                            statuses.append(status)                       
+                            mapvalues[FMUInterfaceObj.instanceName]=subval
+                if(functionname=='fmiGetEventIndicators'): 
+                    #print 'fmiGetEventIndicatorfunction'                                
+                    if (FMUInterfaceObj.description.numberOfEventIndicators!=0):
+                            status,value=FMUInterfaceObj.fmiGetEventIndicators()
+                            subval=[]
+                            for i in xrange(len(value)):
+                                val=value[i]
+                                subval.append(val)
+                            statuses.append(status)                       
+                            mapvalues[FMUInterfaceObj.instanceName]=subval
+                if(functionname=='fmiEnterInitializationMode'):
+                    #print 'fmiEnterInitializationMode'
+                    statuses.append(FMUInterfaceObj.fmiEnterInitializationMode())                    
+
+             count+=1
+             if(count==500):
+                print "Failed to converge"
+                break
         
-    def ResolveUnknownNamedConnections(self,fromName,FMUInterfaceObj):
-        try:
-          tolist=self.initializeunknownconnectioninfo[fromName]
-          ## Handling of getvalue 
-          valref=self.description.scalarVariables[fromName].valueReference                           
-          #get the correct valuereference of the corresponding fmus
-          getcorrectvalref=valref[3:]
-          FMUValueReference = numpy.array(map(numpy.uint32,[getcorrectvalref]))
-          status,getval=FMUInterfaceObj.fmiGetReal(FMUValueReference)
-          for z in xrange(len(tolist)):
-              toName=tolist[z]
-              self.setValue(toName,getval[0])
-        except KeyError as e:
-          pass
-       
-        
+    def ResolveNamedConnections(self,n1,functionname=None,statuses=None,mapvalues=None):
+            fromName=n1[0]
+            var2=fromName.split('.')
+            getkey=self.FMUItems[var2[0]]
+            FMUInterfaceObj=self.FMUInterfaces[getkey]
+            try:
+              if(functionname=='fmiEnterInitializationMode'):
+                  tolist=self.initializeunknownconnectioninfo[fromName]
+              else: 
+                  tolist=self.connectioninfo[fromName]              
+              ## Handling of getvalue 
+              valref=self.description.scalarVariables[fromName].valueReference                           
+              #get the correct valuereference of the corresponding fmus
+              getcorrectvalref=valref[3:]
+              FMUValueReference = numpy.array(map(numpy.uint32,[getcorrectvalref]))
+              status,getval=FMUInterfaceObj.fmiGetReal(FMUValueReference)
+              for z in xrange(len(tolist)):
+                  toName=tolist[z]
+                  self.setValue(toName,getval[0])
+            except KeyError as e:
+              pass
+            
+            if(functionname=='fmiEnterInitializationMode'):
+                statuses.append(FMUInterfaceObj.fmiEnterInitializationMode())
+            
+            if(functionname=='fmiGetDerivatives'):  
+                if (FMUInterfaceObj.description.numberOfContinuousStates!=0):                       
+                    status,value=FMUInterfaceObj.fmiGetDerivatives()
+                    subval=[]
+                    for i in xrange(len(value)):
+                        val=value[i]
+                        subval.append(val)
+                    statuses.append(status)                       
+                    mapvalues[FMUInterfaceObj.instanceName]=subval
+                    
+            if(functionname=='fmiGetEventIndicators'):  
+                if (FMUInterfaceObj.description.numberOfEventIndicators!=0):
+                        status,value=FMUInterfaceObj.fmiGetEventIndicators()
+                        subval=[]
+                        for i in xrange(len(value)):
+                            val=value[i]
+                            subval.append(val)
+                        statuses.append(status)
+                        mapvalues[FMUInterfaceObj.instanceName]=subval
+                                  
     def fmiSetContinuousStates(self,x):
         status=[]
-        c=0
-        finishedfmus=[]
-                
+        c=0                
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             if (FMUInterfaceObj.description.numberOfContinuousStates!=0):
                 length=FMUInterfaceObj.description.numberOfContinuousStates
                 getindexpos=self.indexpos[FMUInterfaceObj.instanceName]
                 startpos=getindexpos[0]
                 endpos=getindexpos[1]
-                #print 'set',getindexpos,startpos,endpos,x[startpos:endpos]
                 ## indexing on the appropriate FMUs state vector 
                 getval=x[startpos:endpos]
                 status.append(FMUInterfaceObj.fmiSetContinuousStates(getval))
-        '''
-        for order in xrange(len(self.internaldependencyorder)):
-            n1=self.internaldependencyorder[order]
-            if(len(n1)==1):
-                  fromName=n1[0]
-                  var2=fromName.split('.')
-                  getkey=self.FMUItems[var2[0]]
-                  FMUInterfaceObj=self.FMUInterfaces[getkey]
-                  if (FMUInterfaceObj.description.numberOfContinuousStates!=0):
-                      if FMUInterfaceObj.instanceName not in finishedfmus:
-                          length=FMUInterfaceObj.description.numberOfContinuousStates
-                          getval=x[c:length+c]
-                          c=c+length
-                          status.append(FMUInterfaceObj.fmiSetContinuousStates(getval))
-                          finishedfmus.append(FMUInterfaceObj.instanceName)
-            
-            else:
-                for k in xrange(len(n1)):
-                    fromName=n1[k]
-                    var2=fromName.split('.')
-                    getkey=self.FMUItems[var2[0]]
-                    FMUInterfaceObj=self.FMUInterfaces[getkey]
-                    if (FMUInterfaceObj.description.numberOfContinuousStates!=0):
-                        if FMUInterfaceObj.instanceName not in finishedfmus:
-                            length=FMUInterfaceObj.description.numberOfContinuousStates
-                            getval=x[c:length+c]
-                            c=c+length
-                            status.append(FMUInterfaceObj.fmiSetContinuousStates(getval))
-                            finishedfmus.append(FMUInterfaceObj.instanceName) '''
         return max(status) 
     
     
