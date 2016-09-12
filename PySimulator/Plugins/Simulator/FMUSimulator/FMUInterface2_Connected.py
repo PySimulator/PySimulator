@@ -242,21 +242,20 @@ class FMUInterface:
             status.append(FMUInterfaceObj.fmiSetupExperiment(toleranceDefined, tolerance, startTime, stopTimeDefined, stopTime))
         return max(status)
 
-    def fmiEnterInitializationMode(self):
-        '''
+    def fmiEnterInitializationMode(self):       
         status = []
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             status.append(FMUInterfaceObj.fmiEnterInitializationMode())
-        return max(status) '''
-        statuses=[]
+        
+        ## resolve initial unknown connections, before calling fmiExitInitializationMode
         for order in xrange(len(self.intializeunknowndependencyorder)):
             n1=self.intializeunknowndependencyorder[order]
             if(len(n1)==1):
-                self.ResolveNamedConnections(n1,"fmiEnterInitializationMode",statuses,None)                                                 
+                self.ResolveNamedConnections(n1,"fmiEnterInitializationMode",None,None)                                                 
             else:
                 ## handle for real algebraic loops, to be investigated
-                self.AlgebraicLoopSover(n1,"fmiEnterInitializationMode",statuses,None)                                 
-        return max(statuses)        
+                self.AlgebraicLoopSover(n1,"fmiEnterInitializationMode",None,None)          
+        return max(status)                 
     
     def fmiExitInitializationMode(self):
         status = []
@@ -292,13 +291,12 @@ class FMUInterface:
     
     
     def ResolveValueReferenceConnections(self,solvelist):
-        ## This function have to be investigated
+        ## This function translates the valuereference to actual variable names
         varlist=[]
         ## change valureference to real variable name
         for i in xrange(len(solvelist)):
             varef=solvelist[i]
-            varlist.append(self.variablename[str(varef)])
-        
+            varlist.append(self.variablename[str(varef)])        
         getindex=[]
         for z in xrange(len(varlist)):
             name=varlist[z]
@@ -531,7 +529,10 @@ class FMUInterface:
                 getkey=self.FMUItems[var2[0]]
                 FMUInterfaceObj=self.FMUInterfaces[getkey]
                 try:
-                  tolist=self.connectioninfo[fromName]
+                  if(functionname=='fmiEnterInitializationMode'):
+                      tolist=self.initializeunknownconnectioninfo[fromName]
+                  else: 
+                      tolist=self.connectioninfo[fromName]                      
                   ## Handling of getvalue 
                   valref=self.description.scalarVariables[fromName].valueReference                           
                   #get the correct valuereference of the corresponding fmus
@@ -560,7 +561,7 @@ class FMUInterface:
                     xnew=new
                     residual=(xold-xnew)
                 if(functionname=='fmiGetDerivatives'):
-                    #print 'getderivativefunction'                
+                    #update the dictionary values               
                     if (FMUInterfaceObj.description.numberOfContinuousStates!=0):
                             status,value=FMUInterfaceObj.fmiGetDerivatives()
                             subval=[]
@@ -570,7 +571,7 @@ class FMUInterface:
                             statuses.append(status)                       
                             mapvalues[FMUInterfaceObj.instanceName]=subval
                 if(functionname=='fmiGetEventIndicators'): 
-                    #print 'fmiGetEventIndicatorfunction'                                
+                    #update the dictionary values                                              
                     if (FMUInterfaceObj.description.numberOfEventIndicators!=0):
                             status,value=FMUInterfaceObj.fmiGetEventIndicators()
                             subval=[]
@@ -579,10 +580,7 @@ class FMUInterface:
                                 subval.append(val)
                             statuses.append(status)                       
                             mapvalues[FMUInterfaceObj.instanceName]=subval
-                if(functionname=='fmiEnterInitializationMode'):
-                    #print 'fmiEnterInitializationMode'
-                    statuses.append(FMUInterfaceObj.fmiEnterInitializationMode())                    
-
+                
              count+=1
              if(count==500):
                 print "Failed to converge"
@@ -593,6 +591,9 @@ class FMUInterface:
             var2=fromName.split('.')
             getkey=self.FMUItems[var2[0]]
             FMUInterfaceObj=self.FMUInterfaces[getkey]
+            # c=fromName in self.inputvarlist
+            # b=fromName in self.outputvarlist
+            # if(c==True or b==True):
             try:
               if(functionname=='fmiEnterInitializationMode'):
                   tolist=self.initializeunknownconnectioninfo[fromName]
@@ -610,10 +611,8 @@ class FMUInterface:
             except KeyError as e:
               pass
             
-            if(functionname=='fmiEnterInitializationMode'):
-                statuses.append(FMUInterfaceObj.fmiEnterInitializationMode())
-            
-            if(functionname=='fmiGetDerivatives'):  
+            if(functionname=='fmiGetDerivatives'):
+                #update the dictionary values                           
                 if (FMUInterfaceObj.description.numberOfContinuousStates!=0):                       
                     status,value=FMUInterfaceObj.fmiGetDerivatives()
                     subval=[]
@@ -623,7 +622,8 @@ class FMUInterface:
                     statuses.append(status)                       
                     mapvalues[FMUInterfaceObj.instanceName]=subval
                     
-            if(functionname=='fmiGetEventIndicators'):  
+            if(functionname=='fmiGetEventIndicators'): 
+                #update the dictionary values                           
                 if (FMUInterfaceObj.description.numberOfEventIndicators!=0):
                         status,value=FMUInterfaceObj.fmiGetEventIndicators()
                         subval=[]

@@ -65,8 +65,8 @@ class FMIDescription:
         self.initializeunknownconnectioninfo={}
         self.connectioninfo={}
         self.variableid={}
-        self.inputvarlist={}
-        self.outputvarlist={}
+        self.inputvarlist=[]
+        self.outputvarlist=[]
         
         ## store the variablelist of each fmu with ids to get correct order of evaluation from tarjan
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
@@ -156,23 +156,15 @@ class FMIDescription:
                         othervar = FMUInterfaceObj.instanceName + '.' + scalarName
                         othervarlist.append(othervar)
                 
-                ## dictionary to identify input variables of each fmus
+                ## list items to identify input variables of each fmus
                 if(description.scalarVariables[scalarName].causality=="input"):
                         inputvar = FMUInterfaceObj.instanceName + '.' + scalarName
-                        key5=self.inputvarlist.has_key(FMUInterfaceObj.instanceName)
-                        if (key5==True):
-                            self.inputvarlist[FMUInterfaceObj.instanceName].append(inputvar)
-                        else:
-                            self.inputvarlist[FMUInterfaceObj.instanceName]=[inputvar]
-                                
-                ## dictionary to identify output variables of each fmus       
+                        self.inputvarlist.append(inputvar)
+                                                       
+                ## list items to identify output variables of each fmus       
                 if(description.scalarVariables[scalarName].causality=="output"):
                         outputvar = FMUInterfaceObj.instanceName + '.' + scalarName
-                        key6=self.outputvarlist.has_key(FMUInterfaceObj.instanceName)
-                        if (key6==True):
-                            self.outputvarlist[FMUInterfaceObj.instanceName].append(outputvar)
-                        else:
-                            self.outputvarlist[FMUInterfaceObj.instanceName]=[outputvar]
+                        self.outputvarlist.append(outputvar)
                             
                 if (scalarName.startswith("der(")):
                     scalarName = "der(" + FMUInterfaceObj.instanceName + '.' + scalarName[4:]
