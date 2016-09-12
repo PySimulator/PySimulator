@@ -598,7 +598,6 @@ def StartSimulation(gui, xml, xmlFileName, fmiType):
         id=str(count).ljust(3, '0')
         fmus_id[fmuname]=id
         count+=1
-    #print fmus_id  
     
     ## construct Graph information with fmu ids
     graph={}
@@ -608,8 +607,8 @@ def StartSimulation(gui, xml, xmlFileName, fmiType):
         fromid=fmus_id[fromFMU]
         toid=fmus_id[toFMU]
        
-        True=graph.has_key(fromid)
-        if True:
+        key1=graph.has_key(fromid)
+        if (key1==True):
             graph[fromid].append(toid)
         else:
             graph[fromid] = [toid]
@@ -637,7 +636,6 @@ def StartSimulation(gui, xml, xmlFileName, fmiType):
             connected_components.append(tuple(l))
     
     ## Check for Algebraic loops  ##
-    #print 'connectedorder', connected_components,fmiType
     algebraicloop=Algebraic_loops.count(1)==len(Algebraic_loops)
     
     ## Loop the List FMUs and display in the variable Browser as a SingleComponent
