@@ -5,6 +5,7 @@
 Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
+Copyright (C) 2014-2015 Open Source Modelica Consortium
 All rights reserved.
 
 This file is part of PySimulator.
@@ -113,7 +114,7 @@ class ExportConnectFMUsDialog(QtGui.QDialog):
             
             fmuFile = QtCore.QFile(fmuPath)            
             if fmuFile.exists():
-                fmuFileInfo = QtCore.QFileInfo(fmuPath)
+                #fmuFileInfo = QtCore.QFileInfo(fmuPath)
                 fmuFile.copy(exportDirectory + '/' + fmuFileInfo.fileName())
                 fmu.set('path', fmuFileInfo.fileName())
 

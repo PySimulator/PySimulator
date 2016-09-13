@@ -5,6 +5,7 @@
 Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
+Copyright (C) 2014-2015 Open Source Modelica Consortium
 All rights reserved.
 
 This file is part of PySimulator.
@@ -501,7 +502,7 @@ class FMUInterface:
                 self.ResolveNamedConnections(n1,"fmiGetDerivatives",statuses,mapvalues)    
             else:
                 ## handle realtime ALgebraic loops, to be investigated
-                self.AlgebraicLoopSover(n1,"fmiGetDerivatives",statuses,mapvalues)                
+                self.AlgebraicLoopSover(n1,"fmiGetDerivatives",statuses,mapvalues)               
         c=0         
         for k, v in mapvalues.items():
              val=v
@@ -635,7 +636,6 @@ class FMUInterface:
                                   
     def fmiSetContinuousStates(self,x):
         status=[]
-        c=0                
         for key, FMUInterfaceObj in self.FMUInterfaces.iteritems():
             if (FMUInterfaceObj.description.numberOfContinuousStates!=0):
                 length=FMUInterfaceObj.description.numberOfContinuousStates

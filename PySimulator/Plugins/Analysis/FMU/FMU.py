@@ -5,6 +5,7 @@
 Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
+Copyright (C) 2014-2015 Open Source Modelica Consortium
 All rights reserved.
 
 This file is part of PySimulator.

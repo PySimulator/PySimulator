@@ -1,3 +1,29 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+'''
+Copyright (C) 2011-2015 German Aerospace Center DLR
+(Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
+Institute of System Dynamics and Control
+Copyright (C) 2014-2015 Open Source Modelica Consortium
+All rights reserved.
+
+This file is part of PySimulator.
+
+PySimulator is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+PySimulator is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with PySimulator. If not, see www.gnu.org/licenses.
+'''
+
 def StronglyConnectedComponents(graph):
     ## For each node in the graph the following two information must be set namely index and lowlinks according to tarjan algorithm
     ## eg: If there is node 'A' then Node A should contain A(index,lowlink)
@@ -104,15 +130,14 @@ def topological_sort(graph):
     return result
     
  
-if __name__ == '__main__':
-    #graph={'Modelica_Blocks_Continuous_TransferFunction1.y': ['Modelica_Blocks_Math_Feedback1.u2'], 'Modelica_Blocks_Continuous_PI1.y': ['Modelica_Blocks_Continuous_TransferFunction1.u'], 'Modelica_Blocks_Continuous_PI1.u': ['Modelica_Blocks_Continuous_PI1.y'], 'Modelica_Blocks_Continuous_TransferFunction1.u': ['Modelica_Blocks_Continuous_TransferFunction1.y'], 'Modelica_Blocks_Sources_Step1.y': ['Modelica_Blocks_Math_Feedback1.u1'], 'Modelica_Blocks_Math_Feedback1.y': ['Modelica_Blocks_Continuous_PI1.u'], 'Modelica_Blocks_Continuous_PI1._StatesForOutputs.x': ['Modelica_Blocks_Continuous_PI1.y', 'Modelica_Blocks_Continuous_PI1.x'], 'Modelica_Blocks_Math_Feedback1.u2': ['Modelica_Blocks_Math_Feedback1.y'], 'Modelica_Blocks_Math_Feedback1.u1': ['Modelica_Blocks_Math_Feedback1.y']}
-    graph={'step_y':['feed_u1'],
-            'feed_u1':['feed_y'],
-            'feed_y':['PI_u'],
-            'PI_u':['PI_y'],
-            'PI_y':['transform_u'],
-            'transform_u':['transform_y'],
-            'transform_y':['feed_u2'],
-            'feed_u2':['feed_y']}
-    print StronglyConnectedComponents(graph) 
+# if __name__ == '__main__':
+    # graph={'step_y':['feed_u1'],
+            # 'feed_u1':['feed_y'],
+            # 'feed_y':['PI_u'],
+            # 'PI_u':['PI_y'],
+            # 'PI_y':['transform_u'],
+            # 'transform_u':['transform_y'],
+            # 'transform_y':['feed_u2'],
+            # 'feed_u2':['feed_y']}
+    # print StronglyConnectedComponents(graph) 
     
