@@ -283,12 +283,16 @@ class Model(SimulatorBase.Model):
 	def _fillTreeParam(self, pObject, doc, pChild):
 		''' Scan a SimulationX parameter object
 		'''
+		docIdentDot = doc.Ident + '.'
 		dim = pChild.Execute('GetDimension', [])[0]
 		if dim == '':
 			# Scalar dimension
 			childTypeIdent = pChild.Type.Ident
 			if not childTypeIdent == 'BuiltIn.BaseModel.ProtKind' and not childTypeIdent == 'StateSelect' and _isNumeric(pChild.Value):
-				childRelIdent = pChild.GetRelIdent(doc)
+				# childRelIdent = pChild.GetRelIdent(doc)
+				childRelIdent = pChild.Ident
+				if childRelIdent.startswith(docIdentDot):
+					childRelIdent = childRelIdent[len(docIdentDot):]
 				if (not pChild.Parent == doc and not pObject.Name.find('_base') == 0) or (not childRelIdent == 'iSim' and not childRelIdent == 'tStart' and not childRelIdent == 'tStop'):
 					childValue = pChild.Value
 					childValueEdit = True
@@ -312,7 +316,10 @@ class Model(SimulatorBase.Model):
 			# Fixed vector dimension
 			childTypeIdent = pChild.Type.Ident
 			if not childTypeIdent == 'BuiltIn.BaseModel.ProtKind' and not childTypeIdent == 'StateSelect':
-				childRelIdent = pChild.GetRelIdent(doc)
+				# childRelIdent = pChild.GetRelIdent(doc)
+				childRelIdent = pChild.Ident
+				if childRelIdent.startswith(docIdentDot):
+					childRelIdent = childRelIdent[len(docIdentDot):]
 				if (not pChild.Parent == doc and not pObject.Name.find('_base') == 0) or (not childRelIdent == 'iSim' and not childRelIdent == 'tStart' and not childRelIdent == 'tStop'):
 					dim = int(dim)
 					childValue = pChild.Value
@@ -338,10 +345,14 @@ class Model(SimulatorBase.Model):
 	def _fillTreeResult(self, pObject, doc, pChild):
 		''' Scan a SimulationX result object
 		'''
+		docIdentDot = doc.Ident + '.'
 		dim = pChild.Execute('GetDimension', [])[0]
 		if dim == '':
 			# Scalar dimension
-			childRelIdent = pChild.GetRelIdent(doc)
+			# childRelIdent = pChild.GetRelIdent(doc)
+			childRelIdent = pChild.Ident
+			if childRelIdent.startswith(docIdentDot):
+				childRelIdent = childRelIdent[len(docIdentDot):]
 			if (not pChild.Parent == doc and not pObject.Name.find('_base') == 0) or (not childRelIdent == 't' and not childRelIdent == 'dt' and not childRelIdent == 'solverInfo' and not childRelIdent == 'lambdaHomotopy'):
 				childValue = None
 				childValueEdit = False
@@ -361,7 +372,10 @@ class Model(SimulatorBase.Model):
 				self.variableTree.variable[childRelIdent] = SimulatorBase.TreeVariable(self.structureVariableName(childRelIdent), childValue, childValueEdit, childUnit, childVariability, childVariableAttr)
 		elif _isNumeric(dim):
 			# Fixed vector dimension
-			childRelIdent = pChild.GetRelIdent(doc)
+			# childRelIdent = pChild.GetRelIdent(doc)
+			childRelIdent = pChild.Ident
+			if childRelIdent.startswith(docIdentDot):
+				childRelIdent = childRelIdent[len(docIdentDot):]
 			if (not pChild.Parent == doc and not pObject.Name.find('_base') == 0) or (not childRelIdent == 't' and not childRelIdent == 'dt' and not childRelIdent == 'solverInfo' and not childRelIdent == 'lambdaHomotopy'):
 				dim = int(dim)
 				childValue = None
