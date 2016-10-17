@@ -5,6 +5,7 @@
 Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
+Copyright (C) 2014-2015 Open Source Modelica Consortium
 All rights reserved.
 
 This file is part of PySimulator.
@@ -61,11 +62,12 @@ import xml.etree.ElementTree as ET
 
 class ExportConnectFMUsDialog(QtGui.QDialog):
 
-    def __init__(self, xml, gui):
+    def __init__(self, xml, xmllocation, gui):
         QtGui.QDialog.__init__(self, gui)
         self.setWindowTitle("Export Connect FMUs")
 
         self._xml = xml
+        self._xmllocation = xmllocation
         # add export directory
         exportDirLabel = QtGui.QLabel(self.tr("Export Directory:"))
         self._exportDirTextBox = QtGui.QLineEdit()
@@ -103,10 +105,16 @@ class ExportConnectFMUsDialog(QtGui.QDialog):
         # read the xml to know the FMUs locations and then copy them
         rootElement = ET.fromstring(self._xml)
         for fmu in rootElement.iter('fmu'):
-            fmuPath = fmu.get('path')
-            fmuFile = QtCore.QFile(fmuPath)
+            fmuPath = fmu.get('path')            
+            ##check for fmus relative path 
+            fmuFileInfo = QtCore.QFileInfo(fmuPath)
+            setupFileInfo = QtCore.QFileInfo(self._xmllocation)
+            if fmuFileInfo.isRelative():
+                fmuPath = setupFileInfo.absolutePath() + '/' + fmuPath
+            
+            fmuFile = QtCore.QFile(fmuPath)            
             if fmuFile.exists():
-                fmuFileInfo = QtCore.QFileInfo(fmuPath)
+                #fmuFileInfo = QtCore.QFileInfo(fmuPath)
                 fmuFile.copy(exportDirectory + '/' + fmuFileInfo.fileName())
                 fmu.set('path', fmuFileInfo.fileName())
 
@@ -155,6 +163,7 @@ class Model(SimulatorBase.Model):
         loggingOn = False
         self.isConnected = isConnected
         self._xml = xml
+        self._xmlFilelocation= xmlFileName
         # check if we are not dealing with connected FMUs
         if self.isConnected is False:
             if modelFileName is None:
@@ -1053,7 +1062,7 @@ class Model(SimulatorBase.Model):
             self.variableTree.variable[vName] = SimulatorBase.TreeVariable(self.structureVariableName(vName), v.type.start, valueEdit, v.type.unit, v.variability, variableAttribute)
 
     def export(self, gui):
-        exportconnectedFMUsDialog = ExportConnectFMUsDialog(self._xml, gui)
+        exportconnectedFMUsDialog = ExportConnectFMUsDialog(self._xml,self._xmlFilelocation,gui)
         exportconnectedFMUsDialog.exec_()
 
 class ExplicitEulerSolver():
