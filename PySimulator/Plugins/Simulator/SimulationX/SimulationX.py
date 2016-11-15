@@ -5,7 +5,7 @@
 Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
-Copyright (C) 2014-2015 ITI GmbH
+Copyright (C) 2014-2016 ESI ITI GmbH
 All rights reserved.
 
 This file is part of PySimulator.
@@ -90,16 +90,18 @@ class Model(SimulatorBase.Model):
 				config.write()
 			dispatch = config['Plugins']['SimulationX']['version']
 			if dispatch == 'Iti.Simx36':
-				ver = '3.6'
+				sub_key = r'Software\ITI GmbH\SimulationX 3.6\Modelica'
 			elif dispatch == 'Iti.Simx37':
-				ver = '3.7'
+				sub_key = r'Software\ITI GmbH\SimulationX 3.7\Modelica'
+			elif dispatch == 'Iti.Simx38':
+				sub_key = r'Software\ESI Group\SimulationX 3.8\Modelica'
 			else:
-				ver = '3.5'
+				sub_key = r'Software\ITI GmbH\SimulationX 3.5\Modelica'
 			# Make sure Modelica models can be simulated
 			try:
-				key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\ITI GmbH\SimulationX ' + ver + r'\Modelica', 0, winreg.KEY_ALL_ACCESS)
+				key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, sub_key, 0, winreg.KEY_ALL_ACCESS)
 			except WindowsError:
-				key = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, r'Software\ITI GmbH\SimulationX ' + ver + r'\Modelica', 0, winreg.KEY_ALL_ACCESS)
+				key = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, sub_key, 0, winreg.KEY_ALL_ACCESS)
 			winreg.SetValueEx(key, 'AutoCreateSimModel', 0, winreg.REG_DWORD, 1)
 			winreg.CloseKey(key)
 
@@ -109,11 +111,16 @@ class Model(SimulatorBase.Model):
 			self.integrationResults = SimulationXCsv.Results('')
 			self.integrationSettings.resultFileExtension = 'csvx'
 
-			self._availableIntegrationAlgorithms = ['BDF', 'MEBDF', 'CVODE', 'FixedStep']
-			self._solverByName = dict([('BDF', 'MultiStepMethod2'), ('MEBDF', 'MEBDFDAE'), ('CVODE', 'CVODE'), ('FixedStep', 'FixStep')])
-
-			self._IntegrationAlgorithmHasFixedStepSize = [False, False, False, True]
-			self._IntegrationAlgorithmCanProvideStepSizeResults = [True, True, False, False]
+			if dispatch == 'Iti.Simx38':
+				self._availableIntegrationAlgorithms = ['BDF (Byte code)', 'BDF (C code)', 'MEBDF (Byte code)', 'MEBDF (C code)', 'CVODE (C code)', 'Fixed Step (C code)']
+				self._solverByName = dict([('BDF (Byte code)', 'MultiStepMethod2'), ('BDF (C code)', 'BDFCompiled'), ('MEBDF (Byte code)', 'MEBDFDAE'), ('MEBDF (C code)', 'MEBDFCompiled'), ('CVODE (C code)', 'CVODE'), ('Fixed Step (C code)', 'FixStep')])
+				self._IntegrationAlgorithmHasFixedStepSize = [False, False, False, False, False, True]
+				self._IntegrationAlgorithmCanProvideStepSizeResults = [True, True, True, True, False, False]
+			else:
+				self._availableIntegrationAlgorithms = ['BDF (Byte code)', 'MEBDF (Byte code)', 'CVODE (C code)', 'Fixed Step (C code)']
+				self._solverByName = dict([('BDF (Byte code)', 'MultiStepMethod2'), ('MEBDF (Byte code)', 'MEBDFDAE'), ('CVODE (C code)', 'CVODE'), ('Fixed Step (C code)', 'FixStep')])
+				self._IntegrationAlgorithmHasFixedStepSize = [False, False, False, True]
+				self._IntegrationAlgorithmCanProvideStepSizeResults = [True, True, False, False]
 
 			self.integrationSettings.algorithmName = self._availableIntegrationAlgorithms[0]
 			self.simulationStopRequest = False
@@ -138,6 +145,8 @@ class Model(SimulatorBase.Model):
 			# Load libraries
 			if sim.InitState == simInitBase:
 				sim.InitSimEnvironment()
+
+			self.modelType += ' ' + sim.Version
 
 			if len(modelFileName) == 1:
 				strMsg = 'PySimulator: Load model'
@@ -571,17 +580,19 @@ class Model(SimulatorBase.Model):
 			ver = self.config['Plugins']['SimulationX']['version']
 			canExportDisplayUnit = True
 			if ver == 'Iti.Simx36':
-				ver = '3.6'
+				sub_key = r'Software\ITI GmbH\SimulationX 3.6\DataFilter'
 			elif ver == 'Iti.Simx37':
-				ver = '3.7'
+				sub_key = r'Software\ITI GmbH\SimulationX 3.7\DataFilter'
+			elif ver == 'Iti.Simx38':
+				sub_key = r'Software\ESI Group\SimulationX 3.8\DataFilter'
 			else:
-				ver = '3.5'
+				sub_key = r'Software\ITI GmbH\SimulationX 3.5\DataFilter'
 				canExportDisplayUnit = False
 
 			try:
-				key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\ITI GmbH\SimulationX ' + ver + r'\DataFilter', 0, winreg.KEY_ALL_ACCESS)
+				key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, sub_key, 0, winreg.KEY_ALL_ACCESS)
 			except WindowsError:
-				key = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, r'Software\ITI GmbH\SimulationX ' + ver + r'\DataFilter', 0, winreg.KEY_ALL_ACCESS)
+				key = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, sub_key, 0, winreg.KEY_ALL_ACCESS)
 			try:
 				frt = winreg.QueryValueEx(key, 'Format')
 			except WindowsError:
@@ -610,7 +621,7 @@ class Model(SimulatorBase.Model):
 			winreg.SetValueEx(key, 'Dec', 0, winreg.REG_SZ, '.')
 			winreg.SetValueEx(key, 'Separator', 0, winreg.REG_SZ, ';')
 			winreg.SetValueEx(key, 'AddTableName', 0, winreg.REG_DWORD, 0)
-			winreg.SetValueEx(key, 'AddColumnNames', 0, winreg.REG_DWORD, 1)
+			winreg.SetValueEx(key, 'AddColumnNames', 0, winreg.REG_DWORD, 2)
 			winreg.SetValueEx(key, 'AddColumnUnits', 0, winreg.REG_DWORD, 1)
 			winreg.FlushKey(key)
 			if canExportDisplayUnit:
