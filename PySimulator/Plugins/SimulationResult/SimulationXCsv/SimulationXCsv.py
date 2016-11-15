@@ -68,6 +68,7 @@ class Results(IntegrationResults.Results):
         csvfile = open(self.fileName, 'rb')
         reader = csv.reader(csvfile, delimiter=';')
         self._name = reader.next()  # first row contains the variable names
+        self._name[0] = 'time'
         self._unit = reader.next()  # second row contains the units
         data = numpy.loadtxt(csvfile, delimiter=';')
         csvfile.close()
@@ -76,11 +77,7 @@ class Results(IntegrationResults.Results):
         self._isParameter = len(self._name) * [False]
         if numpy.ndim(data) > 1:
             self.fileInfo['Columns'] = str(data.shape[1])
-            self.timeSeries.append(IntegrationResults.TimeSeries(data[:, 0], data[:, 1:], "linear"))
-
-            self._name = self._name[1:]  # delete 'Time'
-            self._unit = self._unit[1:]  # delete unit of 'Time'
-            self._isParameter = self._isParameter[1:]  # delete isParameter of 'Time'
+            self.timeSeries.append(IntegrationResults.TimeSeries(data[:, 0], data, "linear"))
         else:
             self.fileInfo['Columns'] = '1'
             data = numpy.reshape(data, (len(data), 1))
