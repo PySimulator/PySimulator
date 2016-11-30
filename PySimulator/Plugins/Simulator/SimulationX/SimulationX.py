@@ -171,7 +171,8 @@ class Model(SimulatorBase.Model):
 					# Try to load as library
 					try:
 						try:
-							sim.LoadLibrary(modelFileName[0])
+							libraryFileName = modelFileName[0].replace('/', '\\')
+							sim.LoadLibrary(libraryFileName)
 						except:
 							pass
 						# Write tracing marker message to output window in SimulationX
