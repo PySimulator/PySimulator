@@ -115,12 +115,12 @@ class Model(SimulatorBase.Model):
 				self._availableIntegrationAlgorithms = ['BDF (Byte code)', 'BDF (C code)', 'MEBDF (Byte code)', 'MEBDF (C code)', 'CVODE (C code)', 'Fixed Step (C code)']
 				self._solverByName = dict([('BDF (Byte code)', 'MultiStepMethod2'), ('BDF (C code)', 'BDFCompiled'), ('MEBDF (Byte code)', 'MEBDFDAE'), ('MEBDF (C code)', 'MEBDFCompiled'), ('CVODE (C code)', 'CVODE'), ('Fixed Step (C code)', 'FixStep')])
 				self._IntegrationAlgorithmHasFixedStepSize = [False, False, False, False, False, True]
-				self._IntegrationAlgorithmCanProvideStepSizeResults = [True, True, True, True, False, False]
+				self._IntegrationAlgorithmCanProvideStepSizeResults = [False, False, False, False, False, True]
 			else:
 				self._availableIntegrationAlgorithms = ['BDF (Byte code)', 'MEBDF (Byte code)', 'CVODE (C code)', 'Fixed Step (C code)']
 				self._solverByName = dict([('BDF (Byte code)', 'MultiStepMethod2'), ('MEBDF (Byte code)', 'MEBDFDAE'), ('CVODE (C code)', 'CVODE'), ('Fixed Step (C code)', 'FixStep')])
 				self._IntegrationAlgorithmHasFixedStepSize = [False, False, False, True]
-				self._IntegrationAlgorithmCanProvideStepSizeResults = [True, True, False, False]
+				self._IntegrationAlgorithmCanProvideStepSizeResults = [False, False, False, True]
 
 			self.integrationSettings.algorithmName = self._availableIntegrationAlgorithms[0]
 			self.simulationStopRequest = False
