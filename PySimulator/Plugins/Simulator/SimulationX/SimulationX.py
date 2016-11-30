@@ -298,7 +298,7 @@ class Model(SimulatorBase.Model):
 		if dim == '':
 			# Scalar dimension
 			childTypeIdent = pChild.Type.Ident
-			if not childTypeIdent == 'BuiltIn.BaseModel.ProtKind' and not childTypeIdent == 'StateSelect' and _isNumeric(pChild.Value):
+			if not childTypeIdent == 'BuiltIn.BaseModel.ProtKind' and not childTypeIdent == 'StateSelect':
 				# childRelIdent = pChild.GetRelIdent(doc)
 				childRelIdent = pChild.Ident
 				if childRelIdent.startswith(docIdentDot):
@@ -542,6 +542,15 @@ class Model(SimulatorBase.Model):
 						paramUnit.append(childUnit)
 						if childValue == '':
 							childValue = 0
+						if not _isNumeric(childValue):
+							childValue = pChild.Eval()
+							if type(childValue) == types.BooleanType:
+								if childValue:
+									childValue = '1'
+								else:
+									childValue = '0'
+							else:
+								childValue = '{0}'.format(childValue)
 						paramValue.append(childValue)
 				elif _isNumeric(dim):
 					# Fixed vector dimension
