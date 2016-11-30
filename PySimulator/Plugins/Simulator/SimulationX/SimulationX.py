@@ -363,7 +363,7 @@ class Model(SimulatorBase.Model):
 			childRelIdent = pChild.Ident
 			if childRelIdent.startswith(docIdentDot):
 				childRelIdent = childRelIdent[len(docIdentDot):]
-			if (not pChild.Parent == doc and not pObject.Name.find('_base') == 0) or (not childRelIdent == 't' and not childRelIdent == 'dt' and not childRelIdent == 'solverInfo' and not childRelIdent == 'lambdaHomotopy'):
+			if (not pChild.Parent == doc and not pObject.Name.find('_base') == 0) or (not childRelIdent == 't' and not childRelIdent == 'dt' and not childRelIdent == 'solverInfo' and not childRelIdent == 'lambdaHomotopy' and not childRelIdent == 'lambdaSteadyState'):
 				childValue = None
 				childValueEdit = False
 				childUnit = pChild.Unit
