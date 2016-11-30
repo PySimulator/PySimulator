@@ -275,7 +275,7 @@ class Model(SimulatorBase.Model):
 		for pChild in pObject.Children:
 			if pChild.Kind == simType:
 				continue
-			if pChild.GetProperty(simIsBaseClass) or pChild.GetProperty(simIsHidden) or pChild.GetProperty(simIsProtected) or pChild.GetProperty(simIsForCompat):
+			if pChild.GetProperty(simIsBaseClass) or (pChild.GetProperty(simIsHidden) and not pChild.GetProperty(simIsFinal)) or pChild.GetProperty(simIsProtected) or pChild.GetProperty(simIsForCompat):
 				continue
 			childIsASimVariable = pChild.IsA(simVariable)
 			if ((pChild.IsA(simParameter) or pChild.IsA(simGeneralParameter)) and not childIsASimVariable) or (pChild.GetProperty(simIsInput) and childIsASimVariable):
@@ -305,7 +305,7 @@ class Model(SimulatorBase.Model):
 					childRelIdent = childRelIdent[len(docIdentDot):]
 				if (not pChild.Parent == doc and not pObject.Name.find('_base') == 0) or (not childRelIdent == 'iSim' and not childRelIdent == 'tStart' and not childRelIdent == 'tStop'):
 					childValue = pChild.Value
-					childValueEdit = True
+					childValueEdit = not pChild.GetProperty(simIsFinal)
 					childUnit = pChild.Unit
 					if childUnit == '-':
 						childUnit = None
