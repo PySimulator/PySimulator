@@ -303,7 +303,7 @@ class Model(SimulatorBase.Model):
 				childRelIdent = pChild.Ident
 				if childRelIdent.startswith(docIdentDot):
 					childRelIdent = childRelIdent[len(docIdentDot):]
-				if (not pChild.Parent == doc and not pObject.Name.find('_base') == 0) or (not childRelIdent == 'iSim' and not childRelIdent == 'tStart' and not childRelIdent == 'tStop'):
+				if (not pChild.Parent == doc and not pObject.Name.find('_base') == 0) or (not childRelIdent == 'iSim' and not childRelIdent == 'tStart' and not childRelIdent == 'tStop' and not childRelIdent == 'userInitFile' and not childRelIdent == 'termCond' and not childRelIdent == 'traceOn' and not childRelIdent == 'protOn'):
 					childValue = pChild.Value
 					childValueEdit = not pChild.GetProperty(simIsFinal)
 					childUnit = pChild.Unit
