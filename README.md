@@ -27,9 +27,12 @@ with PySimulator](http:www.modprod.liu.se/modprod2013-program/1.456422/modprod20
 
 ####Release notes
 
-* Additional features of the master branch:
+* [Version 0.62](https://github.com/PySimulator/PySimulator/archive/0.62.zip) (2064-12-05):
  - Import of FMUs according to FMI 2.0 for Model Exchange and Co-Simulation
  - Simulator plugin for Wolfram SystemModeler
+ - Simulator plugin SimulationX: Fixed support for SimulationX 3.7
+ - Simulator plugin SimulationX: Added support for SimulationX 3.8
+
 
 * [Version 0.61](https://github.com/PySimulator/PySimulator/archive/0.61.zip) (2014-03-07) for 10th Modelica Conference 2014:
  - Added Simulator plugin SimulationX
