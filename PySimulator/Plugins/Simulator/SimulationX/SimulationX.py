@@ -5,7 +5,7 @@
 Copyright (C) 2011-2015 German Aerospace Center DLR
 (Deutsches Zentrum fuer Luft- und Raumfahrt e.V.),
 Institute of System Dynamics and Control
-Copyright (C) 2014-2016 ESI ITI GmbH
+Copyright (C) 2014-2018 ESI ITI GmbH
 All rights reserved.
 
 This file is part of PySimulator.
@@ -86,7 +86,7 @@ class Model(SimulatorBase.Model):
 
 		try:
 			if not config['Plugins']['SimulationX'].has_key('version'):
-				config['Plugins']['SimulationX']['version'] = 'Iti.Simx37'
+				config['Plugins']['SimulationX']['version'] = 'Iti.Simx38'
 				config.write()
 			dispatch = config['Plugins']['SimulationX']['version']
 			if dispatch == 'Iti.Simx36':
@@ -95,6 +95,8 @@ class Model(SimulatorBase.Model):
 				sub_key = r'Software\ITI GmbH\SimulationX 3.7\Modelica'
 			elif dispatch == 'Iti.Simx38':
 				sub_key = r'Software\ESI Group\SimulationX 3.8\Modelica'
+			elif dispatch == 'Iti.Simx39':
+				sub_key = r'Software\ESI Group\SimulationX 3.9\Modelica'
 			else:
 				sub_key = r'Software\ITI GmbH\SimulationX 3.5\Modelica'
 			# Make sure Modelica models can be simulated
@@ -111,7 +113,7 @@ class Model(SimulatorBase.Model):
 			self.integrationResults = SimulationXCsv.Results('')
 			self.integrationSettings.resultFileExtension = 'csvx'
 
-			if dispatch == 'Iti.Simx38':
+			if dispatch == 'Iti.Simx38' or dispatch == 'Iti.Simx39':
 				self._availableIntegrationAlgorithms = ['BDF (Byte code)', 'BDF (C code)', 'MEBDF (Byte code)', 'MEBDF (C code)', 'CVODE (C code)', 'Fixed Step (C code)']
 				self._solverByName = dict([('BDF (Byte code)', 'MultiStepMethod2'), ('BDF (C code)', 'BDFCompiled'), ('MEBDF (Byte code)', 'MEBDFDAE'), ('MEBDF (C code)', 'MEBDFCompiled'), ('CVODE (C code)', 'CVODE'), ('Fixed Step (C code)', 'FixStep')])
 				self._IntegrationAlgorithmHasFixedStepSize = [False, False, False, False, False, True]
@@ -595,6 +597,8 @@ class Model(SimulatorBase.Model):
 				sub_key = r'Software\ITI GmbH\SimulationX 3.7\DataFilter'
 			elif ver == 'Iti.Simx38':
 				sub_key = r'Software\ESI Group\SimulationX 3.8\DataFilter'
+			elif ver == 'Iti.Simx39':
+				sub_key = r'Software\ESI Group\SimulationX 3.9\DataFilter'
 			else:
 				sub_key = r'Software\ITI GmbH\SimulationX 3.5\DataFilter'
 				canExportDisplayUnit = False
