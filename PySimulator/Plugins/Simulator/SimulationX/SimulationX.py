@@ -443,6 +443,9 @@ class Model(SimulatorBase.Model):
 			print 'SimulationX: COM error.'
 			raise(SimulatorBase.Stopping)
 		except:
+			print 'SimulationX: Unhandled exception.'
+			import traceback
+			print traceback.format_exc()
 			raise(SimulatorBase.Stopping)
 		finally:
 			if not type(sim) is types.NoneType:
