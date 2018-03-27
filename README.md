@@ -26,25 +26,20 @@ with PySimulator](http:www.modprod.liu.se/modprod2013-program/1.456422/modprod20
 * Further information about the installation can be found in the [wiki](../../wiki/Installation).
 
 #### Release notes
-
 * [Version 0.62](https://github.com/PySimulator/PySimulator/archive/0.62.zip) (2016-12-05):
- - Import of FMUs according to FMI 2.0 for Model Exchange and Co-Simulation
- - Simulator plugin for Wolfram SystemModeler
- - Simulator plugin SimulationX: Fixed support for SimulationX 3.7
- - Simulator plugin SimulationX: Added support for SimulationX 3.8
-
-
+  - Import of FMUs according to FMI 2.0 for Model Exchange and Co-Simulation
+  - Simulator plugin for Wolfram SystemModeler
+  - Simulator plugin SimulationX: Fixed support for SimulationX 3.7
+  - Simulator plugin SimulationX: Added support for SimulationX 3.8
 * [Version 0.61](https://github.com/PySimulator/PySimulator/archive/0.61.zip) (2014-03-07) for 10th Modelica Conference 2014:
- - Added Simulator plugin SimulationX
- - Added Simulator plugin OpenModelica
- - Bug fixes
-
+  - Added Simulator plugin SimulationX
+  - Added Simulator plugin OpenModelica
+  - Bug fixes
 * [Version 0.6](https://github.com/PySimulator/PySimulator/archive/0.6.zip) (2014-02-03):
- - New plugin for comparing result files (Testing plugin)
- - Simulation of lists of models (Testing plugin)
- - Improved simulator plugin interfaces
- - FMUSimulator including JModelica.org's Assimulo
- - Introduction of a working directory
-
+  - New plugin for comparing result files (Testing plugin)
+  - Simulation of lists of models (Testing plugin)
+  - Improved simulator plugin interfaces
+  - FMUSimulator including JModelica.org's Assimulo
+  - Introduction of a working directory
 * [Version 0.5](https://github.com/PySimulator/PySimulator/archive/0.5.zip) (2012-09-03):
- - Initial version including plugins for Dymola and FMU simulator
+  - Initial version including plugins for Dymola and FMU simulator
