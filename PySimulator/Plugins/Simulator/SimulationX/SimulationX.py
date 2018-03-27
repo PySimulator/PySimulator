@@ -280,7 +280,8 @@ class Model(SimulatorBase.Model):
 			if pChild.GetProperty(simIsBaseClass) or (pChild.GetProperty(simIsHidden) and not pChild.GetProperty(simIsFinal)) or pChild.GetProperty(simIsProtected) or pChild.GetProperty(simIsForCompat):
 				continue
 			childIsASimVariable = pChild.IsA(simVariable)
-			if ((pChild.IsA(simParameter) or pChild.IsA(simGeneralParameter)) and not childIsASimVariable) or (pChild.GetProperty(simIsInput) and childIsASimVariable):
+			childIsASimParameter = pChild.IsA(simParameter)
+			if ((childIsASimParameter or pChild.IsA(simGeneralParameter)) and not childIsASimVariable) or (childIsASimParameter and pChild.GetProperty(simIsInput) and childIsASimVariable):
 				# Parameter
 				self._fillTreeParam(pObject, doc, pChild)
 			elif childIsASimVariable:
@@ -522,7 +523,8 @@ class Model(SimulatorBase.Model):
 		for name, item in self.variableTree.variable.iteritems():
 			pChild = doc.Lookup(name)
 			childIsASimVariable = pChild.IsA(simVariable)
-			if childIsASimVariable and not pChild.GetProperty(simIsInput):
+			childIsASimParameter = pChild.IsA(simParameter)
+			if childIsASimVariable:
 				# Result
 				try:
 					pChild.Protocol = True
@@ -531,7 +533,7 @@ class Model(SimulatorBase.Model):
 						pChild.Parent.Results(pChild.Name).Protocol = True
 					except:
 						pass
-			elif ((pChild.IsA(simParameter) or pChild.IsA(simGeneralParameter)) and not childIsASimVariable) or (pChild.GetProperty(simIsInput) and childIsASimVariable):
+			if ((childIsASimParameter or pChild.IsA(simGeneralParameter)) and not childIsASimVariable) or (childIsASimParameter and pChild.GetProperty(simIsInput) and childIsASimVariable):
 				# Parameter
 				childRelIdent = re.sub(r'\[.*?\]', '', name)
 				childUnit = pChild.Unit.encode(locale.getpreferredencoding())
