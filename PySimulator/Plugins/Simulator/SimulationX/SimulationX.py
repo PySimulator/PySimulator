@@ -145,7 +145,7 @@ class Model(SimulatorBase.Model):
 			sim.Interactive = False
 
 			# Load libraries
-			if sim.InitState == simInitBase:
+			if sim.InitState == simInitBase and (dispatch == 'Iti.Simx3' or dispatch == 'Iti.Simx36' or dispatch == 'Iti.Simx37'):
 				sim.InitSimEnvironment()
 
 			self.modelType += ' ' + sim.Version
