@@ -204,8 +204,12 @@ class Model(SimulatorBase.Model):
 					self._marshalled_doc = None
 					print 'SimulationX: Load error.'
 
+		except win32com.client.pywintypes.com_error as error:
+			print 'SimulationX: COM error.'
 		except:
-			print 'SimulationX: Error.'
+			print 'SimulationX: Unhandled exception.'
+			import traceback
+			print traceback.format_exc()
 
 		finally:
 			try:
@@ -235,7 +239,9 @@ class Model(SimulatorBase.Model):
 		except win32com.client.pywintypes.com_error:
 			print 'SimulationX: COM error.'
 		except:
-			print 'SimulationX: Error.'
+			print 'SimulationX: Unhandled exception.'
+			import traceback
+			print traceback.format_exc()
 		finally:
 			SimulatorBase.Model.close(self)
 			if not type(sim) is types.NoneType:
