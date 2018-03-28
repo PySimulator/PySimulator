@@ -25,9 +25,9 @@ echo side a variaty of additional software libraries. Python XY offers all of th
 echo software in one package.
 echo During the installation please make sure to select the option "Full".
 echo If unsure select "y"
-set /p installpxy=Download and start installer for Python XY 2.7.6?(Y/N):
+set /p installpxy=Download and start installer for Python XY 2.7.6.1?(Y/N):
 if /I not "%installpxy%"=="y" goto skippxy
-bitsadmin /TRANSFER "PySimulaterInstallation" /PRIORITY FOREGROUND http://ftp.ntua.gr/pub/devel/pythonxy/Python(x,y)-2.7.6.0.exe %TEMP%/pxy.exe
+bitsadmin /TRANSFER "PySimulaterInstallation" /PRIORITY FOREGROUND http://ftp.ntua.gr/pub/devel/pythonxy/Python(x,y)-2.7.6.1.exe %TEMP%/pxy.exe
 call %TEMP%/pxy.exe
 :skippxy
 
@@ -37,10 +37,10 @@ echo Suite, required by PySimulator. If you already installed ETS during the
 echo previous step or you selected the "Full" option, this is not required but
 echo is also unlikely to cause any problems.
 echo If unsure select "y"
-set /p installets=Download and start installer for Enthought Tool Suite 4.4.1-6?(Y/N):
+set /p installets=Download and start installer for Enthought Tool Suite 4.4.2-11?(Y/N):
 if /I not "%installets%"=="y" goto skipets
-bitsadmin /TRANSFER "PySimulaterInstallation" /PRIORITY FOREGROUND http://heanet.dl.sourceforge.net/project/python-xy/plugins/EnthoughtToolSuite-4.4.1-6_py27.exe %TEMP%/EnthoughtToolSuite-4.4.1-6_py27.exe
-call %TEMP%/EnthoughtToolSuite-4.4.1-6_py27.exe
+bitsadmin /TRANSFER "PySimulaterInstallation" /PRIORITY FOREGROUND https://ayera.dl.sourceforge.net/project/python-xy/plugins/EnthoughtToolSuite-4.4.2-11_py27.exe %TEMP%/EnthoughtToolSuite-4.4.2-11_py27.exe
+call %TEMP%/EnthoughtToolSuite-4.4.2-11_py27.exe
 :skipets
 
 C:\Python27\python.exe setup.py install
