@@ -285,7 +285,7 @@ class Model(SimulatorBase.Model):
 		for pChild in pObject.Children:
 			if pChild.Kind == simType:
 				continue
-			if pChild.GetProperty(simIsBaseClass) or (pChild.GetProperty(simIsHidden) and not pChild.GetProperty(simIsFinal)) or pChild.GetProperty(simIsProtected) or pChild.GetProperty(simIsForCompat):
+			if pChild.GetProperty(simIsBaseClass) or (pChild.GetProperty(simIsHidden) and not pChild.GetProperty(simIsFinal)) or pChild.GetProperty(simIsProtected) or pChild.GetProperty(simIsForCompat) or pChild.GetProperty(simIsAttribute):
 				continue
 			childIsASimVariable = pChild.IsA(simVariable)
 			childIsASimParameter = pChild.IsA(simParameter)
